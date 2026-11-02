@@ -4,17 +4,15 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/dictionaries/project.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Components/Footer.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/auth/admin/login/page.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/auth/member/login/page.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/auth/member/register/page.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/supabase/client.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/supabase/server.ts" afterDir="false" />
+    <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="Friction-free member onboarding, auth, and responsive UI:&#10;- Responsive landing page with emerald/indigo ambient lighting and mobile-first design.&#10;- Frictionless member registration &amp; login using phone numbers (no passwords required for church members).&#10;- Added localStorage form draft persistence to prevent data loss on mobile browser reloads.&#10;- Created dedicated admin login route with role verification.&#10;- Wrapped search params in Suspense and configured Supabase RLS policies for smooth database inserts.&#10;- Included Vercel Analytics and Speed Insights in root layout.">
+      <change afterPath="$PROJECT_DIR$/Components/OfflineSyncProvider.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/member/dashboard/page.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/offlineSync.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/auth/admin/login/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/auth/admin/login/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/auth/member/login/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/auth/member/login/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/auth/member/register/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/auth/member/register/page.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/page.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -24,71 +22,74 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="TypeScript File" />
         <option value="TypeScript JSX File" />
+        <option value="TypeScript File" />
       </list>
     </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GithubDefaultAccount">
+    <option name="defaultAccountId" value="52f33be2-b2a3-4ce1-83a1-121ebd13f971" />
+  </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
       <entry key="MS100" value="1.0" />
       <entry key="MS500" value="1.0" />
-      <entry key="S2" value="1.0000000000000009" />
-      <entry key="S5" value="1.0000011014914765" />
-      <entry key="S10" value="1.0014008672511958" />
-      <entry key="S30" value="1.1842382376944514" />
-      <entry key="S60" value="1.6962407125800254" />
-      <entry key="M2" value="2.585033882033618" />
-      <entry key="M5" value="4.7210218312754755" />
-      <entry key="M10" value="7.433599686603132" />
-      <entry key="M15" value="9.958461093437311" />
-      <entry key="M30" value="16.590321345325883" />
-      <entry key="H1" value="24.28163753014708" />
-      <entry key="H2" value="30.427683659170267" />
-      <entry key="H4" value="34.354223050893374" />
-      <entry key="D1" value="38.17009028379309" />
-      <entry key="W1" value="38.87999875207539" />
+      <entry key="S2" value="1.0000000001450047" />
+      <entry key="S5" value="1.0002006383102486" />
+      <entry key="S10" value="1.024050733344301" />
+      <entry key="S30" value="1.602242450911462" />
+      <entry key="S60" value="2.4108171594956085" />
+      <entry key="M2" value="3.4774562880819704" />
+      <entry key="M5" value="6.546093604885508" />
+      <entry key="M10" value="10.51890927802406" />
+      <entry key="M15" value="13.393881797390456" />
+      <entry key="M30" value="20.317240522345486" />
+      <entry key="H1" value="30.827970594498233" />
+      <entry key="H2" value="42.17220534773953" />
+      <entry key="H4" value="50.961417148061535" />
+      <entry key="D1" value="60.71621672926218" />
+      <entry key="W1" value="62.66615072670075" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
-      <entry key="MS500" value="1.5427672075526113E-257" />
-      <entry key="S2" value="6.267222303812438E-65" />
-      <entry key="S5" value="2.0836752822588568E-26" />
-      <entry key="S10" value="1.4434941227052218E-13" />
-      <entry key="S30" value="5.247182922115579E-5" />
-      <entry key="S60" value="0.007441212184969714" />
-      <entry key="M2" value="0.1095160748752632" />
-      <entry key="M5" value="0.895695449318626" />
-      <entry key="M10" value="2.3516138454871163" />
-      <entry key="M15" value="3.4613832594757947" />
-      <entry key="M30" value="5.367443652164075" />
-      <entry key="H1" value="6.867041695407397" />
-      <entry key="H2" value="7.835094128974937" />
-      <entry key="H4" value="8.389903223453244" />
-      <entry key="D1" value="8.89418298123194" />
-      <entry key="W1" value="8.984777911163166" />
+      <entry key="MS500" value="9.9E-324" />
+      <entry key="S2" value="1.776669934571618E-81" />
+      <entry key="S5" value="5.010080351699686E-33" />
+      <entry key="S10" value="7.101504778845668E-17" />
+      <entry key="S30" value="5.847733794922808E-6" />
+      <entry key="S60" value="0.005282342533637905" />
+      <entry key="M2" value="0.20177646996006907" />
+      <entry key="M5" value="2.04522679516539" />
+      <entry key="M10" value="4.68230304959253" />
+      <entry key="M15" value="6.386262894677658" />
+      <entry key="M30" value="9.599776661794605" />
+      <entry key="H1" value="13.136860022881446" />
+      <entry key="H2" value="16.215003942816615" />
+      <entry key="H4" value="18.33305056667297" />
+      <entry key="D1" value="20.510638425791704" />
+      <entry key="W1" value="20.928891078157292" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.03820750867787713" />
-      <entry key="MS500" value="0.5205107988420558" />
-      <entry key="S2" value="0.8493905717812127" />
-      <entry key="S5" value="0.9367926713491685" />
-      <entry key="S10" value="0.9692800604514374" />
-      <entry key="S30" value="1.1734285309079795" />
-      <entry key="S60" value="1.6978672909105927" />
-      <entry key="M2" value="2.6876036925635116" />
-      <entry key="M5" value="5.598115037067552" />
-      <entry key="M10" value="9.76228529414722" />
-      <entry key="M15" value="13.398095367598703" />
-      <entry key="M30" value="21.941467260131557" />
-      <entry key="H1" value="31.13837004439733" />
-      <entry key="H2" value="38.25690914766626" />
-      <entry key="H4" value="42.74098367810682" />
-      <entry key="D1" value="47.06371753238833" />
-      <entry key="W1" value="47.864696446288136" />
+      <entry key="MS100" value="0.0027813480382755293" />
+      <entry key="MS500" value="0.30821308136595166" />
+      <entry key="S2" value="0.7450969178372338" />
+      <entry key="S5" value="0.88914196191599" />
+      <entry key="S10" value="0.9653895593537363" />
+      <entry key="S30" value="1.5701336748447101" />
+      <entry key="S60" value="2.3907027684872166" />
+      <entry key="M2" value="3.6439547376905517" />
+      <entry key="M5" value="8.522494518797917" />
+      <entry key="M10" value="15.134421185716784" />
+      <entry key="M15" value="19.72280900754336" />
+      <entry key="M30" value="29.877098597537817" />
+      <entry key="H1" value="43.93906819194318" />
+      <entry key="H2" value="58.37187327108499" />
+      <entry key="H4" value="69.28596330473935" />
+      <entry key="D1" value="81.225294980554" />
+      <entry key="W1" value="83.59481501036804" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo"><![CDATA[{
@@ -123,6 +124,7 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\gbeng\WebstormProjects\didache-x-milkandhoney\app\member" />
       <recent name="C:\Users\gbeng\WebstormProjects\didache-x-milkandhoney\app\auth\admin" />
       <recent name="C:\Users\gbeng\WebstormProjects\didache-x-milkandhoney\app\auth\member" />
     </key>
@@ -141,11 +143,24 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1793573181326</updated>
-      <workItem from="1793573185649" duration="6223000" />
+      <workItem from="1793573185649" duration="10174000" />
     </task>
+    <task id="LOCAL-00001" summary="Friction-free member onboarding, auth, and responsive UI:&#10;- Responsive landing page with emerald/indigo ambient lighting and mobile-first design.&#10;- Frictionless member registration &amp; login using phone numbers (no passwords required for church members).&#10;- Added localStorage form draft persistence to prevent data loss on mobile browser reloads.&#10;- Created dedicated admin login route with role verification.&#10;- Wrapped search params in Suspense and configured Supabase RLS policies for smooth database inserts.&#10;- Included Vercel Analytics and Speed Insights in root layout.">
+      <option name="closed" value="true" />
+      <created>1793579966834</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1793579966834</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Friction-free member onboarding, auth, and responsive UI:&#10;- Responsive landing page with emerald/indigo ambient lighting and mobile-first design.&#10;- Frictionless member registration &amp; login using phone numbers (no passwords required for church members).&#10;- Added localStorage form draft persistence to prevent data loss on mobile browser reloads.&#10;- Created dedicated admin login route with role verification.&#10;- Wrapped search params in Suspense and configured Supabase RLS policies for smooth database inserts.&#10;- Included Vercel Analytics and Speed Insights in root layout." />
+    <option name="LAST_COMMIT_MESSAGE" value="Friction-free member onboarding, auth, and responsive UI:&#10;- Responsive landing page with emerald/indigo ambient lighting and mobile-first design.&#10;- Frictionless member registration &amp; login using phone numbers (no passwords required for church members).&#10;- Added localStorage form draft persistence to prevent data loss on mobile browser reloads.&#10;- Created dedicated admin login route with role verification.&#10;- Wrapped search params in Suspense and configured Supabase RLS policies for smooth database inserts.&#10;- Included Vercel Analytics and Speed Insights in root layout." />
   </component>
 </project>

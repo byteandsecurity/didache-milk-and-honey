@@ -48,7 +48,7 @@ export default function MemberRegisterPage() {
         localStorage.removeItem('draft_homeAddress');
     };
 
-    const handleRegister = async (e: React.FormEvent) => {
+    const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
         setErrorMsg(null);
@@ -87,7 +87,11 @@ export default function MemberRegisterPage() {
                 .select()
                 .single();
 
-            if (error) throw error;
+            if (error) {
+                setErrorMsg(error.message || `Problem Creating a Profile`)
+                setLoading(false);
+                return;
+            }
 
             if (newProfile) {
                 localStorage.setItem('didache_member_id', newProfile.id);

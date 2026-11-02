@@ -16,36 +16,45 @@ export default function AdminPortalPage() {
     const router = useRouter();
     const supabase = createClient();
 
-    const handleAdminLogin = async (e: React.FormEvent) => {
+    const handleAdminLogin = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
         setErrorMsg(null);
 
-        try {
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            });
+        // 1. Authenticate with Supabase
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
 
-            if (error) throw error;
-
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', data.user.id)
-                .single();
-
-            if (profile && profile.role !== 'admin' && profile.role !== 'super_admin') {
-                await supabase.auth.signOut();
-                throw new Error('Access restricted to Sunday School Admins.');
-            }
-
-            router.push('/admin/dashboard');
-        } catch (err: any) {
-            setErrorMsg(err.message || 'Authentication failed.');
-        } finally {
+        if (error) {
+            setErrorMsg(error.message || 'Authentication failed.');
             setLoading(false);
+            return;
         }
+
+        // 2. Fetch user profile role
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .single();
+
+        if (profileError || !profile) {
+            setErrorMsg('Could not verify staff credentials.');
+            setLoading(false);
+            return;
+        }
+
+        if (profile.role !== 'admin' && profile.role !== 'super_admin') {
+            await supabase.auth.signOut();
+            setErrorMsg('Access restricted to Sunday School Admins.');
+            setLoading(false);
+            return;
+        }
+
+        // 3. Success redirect
+        router.push('/admin/dashboard');
     };
 
     return (

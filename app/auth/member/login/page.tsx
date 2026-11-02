@@ -15,7 +15,7 @@ function MemberLoginForm() {
     const router = useRouter();
     const supabase = createClient();
 
-    const handlePhoneLogin = async (e: React.FormEvent) => {
+    const handlePhoneLogin = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
         setErrorMsg(null);
@@ -28,13 +28,15 @@ function MemberLoginForm() {
                 .maybeSingle();
 
             if (error || !profile) {
-                throw new Error('Phone number not found. Please click "Register" below to create a profile.');
+                setErrorMsg('Phone number not found. Please click "Register" below to create a profile.')
+                setLoading(false);
+                return;
             }
 
             localStorage.setItem('didache_member_id', profile.id);
             localStorage.setItem('didache_member_name', `${profile.first_name} ${profile.last_name}`);
 
-            router.push('/dashboard');
+            router.push('/member/dashboard');
         } catch (err: any) {
             setErrorMsg(err.message || 'Login failed.');
         } finally {
