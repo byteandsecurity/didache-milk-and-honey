@@ -4,7 +4,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { UserCheck, Heart, Sparkles, BookOpen, ArrowRight, User, KeyRound } from 'lucide-react';
-import Footer from '@/components/Footer';
+import Footer from '@/Components/Footer';
 
 function CheckInContent() {
     const router = useRouter();
