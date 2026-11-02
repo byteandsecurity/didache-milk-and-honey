@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { User, QrCode, Calendar, Shield, Edit3, Save, LifeBuoy, ArrowRight, BookOpen, LogOut, MessageCircle, BarChart3, PieChart, CheckCircle2 } from 'lucide-react';
+import { User, QrCode, Calendar, Shield, Edit3, Save, LifeBuoy, ArrowRight, BookOpen, LogOut, MessageCircle, BarChart3, PieChart, CheckCircle2, X } from 'lucide-react';
 import Footer from '@/Components/Footer';
 
 export default function MemberDashboard() {
@@ -14,16 +14,45 @@ export default function MemberDashboard() {
     const [saving, setSaving] = useState(false);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [chartView, setChartView] = useState<'grid' | 'stats'>('grid');
+    const [showScannerModal, setShowScannerModal] = useState(false);
+    const [scannerStatus, setScannerStatus] = useState<string | null>(null);
 
     // Editable fields state
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
+    const [gender, setGender] = useState('Male');
     const [whatsappNumber, setWhatsappNumber] = useState('');
     const [homeAddress, setHomeAddress] = useState('');
     const [occupationType, setOccupationType] = useState('');
 
     const router = useRouter();
     const supabase = createClient();
+
+    // Scanner Handler function
+    const handleScanQRCode = async () => {
+        setShowScannerModal(true);
+        setScannerStatus('Requesting camera access...');
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+            setScannerStatus('Camera active! Point at Sunday QR code.');
+        } catch (err) {
+            setScannerStatus('Camera permission denied or unavailable. Using manual simulation.');
+        }
+    };
+
+    const simulateSuccessfulScan = async () => {
+        const memberId = localStorage.getItem('didache_member_id');
+        const todayDate = new Date().toISOString().split('T')[0];
+
+        // Call offline-ready attendance record function
+        const { recordAttendance } = await import('@/lib/offlineSync');
+        const result = await recordAttendance(memberId!, todayDate);
+
+        alert(result.message);
+        setShowScannerModal(false);
+        window.location.reload();
+    };
 
     useEffect(() => {
         const fetchMemberData = async () => {
@@ -48,7 +77,8 @@ export default function MemberDashboard() {
             setProfile(profileData);
             setFirstName(profileData.first_name || '');
             setLastName(profileData.last_name || '');
-            setWhatsappNumber(profileData.whatsapp_number || '');
+            setGender(profileData.gender || 'Male');
+            setWhatsappNumber(profileData.phone_number || '');
             setHomeAddress(profileData.home_address || '');
             setOccupationType(profileData.occupation_type || 'student');
 
@@ -62,7 +92,6 @@ export default function MemberDashboard() {
             setLoading(false);
         };
 
-        // Call the async function safely
         void fetchMemberData();
     }, [router, supabase]);
 
@@ -72,21 +101,37 @@ export default function MemberDashboard() {
         setSuccessMsg(null);
 
         const memberId = localStorage.getItem('didache_member_id');
+
+        // Update profile in Supabase table
         const { error } = await supabase
             .from('profiles')
             .update({
                 first_name: firstName,
                 last_name: lastName,
-                whatsapp_number: whatsappNumber,
+                phone_number: whatsappNumber,
+                gender: gender,
                 home_address: homeAddress,
                 occupation_type: occupationType,
             })
             .eq('id', memberId);
 
-        if (!error) {
+        if (error) {
+            alert(`Failed to update profile: ${error.message}`);
+        } else {
             setSuccessMsg('Profile updated successfully!');
             setIsEditing(false);
             localStorage.setItem('didache_member_name', `${firstName} ${lastName}`);
+
+            // Refresh local profile state instantly
+            setProfile((prev: any) => ({
+                ...prev,
+                first_name: firstName,
+                last_name: lastName,
+                phone_number: whatsappNumber,
+                gender: gender,
+                home_address: homeAddress,
+                occupation_type: occupationType,
+            }));
         }
         setSaving(false);
     };
@@ -134,24 +179,32 @@ export default function MemberDashboard() {
             {/* Main Content Grid */}
             <main className="my-8 space-y-6">
 
+                {/* SUCCESS NOTIFICATION WITH X CLOSE BUTTON */}
                 {successMsg && (
-                    <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300">
-                        {successMsg}
+                    <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300 flex items-center justify-between shadow-lg">
+                        <span>{successMsg}</span>
+                        <button
+                            onClick={() => setSuccessMsg(null)}
+                            className="text-emerald-400 hover:text-white p-1 transition"
+                            aria-label="Dismiss"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
                     </div>
                 )}
 
-                {/* Quick Actions Card (Scan & Check-in) */}
+                {/* Quick Actions Card */}
                 <div className="rounded-3xl border border-emerald-500/30 bg-linear-to-r from-emerald-950/40 via-slate-900/80 to-slate-900 p-6 shadow-2xl backdrop-blur-xl flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="space-y-1 text-center sm:text-left">
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 uppercase tracking-wider">
-              <QrCode className="w-3.5 h-3.5" /> Sunday Service Active
-            </span>
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 uppercase tracking-wider">
+                            <QrCode className="w-3.5 h-3.5" /> Sunday Service Active
+                        </span>
                         <h2 className="text-xl font-bold text-white">Ready for Sunday School?</h2>
                         <p className="text-xs text-slate-400">Scan the Sunday QR code displayed in hall to log your attendance.</p>
                     </div>
 
                     <button
-                        onClick={() => alert("QR Scanner modal will open here once camera integration is loaded!")}
+                        onClick={handleScanQRCode}
                         className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-600/30 active:scale-95 transition-all"
                     >
                         <QrCode className="w-4 h-4" />
@@ -187,7 +240,8 @@ export default function MemberDashboard() {
                                             type="text"
                                             value={firstName}
                                             onChange={(e) => setFirstName(e.target.value)}
-                                            className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none"
+                                            required
+                                            className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
                                         />
                                     </div>
                                     <div>
@@ -196,28 +250,39 @@ export default function MemberDashboard() {
                                             type="text"
                                             value={lastName}
                                             onChange={(e) => setLastName(e.target.value)}
-                                            className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none"
+                                            required
+                                            className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
                                         />
                                     </div>
                                 </div>
-
                                 <div>
-                                    <label className="block text-[11px] font-medium text-slate-400 mb-1">WhatsApp Number</label>
+                                    <label className="block text-[11px] font-medium text-slate-400 mb-1">Gender</label>
+                                    <select
+                                        value={gender}
+                                        onChange={(e) => setGender(e.target.value)}
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+                                    >
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-[11px] font-medium text-slate-400 mb-1">Phone Number</label>
                                     <input
                                         type="tel"
                                         value={whatsappNumber}
                                         onChange={(e) => setWhatsappNumber(e.target.value)}
-                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none"
+                                        required
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
                                     />
                                 </div>
-
                                 <div>
                                     <label className="block text-[11px] font-medium text-slate-400 mb-1">Address</label>
                                     <input
                                         type="text"
                                         value={homeAddress}
                                         onChange={(e) => setHomeAddress(e.target.value)}
-                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none"
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
                                     />
                                 </div>
 
@@ -237,16 +302,20 @@ export default function MemberDashboard() {
                                     <span className="font-semibold text-slate-200">{profile?.first_name} {profile?.last_name}</span>
                                 </div>
                                 <div className="flex justify-between py-1 border-b border-slate-800/60">
+                                    <span className="text-slate-400">Gender</span>
+                                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${
+                                        profile?.gender === 'Female' ? 'bg-pink-500/10 text-pink-400 border border-pink-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                                    }`}>
+                                        {profile?.gender || 'Male'}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between py-1 border-b border-slate-800/60">
                                     <span className="text-slate-400">Phone Number</span>
                                     <span className="font-semibold text-slate-200">{profile?.phone_number}</span>
                                 </div>
                                 <div className="flex justify-between py-1 border-b border-slate-800/60">
-                                    <span className="text-slate-400">WhatsApp</span>
-                                    <span className="font-semibold text-slate-200">{profile?.whatsapp_number || 'Not set'}</span>
-                                </div>
-                                <div className="flex justify-between py-1 border-b border-slate-800/60">
                                     <span className="text-slate-400">Occupation</span>
-                                    <span className="font-semibold text-slate-200 capitalize">{profile?.occupation_type}</span>
+                                    <span className="font-semibold text-slate-200 capitalize">{profile?.occupation_type || 'Student'}</span>
                                 </div>
                                 <div className="flex justify-between py-1">
                                     <span className="text-slate-400">Address</span>
@@ -258,15 +327,13 @@ export default function MemberDashboard() {
 
                     {/* Right Column: Support Cards */}
                     <div className="lg:col-span-6 space-y-4">
-
-                        {/* Sunday School Department Support */}
                         <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 shadow-xl backdrop-blur-xl space-y-2">
                             <div className="flex items-center gap-2 text-sm font-bold text-white">
                                 <MessageCircle className="w-4 h-4 text-emerald-400" />
                                 <span>Sunday School Department Support</span>
                             </div>
                             <p className="text-xs text-slate-400">
-                                Have questions about Sunday school lessons, manuals, or need to reach out to teachers?
+                                Have questions about Sunday school lessons or manuals? Reach out to teachers.
                             </p>
                             <a
                                 href="https://wa.me/"
@@ -279,14 +346,13 @@ export default function MemberDashboard() {
                             </a>
                         </div>
 
-                        {/* Technical Support (Byte & Security) */}
                         <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 shadow-xl backdrop-blur-xl space-y-2">
                             <div className="flex items-center gap-2 text-sm font-bold text-white">
                                 <LifeBuoy className="w-4 h-4 text-emerald-400" />
                                 <span>Technical Support (Byte & Security)</span>
                             </div>
                             <p className="text-xs text-slate-400">
-                                Facing issues with scanning, logins, or portal bugs? Contact the tech engineering team.
+                                Facing scanning or login issues? Contact the tech engineering team.
                             </p>
                             <a
                                 href="mailto:support@byteandsecurity.org"
@@ -296,16 +362,12 @@ export default function MemberDashboard() {
                                 <ArrowRight className="w-3.5 h-3.5" />
                             </a>
                         </div>
-
                     </div>
-
                 </div>
 
-                {/* Full-Width Monthly Analytics Section at the Bottom */}
+                {/* Monthly Analytics Section */}
                 <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 shadow-xl backdrop-blur-xl space-y-6">
-
                     {(() => {
-                        // Helper to dynamically calculate all Sundays in the current month
                         const now = new Date();
                         const year = now.getFullYear();
                         const month = now.getMonth();
@@ -337,7 +399,6 @@ export default function MemberDashboard() {
                                         </p>
                                     </div>
 
-                                    {/* Format Toggle Buttons */}
                                     <div className="flex items-center gap-1 bg-slate-950/60 p-1 rounded-xl border border-slate-800">
                                         <button
                                             onClick={() => setChartView('grid')}
@@ -360,14 +421,12 @@ export default function MemberDashboard() {
                                     </div>
                                 </div>
 
-                                {/* Analytics Display Area */}
                                 {chartView === 'grid' ? (
                                     <div className="space-y-4">
                                         <div className="text-xs font-semibold text-slate-300">Sunday Service Check-Ins (This Month)</div>
                                         <div className={`grid grid-cols-2 sm:grid-cols-${totalSundays === 5 ? '5' : '4'} gap-3`}>
                                             {sundaysInMonth.map((sundayDate, index) => {
                                                 const weekNum = index + 1;
-                                                // Check if member checked in on or near this Sunday date
                                                 const formattedDateStr = sundayDate.toISOString().split('T')[0];
                                                 const hasAttended = attendance.some(att =>
                                                     att.sessions?.session_date === formattedDateStr || index < attendance.length
@@ -422,11 +481,33 @@ export default function MemberDashboard() {
                             </>
                         );
                     })()}
-
                 </div>
             </main>
 
             <Footer />
+
+            {showScannerModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4">
+                    <div className="w-full max-w-sm rounded-3xl border border-slate-800 bg-slate-900 p-6 text-center space-y-4 shadow-2xl">
+                        <div className="flex justify-between items-center pb-2 border-b border-slate-800">
+                            <h3 className="text-sm font-bold text-white">Scan Sunday Service QR</h3>
+                            <button onClick={() => setShowScannerModal(false)} className="text-slate-400 hover:text-white"><X className="w-4 h-4" /></button>
+                        </div>
+
+                        <div className="h-48 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col items-center justify-center p-4">
+                            <QrCode className="w-12 h-12 text-emerald-400 animate-pulse mb-2" />
+                            <p className="text-xs text-slate-300">{scannerStatus}</p>
+                        </div>
+
+                        <button
+                            onClick={simulateSuccessfulScan}
+                            className="w-full rounded-xl bg-emerald-600 py-3 text-xs font-semibold text-white shadow"
+                        >
+                            Simulate Successful Scan & Check-In
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

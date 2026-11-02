@@ -4,13 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { User, Phone, MessageSquare, Briefcase, MapPin, Calendar, CheckCircle, ArrowLeft, Mail } from 'lucide-react';
+import { User, Phone, MessageSquare, Briefcase, MapPin, Calendar, CheckCircle, ArrowLeft, Mail, Users } from 'lucide-react';
 import Footer from '@/Components/Footer';
 
 export default function MemberRegisterPage() {
     // Initialize state from localStorage if available (prevents loss on refresh)
     const [firstName, setFirstName] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('draft_firstName') || '' : '');
     const [lastName, setLastName] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('draft_lastName') || '' : '');
+    const [gender, setGender] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('draft_gender') || 'Male' : 'Male');
     const [phoneNumber, setPhoneNumber] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('draft_phoneNumber') || '' : '');
     const [whatsappNumber, setWhatsappNumber] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('draft_whatsappNumber') || '' : '');
     const [email, setEmail] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('draft_email') || '' : '');
@@ -28,18 +29,20 @@ export default function MemberRegisterPage() {
     useEffect(() => {
         localStorage.setItem('draft_firstName', firstName);
         localStorage.setItem('draft_lastName', lastName);
+        localStorage.setItem('draft_gender', gender);
         localStorage.setItem('draft_phoneNumber', phoneNumber);
         localStorage.setItem('draft_whatsappNumber', whatsappNumber);
         localStorage.setItem('draft_email', email);
         localStorage.setItem('draft_dateOfBirth', dateOfBirth);
         localStorage.setItem('draft_occupationType', occupationType);
         localStorage.setItem('draft_homeAddress', homeAddress);
-    }, [firstName, lastName, phoneNumber, whatsappNumber, email, dateOfBirth, occupationType, homeAddress]);
+    }, [firstName, lastName, gender, phoneNumber, whatsappNumber, email, dateOfBirth, occupationType, homeAddress]);
 
     // Clear drafts from localStorage after successful registration
     const clearDrafts = () => {
         localStorage.removeItem('draft_firstName');
         localStorage.removeItem('draft_lastName');
+        localStorage.removeItem('draft_gender');
         localStorage.removeItem('draft_phoneNumber');
         localStorage.removeItem('draft_whatsappNumber');
         localStorage.removeItem('draft_email');
@@ -69,16 +72,17 @@ export default function MemberRegisterPage() {
                 return;
             }
 
-            // 2. Insert new profile into database
+            // 2. Insert new profile into database with Gender & Email
             const { data: newProfile, error } = await supabase
                 .from('profiles')
                 .insert({
                     id: crypto.randomUUID(),
                     first_name: firstName,
                     last_name: lastName,
+                    gender: gender,
                     phone_number: phoneNumber,
                     whatsapp_number: whatsappNumber || phoneNumber,
-                    email: email || `${phoneNumber}@milkandhoney.local`,
+                    email: email || null,
                     date_of_birth: dateOfBirth || null,
                     occupation_type: occupationType,
                     home_address: homeAddress,
@@ -88,7 +92,7 @@ export default function MemberRegisterPage() {
                 .single();
 
             if (error) {
-                setErrorMsg(error.message || `Problem Creating a Profile`)
+                setErrorMsg(error.message || `Problem Creating a Profile`);
                 setLoading(false);
                 return;
             }
@@ -142,6 +146,7 @@ export default function MemberRegisterPage() {
 
                         <form onSubmit={handleRegister} className="space-y-4">
 
+                            {/* First & Last Name */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-medium text-slate-300 mb-1">First Name *</label>
@@ -176,7 +181,23 @@ export default function MemberRegisterPage() {
                                 </div>
                             </div>
 
+                            {/* Gender & Phone Number */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-300 mb-1">Gender *</label>
+                                    <div className="relative">
+                                        <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                                        <select
+                                            value={gender}
+                                            onChange={(e) => setGender(e.target.value)}
+                                            className="w-full rounded-xl border border-slate-800 bg-slate-950 py-3 pl-10 pr-3 text-sm text-slate-100 focus:outline-none"
+                                        >
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                        </select>
+                                    </div>
+                                </div>
+
                                 <div>
                                     <label className="block text-xs font-medium text-slate-300 mb-1">Phone Number *</label>
                                     <div className="relative">
@@ -192,7 +213,10 @@ export default function MemberRegisterPage() {
                                         />
                                     </div>
                                 </div>
+                            </div>
 
+                            {/* WhatsApp & Email Address */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-medium text-slate-300 mb-1">WhatsApp Number</label>
                                     <div className="relative">
@@ -207,9 +231,7 @@ export default function MemberRegisterPage() {
                                         />
                                     </div>
                                 </div>
-                            </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-medium text-slate-300 mb-1">Email Address (Optional)</label>
                                     <div className="relative">
@@ -224,7 +246,10 @@ export default function MemberRegisterPage() {
                                         />
                                     </div>
                                 </div>
+                            </div>
 
+                            {/* Date of Birth & Occupation */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-medium text-slate-300 mb-1">Date of Birth</label>
                                     <div className="relative">
@@ -237,9 +262,7 @@ export default function MemberRegisterPage() {
                                         />
                                     </div>
                                 </div>
-                            </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-medium text-slate-300 mb-1">Occupation</label>
                                     <div className="relative">
@@ -256,20 +279,21 @@ export default function MemberRegisterPage() {
                                         </select>
                                     </div>
                                 </div>
+                            </div>
 
-                                <div>
-                                    <label className="block text-xs font-medium text-slate-300 mb-1">Residential Address</label>
-                                    <div className="relative">
-                                        <MapPin className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-500" />
-                                        <input
-                                            type="text"
-                                            autoComplete="street-address"
-                                            value={homeAddress}
-                                            onChange={(e) => setHomeAddress(e.target.value)}
-                                            placeholder="Residential area..."
-                                            className="w-full rounded-xl border border-slate-800 bg-slate-950/50 py-3 pl-10 pr-3 text-sm text-slate-100 focus:outline-none"
-                                        />
-                                    </div>
+                            {/* Residential Address */}
+                            <div>
+                                <label className="block text-xs font-medium text-slate-300 mb-1">Residential Address</label>
+                                <div className="relative">
+                                    <MapPin className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-500" />
+                                    <input
+                                        type="text"
+                                        autoComplete="street-address"
+                                        value={homeAddress}
+                                        onChange={(e) => setHomeAddress(e.target.value)}
+                                        placeholder="Residential area..."
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950/50 py-3 pl-10 pr-3 text-sm text-slate-100 focus:outline-none"
+                                    />
                                 </div>
                             </div>
 
