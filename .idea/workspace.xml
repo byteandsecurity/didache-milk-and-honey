@@ -4,15 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="Friction-free member onboarding, auth, and responsive UI:&#10;- Responsive landing page with emerald/indigo ambient lighting and mobile-first design.&#10;- Frictionless member registration &amp; login using phone numbers (no passwords required for church members).&#10;- Added localStorage form draft persistence to prevent data loss on mobile browser reloads.&#10;- Created dedicated admin login route with role verification.&#10;- Wrapped search params in Suspense and configured Supabase RLS policies for smooth database inserts.&#10;- Included Vercel Analytics and Speed Insights in root layout.">
-      <change afterPath="$PROJECT_DIR$/Components/OfflineSyncProvider.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/member/dashboard/page.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/offlineSync.ts" afterDir="false" />
+    <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="Fix(security): resolve admin RLS recursion error and add isolated admin_profiles schema:&#10; - Admin login page set.&#10; - Super Admin created initialized in Supabase.&#10; - Fix async and hydration errors in login and register for members.">
+      <change afterPath="$PROJECT_DIR$/app/admin/dashboard/page.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/auth/admin/login/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/auth/admin/login/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/auth/member/login/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/auth/member/login/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/auth/member/register/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/auth/member/register/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/layout.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -22,8 +17,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="TypeScript JSX File" />
         <option value="TypeScript File" />
+        <option value="TypeScript JSX File" />
       </list>
     </option>
   </component>
@@ -35,61 +30,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.0" />
-      <entry key="MS500" value="1.0" />
-      <entry key="S2" value="1.0000000001450047" />
-      <entry key="S5" value="1.0002006383102486" />
-      <entry key="S10" value="1.024050733344301" />
-      <entry key="S30" value="1.602242450911462" />
-      <entry key="S60" value="2.4108171594956085" />
-      <entry key="M2" value="3.4774562880819704" />
-      <entry key="M5" value="6.546093604885508" />
-      <entry key="M10" value="10.51890927802406" />
-      <entry key="M15" value="13.393881797390456" />
-      <entry key="M30" value="20.317240522345486" />
-      <entry key="H1" value="30.827970594498233" />
-      <entry key="H2" value="42.17220534773953" />
-      <entry key="H4" value="50.961417148061535" />
-      <entry key="D1" value="60.71621672926218" />
-      <entry key="W1" value="62.66615072670075" />
+      <entry key="MS100" value="1.002489376225233" />
+      <entry key="MS500" value="1.3015916011078437" />
+      <entry key="S2" value="1.8582034413677713" />
+      <entry key="S5" value="2.6116118267442032" />
+      <entry key="S10" value="4.466524298140112" />
+      <entry key="S30" value="11.910167682094677" />
+      <entry key="S60" value="19.915192393814756" />
+      <entry key="M2" value="29.692992491531243" />
+      <entry key="M5" value="42.2305499007204" />
+      <entry key="M10" value="49.86491420193484" />
+      <entry key="M15" value="53.32822817357938" />
+      <entry key="M30" value="58.9447707038482" />
+      <entry key="H1" value="68.60014153247036" />
+      <entry key="H2" value="83.96606370057204" />
+      <entry key="H4" value="99.76818262703759" />
+      <entry key="D1" value="121.33825559601783" />
+      <entry key="W1" value="126.15790046117593" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
-      <entry key="MS500" value="9.9E-324" />
-      <entry key="S2" value="1.776669934571618E-81" />
-      <entry key="S5" value="5.010080351699686E-33" />
-      <entry key="S10" value="7.101504778845668E-17" />
-      <entry key="S30" value="5.847733794922808E-6" />
-      <entry key="S60" value="0.005282342533637905" />
-      <entry key="M2" value="0.20177646996006907" />
-      <entry key="M5" value="2.04522679516539" />
-      <entry key="M10" value="4.68230304959253" />
-      <entry key="M15" value="6.386262894677658" />
-      <entry key="M30" value="9.599776661794605" />
-      <entry key="H1" value="13.136860022881446" />
-      <entry key="H2" value="16.215003942816615" />
-      <entry key="H4" value="18.33305056667297" />
-      <entry key="D1" value="20.510638425791704" />
-      <entry key="W1" value="20.928891078157292" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="5.639626496033683E-105" />
+      <entry key="S5" value="3.195438091021277E-42" />
+      <entry key="S10" value="2.969931016885361E-21" />
+      <entry key="S30" value="3.12595709053723E-7" />
+      <entry key="S60" value="0.0010705189594564554" />
+      <entry key="M2" value="0.06450025718390197" />
+      <entry key="M5" value="0.7644279988563254" />
+      <entry key="M10" value="1.7494796395031458" />
+      <entry key="M15" value="2.339748642812427" />
+      <entry key="M30" value="3.767096557300196" />
+      <entry key="H1" value="7.112761998596158" />
+      <entry key="H2" value="12.255285584406789" />
+      <entry key="H4" value="17.155072636717183" />
+      <entry key="D1" value="23.417159289443866" />
+      <entry key="W1" value="24.765945292768667" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.0027813480382755293" />
-      <entry key="MS500" value="0.30821308136595166" />
-      <entry key="S2" value="0.7450969178372338" />
-      <entry key="S5" value="0.88914196191599" />
-      <entry key="S10" value="0.9653895593537363" />
-      <entry key="S30" value="1.5701336748447101" />
-      <entry key="S60" value="2.3907027684872166" />
-      <entry key="M2" value="3.6439547376905517" />
-      <entry key="M5" value="8.522494518797917" />
-      <entry key="M10" value="15.134421185716784" />
-      <entry key="M15" value="19.72280900754336" />
-      <entry key="M30" value="29.877098597537817" />
-      <entry key="H1" value="43.93906819194318" />
-      <entry key="H2" value="58.37187327108499" />
-      <entry key="H4" value="69.28596330473935" />
-      <entry key="D1" value="81.225294980554" />
-      <entry key="W1" value="83.59481501036804" />
+      <entry key="MS100" value="0.9548353778968451" />
+      <entry key="MS500" value="1.2845043640015315" />
+      <entry key="S2" value="1.850921233793839" />
+      <entry key="S5" value="2.60743861589879" />
+      <entry key="S10" value="4.462803856272968" />
+      <entry key="S30" value="11.90546213823722" />
+      <entry key="S60" value="19.909335072014247" />
+      <entry key="M2" value="29.74208049240202" />
+      <entry key="M5" value="42.958408913143835" />
+      <entry key="M10" value="51.576574008521014" />
+      <entry key="M15" value="55.635205876078544" />
+      <entry key="M30" value="62.68784129181767" />
+      <entry key="H1" value="75.69383598659964" />
+      <entry key="H2" value="96.20690804845384" />
+      <entry key="H4" value="116.91379252371257" />
+      <entry key="D1" value="144.75337125904628" />
+      <entry key="W1" value="150.9235396100544" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo"><![CDATA[{
@@ -143,7 +138,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1793573181326</updated>
-      <workItem from="1793573185649" duration="10174000" />
+      <workItem from="1793573185649" duration="14671000" />
     </task>
     <task id="LOCAL-00001" summary="Friction-free member onboarding, auth, and responsive UI:&#10;- Responsive landing page with emerald/indigo ambient lighting and mobile-first design.&#10;- Frictionless member registration &amp; login using phone numbers (no passwords required for church members).&#10;- Added localStorage form draft persistence to prevent data loss on mobile browser reloads.&#10;- Created dedicated admin login route with role verification.&#10;- Wrapped search params in Suspense and configured Supabase RLS policies for smooth database inserts.&#10;- Included Vercel Analytics and Speed Insights in root layout.">
       <option name="closed" value="true" />
@@ -153,7 +148,15 @@
       <option name="project" value="LOCAL" />
       <updated>1793579966834</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Complete member portal, dynamic analytics &amp; offline sync:&#10; - Fully responsive member dashboard (`app/member/dashboard/page.tsx`) with real-time profile management and editing.&#10;  - Integrated dedicated Sunday School Department Support and Byte &amp; Security technical support cards.&#10;  - Implemented dynamic monthly attendance analytics grid and stats toggle that automatically adjusts for months with 4 or 5 Sundays.&#10;  - Built robust offline-first attendance queuing (`localStorage` fallback) with automatic background syncing via `OfflineSyncProvider` and `navigator.onLine` listeners.&#10;  - Resolved TypeScript promise handling (`void` prefixes) and linter warnings across auth, layout, and sync utilities.">
+      <option name="closed" value="true" />
+      <created>1793583954346</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1793583954346</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -161,6 +164,8 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Friction-free member onboarding, auth, and responsive UI:&#10;- Responsive landing page with emerald/indigo ambient lighting and mobile-first design.&#10;- Frictionless member registration &amp; login using phone numbers (no passwords required for church members).&#10;- Added localStorage form draft persistence to prevent data loss on mobile browser reloads.&#10;- Created dedicated admin login route with role verification.&#10;- Wrapped search params in Suspense and configured Supabase RLS policies for smooth database inserts.&#10;- Included Vercel Analytics and Speed Insights in root layout." />
-    <option name="LAST_COMMIT_MESSAGE" value="Friction-free member onboarding, auth, and responsive UI:&#10;- Responsive landing page with emerald/indigo ambient lighting and mobile-first design.&#10;- Frictionless member registration &amp; login using phone numbers (no passwords required for church members).&#10;- Added localStorage form draft persistence to prevent data loss on mobile browser reloads.&#10;- Created dedicated admin login route with role verification.&#10;- Wrapped search params in Suspense and configured Supabase RLS policies for smooth database inserts.&#10;- Included Vercel Analytics and Speed Insights in root layout." />
+    <MESSAGE value="Complete member portal, dynamic analytics &amp; offline sync:&#10; - Fully responsive member dashboard (`app/member/dashboard/page.tsx`) with real-time profile management and editing.&#10;  - Integrated dedicated Sunday School Department Support and Byte &amp; Security technical support cards.&#10;  - Implemented dynamic monthly attendance analytics grid and stats toggle that automatically adjusts for months with 4 or 5 Sundays.&#10;  - Built robust offline-first attendance queuing (`localStorage` fallback) with automatic background syncing via `OfflineSyncProvider` and `navigator.onLine` listeners.&#10;  - Resolved TypeScript promise handling (`void` prefixes) and linter warnings across auth, layout, and sync utilities." />
+    <MESSAGE value="Fix(security): resolve admin RLS recursion error and add isolated admin_profiles schema:&#10; - Admin login page set.&#10; - Super Admin created initialized in Supabase.&#10; - Fix async and hydration errors in login and register for members." />
+    <option name="LAST_COMMIT_MESSAGE" value="Fix(security): resolve admin RLS recursion error and add isolated admin_profiles schema:&#10; - Admin login page set.&#10; - Super Admin created initialized in Supabase.&#10; - Fix async and hydration errors in login and register for members." />
   </component>
 </project>

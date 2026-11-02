@@ -4,12 +4,13 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { ShieldCheck, Lock, Mail, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import {ShieldCheck, Lock, Mail, ArrowRight, ArrowLeft, CheckCircle2, EyeOff, Eye} from 'lucide-react';
 import Footer from '@/Components/Footer';
 
 export default function AdminPortalPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -21,7 +22,7 @@ export default function AdminPortalPage() {
         setLoading(true);
         setErrorMsg(null);
 
-        // 1. Authenticate with Supabase
+        // 1. Authenticate against Supabase Auth (auth.users)
         const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password,
@@ -33,27 +34,29 @@ export default function AdminPortalPage() {
             return;
         }
 
-        // 2. Fetch user profile role
-        const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('role')
+        // 2. Fetch admin profile details from admin_profiles
+        const { data: adminProfile, error: profileError } = await supabase
+            .from('admin_profiles')
+            .select('role, first_name, last_name')
             .eq('id', data.user.id)
             .single();
 
-        if (profileError || !profile) {
-            setErrorMsg('Could not verify staff credentials.');
-            setLoading(false);
-            return;
-        }
-
-        if (profile.role !== 'admin' && profile.role !== 'super_admin') {
+        if (profileError || !adminProfile) {
             await supabase.auth.signOut();
-            setErrorMsg('Access restricted to Sunday School Admins.');
+            setErrorMsg('Access denied. Account is not registered in admin directory.');
             setLoading(false);
             return;
         }
 
-        // 3. Success redirect
+        if (adminProfile.role !== 'admin' && adminProfile.role !== 'super_admin') {
+            await supabase.auth.signOut();
+            setErrorMsg('Access restricted to authorized Sunday School leaders.');
+            setLoading(false);
+            return;
+        }
+
+        // 3. Store name for UI session display and redirect to Admin Portal
+        localStorage.setItem('didache_admin_name', `${adminProfile.first_name} ${adminProfile.last_name}`);
         router.push('/admin/dashboard');
     };
 
@@ -73,9 +76,12 @@ export default function AdminPortalPage() {
 
                 {/* Left Column: Admin Context & Protocol Info */}
                 <div className="lg:col-span-7 space-y-6 text-left">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 text-xs font-medium text-amber-300 backdrop-blur-md">
-                        <ShieldCheck className="h-3.5 w-3.5 text-amber-400" />
-                        <span>Leader & Protocol Console</span>
+                    <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/10 bg-amber-500/20 px-4 py-1.5 text-xs font-medium text-emerald-400 backdrop-blur-md">
+                        <ShieldCheck className="h-5 w-5 text-amber-400" />
+                        <div className='flex flex-col p-1'>
+                            <span className="font-bold text-white">Admin Portal Sign In</span>
+                            <span className="text-slate-400">Byte & Security Secure Access</span>
+                        </div>
                     </div>
 
                     <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-[1.15]">
@@ -142,7 +148,7 @@ export default function AdminPortalPage() {
                                 <div className="relative">
                                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                                     <input
-                                        type="password"
+                                        type={showPassword ? 'text' : 'password'}
                                         required
                                         autoComplete="current-password"
                                         value={password}
@@ -150,6 +156,20 @@ export default function AdminPortalPage() {
                                         placeholder="••••••••"
                                         className="w-full rounded-xl border border-slate-800 bg-slate-950/50 py-3.5 pl-10 pr-4 text-sm text-slate-100 focus:outline-none transition"
                                     />
+
+                                    {/* Toggle Button on the Right */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-200 transition"
+                                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="w-4 h-4 text-emerald-400" />
+                                        ) : (
+                                            <Eye className="w-4 h-4" />
+                                        )}
+                                    </button>
                                 </div>
                             </div>
 
