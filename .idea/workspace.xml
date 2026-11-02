@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="Fix(build): defer new Date() state initialization to useEffect to resolve Vercel pre-render error" />
+    <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="Change to url for QR Code" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -26,61 +26,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.0" />
-      <entry key="MS500" value="1.0" />
-      <entry key="S2" value="1.0" />
-      <entry key="S5" value="1.0" />
-      <entry key="S10" value="1.0" />
-      <entry key="S30" value="1.000004696660254" />
-      <entry key="S60" value="1.0021671814497084" />
-      <entry key="M2" value="1.0466329843099056" />
-      <entry key="M5" value="1.3398398125626758" />
-      <entry key="M10" value="2.3814541837578096" />
-      <entry key="M15" value="4.845257477818847" />
-      <entry key="M30" value="17.547535393200043" />
-      <entry key="H1" value="42.49994307627059" />
-      <entry key="H2" value="74.83184406370304" />
-      <entry key="H4" value="106.0770598088834" />
-      <entry key="D1" value="149.34852886443" />
-      <entry key="W1" value="159.25807054508795" />
+      <entry key="MS100" value="1.0021524841194869" />
+      <entry key="MS500" value="1.3487015031734702" />
+      <entry key="S2" value="2.8977847569479662" />
+      <entry key="S5" value="4.780560773356438" />
+      <entry key="S10" value="6.051651957106408" />
+      <entry key="S30" value="7.252206897646847" />
+      <entry key="S60" value="7.61262789539486" />
+      <entry key="M2" value="7.829270097710167" />
+      <entry key="M5" value="8.230153341662529" />
+      <entry key="M10" value="9.105623792797312" />
+      <entry key="M15" value="10.948205050921318" />
+      <entry key="M30" value="21.73654694903036" />
+      <entry key="H1" value="45.61435057467818" />
+      <entry key="H2" value="78.40234030907467" />
+      <entry key="H4" value="110.89044997543687" />
+      <entry key="D1" value="156.591366843538" />
+      <entry key="W1" value="167.1424789709871" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
       <entry key="MS500" value="0.0" />
-      <entry key="S2" value="7.951647940009402E-273" />
-      <entry key="S5" value="2.1903453815407136E-109" />
-      <entry key="S10" value="7.242638182125283E-55" />
-      <entry key="S30" value="1.7931457200161937E-18" />
-      <entry key="S60" value="2.3048797452805648E-9" />
-      <entry key="M2" value="8.303991050077508E-5" />
-      <entry key="M5" value="0.04694012996818193" />
-      <entry key="M10" value="0.4571744703786555" />
-      <entry key="M15" value="1.087459782853505" />
-      <entry key="M30" value="3.0882353722982043" />
-      <entry key="H1" value="6.7845882842834495" />
-      <entry key="H2" value="12.78030919215719" />
-      <entry key="H4" value="19.450246742566996" />
-      <entry key="D1" value="29.294060223988943" />
-      <entry key="W1" value="31.59458241686531" />
+      <entry key="S2" value="0.0" />
+      <entry key="S5" value="1.6265621892943454E-147" />
+      <entry key="S10" value="6.24131102523253E-74" />
+      <entry key="S30" value="7.9203054222732505E-25" />
+      <entry key="S60" value="1.5318330805466133E-12" />
+      <entry key="M2" value="2.1407623529309444E-6" />
+      <entry key="M5" value="0.010865680289658456" />
+      <entry key="M10" value="0.21995725324140789" />
+      <entry key="M15" value="0.6677041610867168" />
+      <entry key="M30" value="2.4198911547159843" />
+      <entry key="H1" value="6.005735724139524" />
+      <entry key="H2" value="12.024380774523122" />
+      <entry key="H4" value="18.866259118992865" />
+      <entry key="D1" value="29.145601103977732" />
+      <entry key="W1" value="31.571658591057705" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.8827029962906549" />
-      <entry key="MS500" value="0.9753554615276419" />
-      <entry key="S2" value="0.9937810933225548" />
-      <entry key="S5" value="0.9975077808975293" />
-      <entry key="S10" value="0.9987531130852756" />
-      <entry key="S30" value="0.9995888931940166" />
-      <entry key="S60" value="1.0019588856052914" />
-      <entry key="M2" value="1.046606497561934" />
-      <entry key="M5" value="1.3863636042531702" />
-      <entry key="M10" value="2.836088919293331" />
-      <entry key="M15" value="5.927300570585465" />
-      <entry key="M30" value="20.62401795006536" />
-      <entry key="H1" value="49.26898448554097" />
-      <entry key="H2" value="87.59724573448669" />
-      <entry key="H4" value="125.51622245579777" />
-      <entry key="D1" value="178.63989998695038" />
-      <entry key="W1" value="190.85224147660884" />
+      <entry key="MS100" value="0.968001134069346" />
+      <entry key="MS500" value="1.3390519876375446" />
+      <entry key="S2" value="2.8923518178772403" />
+      <entry key="S5" value="4.776734654277422" />
+      <entry key="S10" value="6.049159126262647" />
+      <entry key="S30" value="7.2511908671242296" />
+      <entry key="S60" value="7.612091844970903" />
+      <entry key="M2" value="7.828994067014299" />
+      <entry key="M5" value="8.240810678587039" />
+      <entry key="M10" value="9.324302825955831" />
+      <entry key="M15" value="11.612545746083345" />
+      <entry key="M30" value="24.147209953961976" />
+      <entry key="H1" value="51.60631473760977" />
+      <entry key="H2" value="90.41269059569507" />
+      <entry key="H4" value="129.74595543722845" />
+      <entry key="D1" value="185.7342920810326" />
+      <entry key="W1" value="198.71372631910103" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -101,6 +101,7 @@
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "git-widget-placeholder": "main",
+    "ignore.virus.scanning.warn.message": "true",
     "javascript.preferred.runtime.type.id": "node",
     "js.debugger.nextJs.config.created.client": "true",
     "js.debugger.nextJs.config.created.server": "true",
@@ -152,7 +153,7 @@
       <option name="presentableId" value="Default" />
       <updated>1793573181326</updated>
       <workItem from="1793573185649" duration="15592000" />
-      <workItem from="1793620859945" duration="5354000" />
+      <workItem from="1793620859945" duration="5730000" />
     </task>
     <task id="LOCAL-00001" summary="Friction-free member onboarding, auth, and responsive UI:&#10;- Responsive landing page with emerald/indigo ambient lighting and mobile-first design.&#10;- Frictionless member registration &amp; login using phone numbers (no passwords required for church members).&#10;- Added localStorage form draft persistence to prevent data loss on mobile browser reloads.&#10;- Created dedicated admin login route with role verification.&#10;- Wrapped search params in Suspense and configured Supabase RLS policies for smooth database inserts.&#10;- Included Vercel Analytics and Speed Insights in root layout.">
       <option name="closed" value="true" />
@@ -202,7 +203,15 @@
       <option name="project" value="LOCAL" />
       <updated>1793625848270</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="Change to url for QR Code">
+      <option name="closed" value="true" />
+      <created>1793626493550</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1793626493550</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -215,6 +224,7 @@
     <MESSAGE value="- Admin Dashboard" />
     <MESSAGE value="Add gender/email fields, guest edit/delete, dynamic attendance states, and persistent QR state" />
     <MESSAGE value="Fix(build): defer new Date() state initialization to useEffect to resolve Vercel pre-render error" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fix(build): defer new Date() state initialization to useEffect to resolve Vercel pre-render error" />
+    <MESSAGE value="Change to url for QR Code" />
+    <option name="LAST_COMMIT_MESSAGE" value="Change to url for QR Code" />
   </component>
 </project>
