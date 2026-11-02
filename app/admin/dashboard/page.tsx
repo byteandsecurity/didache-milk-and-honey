@@ -54,19 +54,37 @@ export default function AdminDashboard() {
     const [savingUser, setSavingUser] = useState(false);
 
     // QR Session generator state (Persisted in localStorage)
-    const [selectedSessionDate, setSelectedSessionDate] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('didache_qr_date') || new Date().toISOString().split('T')[0];
-        }
-        return new Date().toISOString().split('T')[0];
-    });
+    const [selectedSessionDate, setSelectedSessionDate] = useState('');
+    const [activeQrCode, setActiveQrCode] = useState<string | null>(null);
 
-    const [activeQrCode, setActiveQrCode] = useState<string | null>(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('didache_qr_code') || null;
+    useEffect(() => {
+        const savedDate = localStorage.getItem('didache_qr_date');
+        const savedQr = localStorage.getItem('didache_qr_code');
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        setSelectedSessionDate(savedDate || todayStr);
+        if (savedQr) {
+            setActiveQrCode(savedQr);
         }
-        return null;
-    });
+    }, []);
+
+    const [sundaysInMonth, setSundaysInMonth] = useState<Date[]>([]);
+    const [nowDate, setNowDate] = useState<Date | null>(null);
+    useEffect(() => {
+        const now = new Date();
+        setNowDate(now);
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const sundays: Date[] = [];
+
+        let d = new Date(year, month, 1);
+        while (d.getDay() !== 0) d.setDate(d.getDate() + 1);
+        while (d.getMonth() === month) {
+            sundays.push(new Date(d));
+            d.setDate(d.getDate() + 7);
+        }
+        setSundaysInMonth(sundays);
+    }, []);
 
     const router = useRouter();
     const supabase = createClient();
@@ -277,18 +295,6 @@ export default function AdminDashboard() {
             void fetchDashboardData();
         }
     };
-
-    // Dynamic Sundays calculation
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const sundaysInMonth: Date[] = [];
-    let d = new Date(year, month, 1);
-    while (d.getDay() !== 0) d.setDate(d.getDate() + 1);
-    while (d.getMonth() === month) {
-        sundaysInMonth.push(new Date(d));
-        d.setDate(d.getDate() + 7);
-    }
 
     const filteredMembers = members.filter(
         (m) =>
