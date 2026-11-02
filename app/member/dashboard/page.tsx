@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { User, QrCode, Calendar, Shield, Edit3, Save, LifeBuoy, ArrowRight, BookOpen, LogOut, MessageCircle, BarChart3, PieChart, CheckCircle2, X } from 'lucide-react';
