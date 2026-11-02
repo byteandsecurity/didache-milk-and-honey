@@ -4,14 +4,92 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="" />
+    <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/dictionaries/project.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Components/Footer.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/auth/admin/login/page.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/auth/member/login/page.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/auth/member/register/page.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/supabase/client.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/supabase/server.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/page.tsx" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="TypeScript File" />
+        <option value="TypeScript JSX File" />
+      </list>
+    </option>
+  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="NextEditCompletionFeaturesState">
+    <decayedCancelled>
+      <entry key="MS100" value="1.0" />
+      <entry key="MS500" value="1.0" />
+      <entry key="S2" value="1.0000000000000009" />
+      <entry key="S5" value="1.0000011014914765" />
+      <entry key="S10" value="1.0014008672511958" />
+      <entry key="S30" value="1.1842382376944514" />
+      <entry key="S60" value="1.6962407125800254" />
+      <entry key="M2" value="2.585033882033618" />
+      <entry key="M5" value="4.7210218312754755" />
+      <entry key="M10" value="7.433599686603132" />
+      <entry key="M15" value="9.958461093437311" />
+      <entry key="M30" value="16.590321345325883" />
+      <entry key="H1" value="24.28163753014708" />
+      <entry key="H2" value="30.427683659170267" />
+      <entry key="H4" value="34.354223050893374" />
+      <entry key="D1" value="38.17009028379309" />
+      <entry key="W1" value="38.87999875207539" />
+    </decayedCancelled>
+    <decayedSelected>
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="1.5427672075526113E-257" />
+      <entry key="S2" value="6.267222303812438E-65" />
+      <entry key="S5" value="2.0836752822588568E-26" />
+      <entry key="S10" value="1.4434941227052218E-13" />
+      <entry key="S30" value="5.247182922115579E-5" />
+      <entry key="S60" value="0.007441212184969714" />
+      <entry key="M2" value="0.1095160748752632" />
+      <entry key="M5" value="0.895695449318626" />
+      <entry key="M10" value="2.3516138454871163" />
+      <entry key="M15" value="3.4613832594757947" />
+      <entry key="M30" value="5.367443652164075" />
+      <entry key="H1" value="6.867041695407397" />
+      <entry key="H2" value="7.835094128974937" />
+      <entry key="H4" value="8.389903223453244" />
+      <entry key="D1" value="8.89418298123194" />
+      <entry key="W1" value="8.984777911163166" />
+    </decayedSelected>
+    <decayedShown>
+      <entry key="MS100" value="0.03820750867787713" />
+      <entry key="MS500" value="0.5205107988420558" />
+      <entry key="S2" value="0.8493905717812127" />
+      <entry key="S5" value="0.9367926713491685" />
+      <entry key="S10" value="0.9692800604514374" />
+      <entry key="S30" value="1.1734285309079795" />
+      <entry key="S60" value="1.6978672909105927" />
+      <entry key="M2" value="2.6876036925635116" />
+      <entry key="M5" value="5.598115037067552" />
+      <entry key="M10" value="9.76228529414722" />
+      <entry key="M15" value="13.398095367598703" />
+      <entry key="M30" value="21.941467260131557" />
+      <entry key="H1" value="31.13837004439733" />
+      <entry key="H2" value="38.25690914766626" />
+      <entry key="H4" value="42.74098367810682" />
+      <entry key="D1" value="47.06371753238833" />
+      <entry key="W1" value="47.864696446288136" />
+    </decayedShown>
   </component>
   <component name="ProjectColorInfo"><![CDATA[{
   "customColor": "",
@@ -24,19 +102,31 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
-    "git-widget-placeholder": "master",
+    "git-widget-placeholder": "main",
+    "javascript.preferred.runtime.type.id": "node",
     "last_opened_file_path": "C:/Users/gbeng/WebstormProjects/didache-x-milkandhoney",
     "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.jshint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.jshint": "",
     "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm"
+    "nodejs_package_manager_path": "npm",
+    "ts.external.directory.path": "C:\\Users\\gbeng\\WebstormProjects\\didache-x-milkandhoney\\node_modules\\typescript\\lib"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\gbeng\WebstormProjects\didache-x-milkandhoney\app\auth\admin" />
+      <recent name="C:\Users\gbeng\WebstormProjects\didache-x-milkandhoney\app\auth\member" />
+    </key>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -51,7 +141,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1793573181326</updated>
-      <workItem from="1793573185649" duration="465000" />
+      <workItem from="1793573185649" duration="6223000" />
     </task>
     <servers />
   </component>
