@@ -57,18 +57,24 @@ export default function MemberRegisterPage() {
         setErrorMsg(null);
 
         try {
-            // 1. Check if member already registered with this phone number
+            // 1. Check if a profile already exists with this phone number or email
+            const queryFilter = email && email.trim() !== ''
+                ? `phone_number.eq.${phoneNumber.trim()},email.eq.${email.trim()}`
+                : `phone_number.eq.${phoneNumber.trim()}`;
+
             const { data: existingProfile } = await supabase
                 .from('profiles')
-                .select('id, first_name, last_name')
-                .eq('phone_number', phoneNumber)
+                .select('id, first_name, last_name, phone_number, email')
+                .or(queryFilter)
                 .maybeSingle();
 
             if (existingProfile) {
-                localStorage.setItem('didache_member_id', existingProfile.id);
-                localStorage.setItem('didache_member_name', `${existingProfile.first_name} ${existingProfile.last_name}`);
-                clearDrafts();
-                router.push('/dashboard');
+                if (existingProfile.phone_number === phoneNumber.trim()) {
+                    setErrorMsg(`An account with phone number ${phoneNumber} already exists for ${existingProfile.first_name} ${existingProfile.last_name}. Please sign in instead!`);
+                } else {
+                    setErrorMsg(`An account with email ${email} already exists. Please use a different email or sign in.`);
+                }
+                setLoading(false);
                 return;
             }
 
@@ -77,15 +83,15 @@ export default function MemberRegisterPage() {
                 .from('profiles')
                 .insert({
                     id: crypto.randomUUID(),
-                    first_name: firstName,
-                    last_name: lastName,
+                    first_name: firstName.trim(),
+                    last_name: lastName.trim(),
                     gender: gender,
-                    phone_number: phoneNumber,
-                    whatsapp_number: whatsappNumber || phoneNumber,
-                    email: email || null,
+                    phone_number: phoneNumber.trim(),
+                    whatsapp_number: whatsappNumber.trim() || phoneNumber.trim(),
+                    email: email.trim() || null,
                     date_of_birth: dateOfBirth || null,
                     occupation_type: occupationType,
-                    home_address: homeAddress,
+                    home_address: homeAddress.trim() || null,
                     role: 'member',
                 })
                 .select()
@@ -109,7 +115,7 @@ export default function MemberRegisterPage() {
             if (err?.message?.includes('row-level security') || err?.code === '42501') {
                 setErrorMsg('Registration temporarily unavailable. Please try again or contact support.');
             } else if (err?.message?.includes('duplicate key') || err?.code === '23505') {
-                setErrorMsg('This phone number is already registered. Please go back and sign in.');
+                setErrorMsg('This phone number or email is already registered. Please sign in instead.');
             } else {
                 setErrorMsg('Could not complete registration. Please check your internet connection and try again.');
             }

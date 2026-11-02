@@ -74,30 +74,32 @@ export default function MemberDashboard() {
     }, [router, supabase]);
 
     // Scanner Handler function
-// 1. Start Camera Stream & Attach to Viewfinder
     const handleScanQRCode = async () => {
         setShowScannerModal(true);
-        setScannerStatus('Requesting camera access...');
+        setScannerStatus('Starting camera...');
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment' } // Uses back camera on mobile devices
+                video: {
+                    facingMode: { exact: 'environment' } // Explicitly request back camera on mobile
+                }
+            }).catch(() => {
+                // Fallback if 'exact' environment camera fails (e.g. laptops or single camera phones)
+                return navigator.mediaDevices.getUserMedia({ video: true });
             });
 
             mediaStreamRef.current = stream;
 
-            // Attach stream to the video element once modal opens
-            setTimeout(() => {
-                if (videoRef.current) {
-                    videoRef.current.srcObject = stream;
-                    void videoRef.current.play();
-                }
-            }, 100);
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+                videoRef.current.setAttribute('playsinline', 'true'); // Essential for iOS Safari
+                await videoRef.current.play();
+            }
 
             setScannerStatus('Camera active! Point at Sunday QR code.');
         } catch (err) {
-            console.error('Camera access error:', err);
-            setScannerStatus('Camera permission denied or unavailable. Use simulation below.');
+            console.error('Camera error:', err);
+            setScannerStatus('Camera access blocked. Use simulation button below.');
         }
     };
 
