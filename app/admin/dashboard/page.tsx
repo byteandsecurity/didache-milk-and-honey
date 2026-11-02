@@ -153,7 +153,7 @@ export default function AdminDashboard() {
     }, [router, supabase]);
 
     const handleGenerateQr = (dateStr: string) => {
-        const qrUrl = `https://didache-milk-and-honey.vercel.app/checkin?date=${dateStr}`;
+        const qrUrl = `https://didache-milk-and-honey.vercel.app/checking?date=${dateStr}`;
         setActiveQrCode(qrUrl);
         setSelectedSessionDate(dateStr);
         localStorage.setItem('didache_qr_code', qrUrl);
