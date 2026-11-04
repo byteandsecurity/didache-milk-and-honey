@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
     ShieldCheck, QrCode, Users, LogOut, Calendar, UserPlus,
-    UserCheck, Shield, X
+    UserCheck, Shield, X, Cake
 } from 'lucide-react';
+import LoadingSpinner from '@/Components/LoadingSpinner'
 import Footer from '@/Components/Footer';
 
 // Import Modular Admin Components
@@ -15,9 +16,10 @@ import MemberRoster from '@/Components/admin/MemberRoster';
 import GuestManagement from '@/Components/admin/GuestManagement';
 import QrGenerator from '@/Components/admin/QrGenerator';
 import StaffDirectory from '@/Components/admin/StaffDirectory';
+import BirthdayDirectory from '@/Components/admin/BirthdayDirectory';
 
 export default function AdminDashboard() {
-    const [activeTab, setActiveTab] = useState<'overview' | 'roster' | 'guests' | 'sessions' | 'staff'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'roster' | 'guests' | 'sessions' | 'staff' | 'birthdays'>('overview');
 
     // Shared Data States
     const [adminProfile, setAdminProfile] = useState<any>(null);
@@ -58,7 +60,7 @@ export default function AdminDashboard() {
 
         if (!profile) {
             await supabase.auth.signOut();
-            router.push('/auth/admin');
+            router.push('/auth/admin/login');
             return;
         }
 
@@ -123,15 +125,11 @@ export default function AdminDashboard() {
     const handleLogout = async () => {
         await supabase.auth.signOut();
         localStorage.removeItem('didache_admin_name');
-        router.push('/auth/admin');
+        router.push('/auth/admin/login');
     };
 
     if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-950 text-emerald-400">
-                <div className="text-sm font-medium animate-pulse">Loading Admin Console...</div>
-            </div>
-        );
+        return <LoadingSpinner text='Loading Admin Console.'  icon={ShieldCheck} />;
     }
 
     const upgradeEligibleGuests = guests.filter((g) => !g.is_converted_to_member && g.attendance_count >= 3);
@@ -185,6 +183,7 @@ export default function AdminDashboard() {
                     { id: 'guests', label: `Guest Management (${guests.length})`, icon: UserCheck, badge: upgradeEligibleGuests.length },
                     { id: 'sessions', label: 'Sunday QR Generator', icon: QrCode },
                     { id: 'staff', label: `Staff Directory (${adminList.length})`, icon: Shield },
+                    { id: 'birthdays', label: 'Birthdays', icon: Cake }
                 ].map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
@@ -219,6 +218,9 @@ export default function AdminDashboard() {
                 )}
                 {activeTab === 'staff' && (
                     <StaffDirectory adminList={adminList} adminProfile={adminProfile} onRefresh={fetchDashboardData} />
+                )}
+                {activeTab === 'birthdays' && (
+                    <BirthdayDirectory members={members} />
                 )}
             </main>
 

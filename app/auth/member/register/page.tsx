@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { User, Phone, MessageSquare, Briefcase, MapPin, Calendar, CheckCircle, ArrowLeft, Mail, Users } from 'lucide-react';
+import { User, Phone, MessageSquare, Briefcase, MapPin, CheckCircle, ArrowLeft, Mail, Users } from 'lucide-react';
 import Footer from '@/Components/Footer';
+import LoadingSpinner from '@/Components/LoadingSpinner';
 
 export default function MemberRegisterPage() {
     // Initialize state from localStorage if available (prevents loss on refresh)
@@ -15,7 +16,9 @@ export default function MemberRegisterPage() {
     const [phoneNumber, setPhoneNumber] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('draft_phoneNumber') || '' : '');
     const [whatsappNumber, setWhatsappNumber] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('draft_whatsappNumber') || '' : '');
     const [email, setEmail] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('draft_email') || '' : '');
-    const [dateOfBirth, setDateOfBirth] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('draft_dateOfBirth') || '' : '');
+    const [dobMonth, setDobMonth] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('draft_dobMonth') || '' : '');
+    const [dobDay, setDobDay] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('draft_dobDay') || '' : '');
+    const [dobYear, setDobYear] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('draft_dobYear') || '' : '');
     const [occupationType, setOccupationType] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('draft_occupationType') || 'student' : 'student');
     const [homeAddress, setHomeAddress] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('draft_homeAddress') || '' : '');
 
@@ -33,10 +36,12 @@ export default function MemberRegisterPage() {
         localStorage.setItem('draft_phoneNumber', phoneNumber);
         localStorage.setItem('draft_whatsappNumber', whatsappNumber);
         localStorage.setItem('draft_email', email);
-        localStorage.setItem('draft_dateOfBirth', dateOfBirth);
+        localStorage.setItem('draft_dobMonth', dobMonth);
+        localStorage.setItem('draft_dobDay', dobDay);
+        localStorage.setItem('draft_dobYear', dobYear);
         localStorage.setItem('draft_occupationType', occupationType);
         localStorage.setItem('draft_homeAddress', homeAddress);
-    }, [firstName, lastName, gender, phoneNumber, whatsappNumber, email, dateOfBirth, occupationType, homeAddress]);
+    }, [firstName, lastName, gender, phoneNumber, whatsappNumber, email, dobMonth, dobDay, dobYear, occupationType, homeAddress]);
 
     // Clear drafts from localStorage after successful registration
     const clearDrafts = () => {
@@ -46,9 +51,19 @@ export default function MemberRegisterPage() {
         localStorage.removeItem('draft_phoneNumber');
         localStorage.removeItem('draft_whatsappNumber');
         localStorage.removeItem('draft_email');
-        localStorage.removeItem('draft_dateOfBirth');
+        localStorage.removeItem('draft_dobMonth');
+        localStorage.removeItem('draft_dobDay');
+        localStorage.removeItem('draft_dobYear');
         localStorage.removeItem('draft_occupationType');
         localStorage.removeItem('draft_homeAddress');
+    };
+
+    const handleBack = () => {
+        if (typeof window !== 'undefined' && window.history.length > 1) {
+            router.back();
+        } else {
+            router.push('/');
+        }
     };
 
     const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -57,28 +72,40 @@ export default function MemberRegisterPage() {
         setErrorMsg(null);
 
         try {
-            // 1. Check if a profile already exists with this phone number or email
-            const queryFilter = email && email.trim() !== ''
-                ? `phone_number.eq.${phoneNumber.trim()},email.eq.${email.trim()}`
-                : `phone_number.eq.${phoneNumber.trim()}`;
+            const cleanPhone = phoneNumber.trim();
+            const cleanWhatsapp = whatsappNumber.trim() || cleanPhone;
+            const cleanEmail = email.trim();
+
+            // 1. Check if profile exists matching phone OR whatsapp OR email
+            let orConditions = `phone_number.eq.${cleanPhone},whatsapp_number.eq.${cleanPhone},phone_number.eq.${cleanWhatsapp},whatsapp_number.eq.${cleanWhatsapp}`;
+            if (cleanEmail) {
+                orConditions += `,email.eq.${cleanEmail}`;
+            }
 
             const { data: existingProfile } = await supabase
                 .from('profiles')
-                .select('id, first_name, last_name, phone_number, email')
-                .or(queryFilter)
+                .select('id, first_name, last_name, phone_number, whatsapp_number, email')
+                .or(orConditions)
                 .maybeSingle();
 
             if (existingProfile) {
-                if (existingProfile.phone_number === phoneNumber.trim()) {
-                    setErrorMsg(`An account with phone number ${phoneNumber} already exists for ${existingProfile.first_name} ${existingProfile.last_name}. Please sign in instead!`);
+                if (existingProfile.email === cleanEmail && cleanEmail) {
+                    setErrorMsg(`An account with email ${cleanEmail} already exists. Please sign in!`);
                 } else {
-                    setErrorMsg(`An account with email ${email} already exists. Please use a different email or sign in.`);
+                    setErrorMsg(`An account with this phone/WhatsApp number already exists for ${existingProfile.first_name} ${existingProfile.last_name}. Please sign in instead!`);
                 }
                 setLoading(false);
                 return;
             }
 
-            // 2. Insert new profile into database with Gender & Email
+            // Construct Date of Birth string (Handle optional year)
+            let formattedDOB: string | null = null;
+            if (dobMonth && dobDay) {
+                const yr = dobYear ? dobYear : '1900'; // Default placeholder year if omitted
+                formattedDOB = `${yr}-${dobMonth.padStart(2, '0')}-${dobDay.padStart(2, '0')}`;
+            }
+
+            // 2. Insert new profile into database with Gender, Email & Optional DOB
             const { data: newProfile, error } = await supabase
                 .from('profiles')
                 .insert({
@@ -89,7 +116,7 @@ export default function MemberRegisterPage() {
                     phone_number: phoneNumber.trim(),
                     whatsapp_number: whatsappNumber.trim() || phoneNumber.trim(),
                     email: email.trim() || null,
-                    date_of_birth: dateOfBirth || null,
+                    date_of_birth: formattedDOB,
                     occupation_type: occupationType,
                     home_address: homeAddress.trim() || null,
                     role: 'member',
@@ -109,7 +136,7 @@ export default function MemberRegisterPage() {
             }
 
             clearDrafts();
-            router.push('/dashboard');
+            router.push('/member/dashboard');
         } catch (err: any) {
             console.error('Registration error details:', err);
             if (err?.message?.includes('row-level security') || err?.code === '42501') {
@@ -124,14 +151,20 @@ export default function MemberRegisterPage() {
         }
     };
 
+    if (loading) {
+        return <LoadingSpinner text="Creating your member profile..." icon={User} />;
+    }
+
     return (
         <div className="min-h-screen flex flex-col justify-between p-4 sm:p-6 lg:p-12 max-w-2xl mx-auto">
-
             <div>
-                <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-emerald-400 mb-6 transition">
+                <button
+                    onClick={handleBack}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-emerald-400 mb-6 transition"
+                >
                     <ArrowLeft className="h-4 w-4" />
-                    <span>Back to Home</span>
-                </Link>
+                    <span>Go Back</span>
+                </button>
 
                 <div className="space-y-6">
                     <div className="text-center space-y-1">
@@ -232,7 +265,7 @@ export default function MemberRegisterPage() {
                                             autoComplete="tel"
                                             value={whatsappNumber}
                                             onChange={(e) => setWhatsappNumber(e.target.value)}
-                                            placeholder="Same as phone if blank"
+                                            placeholder="Same as phone? Leave Blank"
                                             className="w-full rounded-xl border border-slate-800 bg-slate-950/50 py-3 pl-10 pr-3 text-sm text-slate-100 focus:outline-none"
                                         />
                                     </div>
@@ -254,18 +287,48 @@ export default function MemberRegisterPage() {
                                 </div>
                             </div>
 
-                            {/* Date of Birth & Occupation */}
+                            {/* Date of Birth (Optional Year) & Occupation */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-medium text-slate-300 mb-1">Date of Birth</label>
-                                    <div className="relative">
-                                        <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white" />
-                                        <input
-                                            type="date"
-                                            value={dateOfBirth}
-                                            onChange={(e) => setDateOfBirth(e.target.value)}
-                                            className="w-full rounded-xl border border-slate-800 bg-slate-950/50 py-3 pl-10 pr-3 text-sm text-slate-100 focus:outline-none"
-                                        />
+                                    <label className="block text-xs font-medium text-slate-300 mb-1">
+                                        Date of Birth <span className="text-slate-500 font-normal">(Year is optional)</span>
+                                    </label>
+                                    <div className="grid grid-cols-3 gap-1.5">
+                                        {/* Month */}
+                                        <select
+                                            value={dobMonth}
+                                            onChange={(e) => setDobMonth(e.target.value)}
+                                            className="rounded-xl border border-slate-800 bg-slate-950 px-2 py-3 text-xs text-slate-100 focus:outline-none"
+                                        >
+                                            <option value="">Month</option>
+                                            {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, idx) => (
+                                                <option key={m} value={String(idx + 1)}>{m}</option>
+                                            ))}
+                                        </select>
+
+                                        {/* Day */}
+                                        <select
+                                            value={dobDay}
+                                            onChange={(e) => setDobDay(e.target.value)}
+                                            className="rounded-xl border border-slate-800 bg-slate-950 px-2 py-3 text-xs text-slate-100 focus:outline-none"
+                                        >
+                                            <option value="">Day</option>
+                                            {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                                                <option key={d} value={String(d)}>{d}</option>
+                                            ))}
+                                        </select>
+
+                                        {/* Optional Year */}
+                                        <select
+                                            value={dobYear}
+                                            onChange={(e) => setDobYear(e.target.value)}
+                                            className="rounded-xl border border-slate-800 bg-slate-950 px-2 py-3 text-xs text-slate-100 focus:outline-none"
+                                        >
+                                            <option value="">Year (Opt)</option>
+                                            {Array.from({ length: 90 }, (_, i) => 2026 - i).map((y) => (
+                                                <option key={y} value={String(y)}>{y}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </div>
 
@@ -308,14 +371,8 @@ export default function MemberRegisterPage() {
                                 disabled={loading}
                                 className="w-full mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-emerald-600 to-teal-600 py-3.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/25 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.98] disabled:opacity-50 transition-all"
                             >
-                                {loading ? (
-                                    <span>Saving Profile...</span>
-                                ) : (
-                                    <>
-                                        <CheckCircle className="w-5 h-5" />
-                                        <span>Register & Complete Setup</span>
-                                    </>
-                                )}
+                                <CheckCircle className="w-5 h-5" />
+                                <span>Register & Complete Setup</span>
                             </button>
                         </form>
                     </div>

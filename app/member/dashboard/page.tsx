@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { User, QrCode, Calendar, Shield, Edit3, Save, LifeBuoy, ArrowRight, BookOpen, LogOut, MessageCircle, BarChart3, PieChart, CheckCircle2, X } from 'lucide-react';
+import { User, QrCode, Calendar, Camera, Shield, Edit3, Save, LifeBuoy, ArrowRight, BookOpen, LogOut, MessageCircle, BarChart3, PieChart, CheckCircle2, X } from 'lucide-react';
+import LoadingSpinner from '@/Components/LoadingSpinner';
 import Footer from '@/Components/Footer';
 
 export default function MemberDashboard() {
@@ -22,6 +23,8 @@ export default function MemberDashboard() {
     const [lastName, setLastName] = useState('');
     const [gender, setGender] = useState('Male');
     const [whatsappNumber, setWhatsappNumber] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [email, setEmail] = useState('');
     const [homeAddress, setHomeAddress] = useState('');
     const [occupationType, setOccupationType] = useState('');
 
@@ -56,7 +59,9 @@ export default function MemberDashboard() {
             setFirstName(profileData.first_name || '');
             setLastName(profileData.last_name || '');
             setGender(profileData.gender || 'Male');
-            setWhatsappNumber(profileData.phone_number || '');
+            setWhatsappNumber(profileData.whatsapp_number || '');
+            setPhoneNumber(profileData.phone_number || '');
+            setEmail(profileData.email || '');
             setHomeAddress(profileData.home_address || '');
             setOccupationType(profileData.occupation_type || 'student');
 
@@ -150,8 +155,10 @@ export default function MemberDashboard() {
             .update({
                 first_name: firstName,
                 last_name: lastName,
-                phone_number: whatsappNumber,
                 gender: gender,
+                whatsapp_number: whatsappNumber,
+                phone_number: phoneNumber,
+                email: email,
                 home_address: homeAddress,
                 occupation_type: occupationType,
             })
@@ -169,8 +176,10 @@ export default function MemberDashboard() {
                 ...prev,
                 first_name: firstName,
                 last_name: lastName,
-                phone_number: whatsappNumber,
                 gender: gender,
+                whatsapp_number: whatsappNumber,
+                phone_number: phoneNumber,
+                email: email,
                 home_address: homeAddress,
                 occupation_type: occupationType,
             }));
@@ -185,11 +194,7 @@ export default function MemberDashboard() {
     };
 
     if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-950 text-emerald-400">
-                <div className="text-sm font-medium animate-pulse">Loading your Didache profile...</div>
-            </div>
-        );
+        return <LoadingSpinner text="Loading your Didache profile..." icon={BookOpen} />;
     }
 
     return (
@@ -309,12 +314,32 @@ export default function MemberDashboard() {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-[11px] font-medium text-slate-400 mb-1">Phone Number</label>
+                                    <label className="block text-[11px] font-medium text-slate-400 mb-1">Whatsapp Number</label>
                                     <input
                                         type="tel"
                                         value={whatsappNumber}
                                         onChange={(e) => setWhatsappNumber(e.target.value)}
                                         required
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[11px] font-medium text-slate-400 mb-1">Phone Number</label>
+                                    <input
+                                        type="tel"
+                                        value={phoneNumber}
+                                        onChange={(e) => setPhoneNumber(e.target.value)}
+                                        required
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[11px] font-medium text-slate-400 mb-1">Email Address</label>
+                                    <input
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        placeholder="your.email@domain.com"
                                         className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
                                     />
                                 </div>
@@ -352,8 +377,16 @@ export default function MemberDashboard() {
                                     </span>
                                 </div>
                                 <div className="flex justify-between py-1 border-b border-slate-800/60">
+                                    <span className="text-slate-400">Whatsapp Number</span>
+                                    <span className="font-semibold text-slate-200">{profile?.whatsapp_number}</span>
+                                </div>
+                                <div className="flex justify-between py-1 border-b border-slate-800/60">
                                     <span className="text-slate-400">Phone Number</span>
                                     <span className="font-semibold text-slate-200">{profile?.phone_number}</span>
+                                </div>
+                                <div className="flex justify-between py-1 border-b border-slate-800/60">
+                                    <span className="text-slate-400">Email Address</span>
+                                    <span className="font-semibold text-slate-200 truncate max-w-50">{profile?.email || 'Not provided'}</span>
                                 </div>
                                 <div className="flex justify-between py-1 border-b border-slate-800/60">
                                     <span className="text-slate-400">Occupation</span>
@@ -397,7 +430,7 @@ export default function MemberDashboard() {
                                 Facing scanning or login issues? Contact the tech engineering team.
                             </p>
                             <a
-                                href="mailto:support@byteandsecurity.org"
+                                href="mailto:byteandsecurity.support+didache-milk-and-honey-member@gmail.com?subject=Didache%20Portal%20Support%20Request"
                                 className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-400 hover:underline pt-1"
                             >
                                 <span>Email Engineering Support</span>
@@ -474,13 +507,18 @@ export default function MemberDashboard() {
                                                     att.sessions?.session_date === formattedDateStr || index < attendance.length
                                                 );
 
+                                                // Check if the Sunday date is in the future
+                                                const isFuture = sundayDate > new Date();
+
                                                 return (
                                                     <div
                                                         key={weekNum}
                                                         className={`rounded-2xl border p-4 text-center transition ${
                                                             hasAttended
                                                                 ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
-                                                                : 'border-slate-800 bg-slate-950/40 text-slate-500'
+                                                                : isFuture
+                                                                    ? 'border-slate-800 bg-slate-950/40 text-slate-500'
+                                                                    : 'border-red-500/30 bg-red-500/10 text-red-400'
                                                         }`}
                                                     >
                                                         <div className="text-xs font-medium mb-0.5">Sunday {weekNum}</div>
@@ -493,8 +531,13 @@ export default function MemberDashboard() {
                                                                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                                                                     <span>Present</span>
                                                                 </>
-                                                            ) : (
+                                                            ) : isFuture ? (
                                                                 <span>Pending</span>
+                                                            ) : (
+                                                                <>
+                                                                    <X className="w-3.5 h-3.5 text-red-400" />
+                                                                    <span>Absent</span>
+                                                                </>
                                                             )}
                                                         </div>
                                                     </div>
@@ -525,6 +568,48 @@ export default function MemberDashboard() {
                     })()}
                 </div>
             </main>
+
+            {/* QR SCANNER MODAL */}
+            {showScannerModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4">
+                    <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-2xl space-y-4 text-center">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                <Camera className="w-4 h-4 text-emerald-400" /> Scan Sunday QR Code
+                            </h3>
+                            <button onClick={closeScannerModal} className="text-slate-400 hover:text-white">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center">
+                            <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" muted playsInline />
+                            <div className="absolute inset-8 rounded-2xl border-2 border-dashed border-emerald-500/50 pointer-events-none animate-pulse flex items-center justify-center">
+                                <span className="text-[11px] text-emerald-300 bg-slate-950/80 px-2 py-1 rounded-md">
+                                    Align QR Code inside box
+                                </span>
+                            </div>
+                        </div>
+
+                        <p className="text-xs text-slate-400">{scannerStatus}</p>
+
+                        <div className="pt-2 flex flex-col gap-2">
+                            <button
+                                onClick={simulateSuccessfulScan}
+                                className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-semibold text-white shadow-lg transition"
+                            >
+                                Simulate Successful Scan & Check-in
+                            </button>
+                            <button
+                                onClick={closeScannerModal}
+                                className="w-full rounded-xl border border-slate-800 bg-slate-950 py-2.5 text-xs font-semibold text-slate-400 hover:text-white transition"
+                            >
+                                Cancel / Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <Footer />
 

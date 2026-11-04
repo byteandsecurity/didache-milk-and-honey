@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import {ShieldCheck, Lock, Mail, ArrowRight, ArrowLeft, CheckCircle2, EyeOff, Eye} from 'lucide-react';
+import LoadingSpinner from '@/Components/LoadingSpinner';
 import Footer from '@/Components/Footer';
 
 export default function AdminPortalPage() {
@@ -16,6 +17,14 @@ export default function AdminPortalPage() {
 
     const router = useRouter();
     const supabase = createClient();
+
+    const handleBack = () => {
+        if (typeof window !== 'undefined' && window.history.length > 1) {
+            router.back();
+        } else {
+            router.push('/');
+        }
+    };
 
     const handleAdminLogin = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -65,10 +74,13 @@ export default function AdminPortalPage() {
 
             {/* Top Navigation */}
             <div>
-                <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-amber-400 mb-6 transition">
+                <button
+                    onClick={handleBack}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-amber-400 mb-6 transition"
+                >
                     <ArrowLeft className="h-4 w-4" />
-                    <span>Back to Home</span>
-                </Link>
+                    <span>Go Back</span>
+                </button>
             </div>
 
             {/* Main Split-Screen Container */}
@@ -109,7 +121,13 @@ export default function AdminPortalPage() {
 
                 {/* Right Column: Secure Login Card */}
                 <div className="lg:col-span-5 w-full max-w-md mx-auto lg:max-w-none">
-                    <div className="relative rounded-3xl border border-slate-800 bg-slate-900/70 p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6">
+                    {loading ? (
+                        <LoadingSpinner
+                            text="Verifying admin authorization..."
+                            icon={ShieldCheck}
+                        />
+                    ) : (
+                        <div className="relative rounded-3xl border border-slate-800 bg-slate-900/70 p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6">
 
                         <div className="space-y-1">
                             <h3 className="text-lg font-bold text-white">Staff Sign In</h3>
@@ -189,7 +207,8 @@ export default function AdminPortalPage() {
                             </button>
                         </form>
                     </div>
-                </div>
+                        )}
+                    </div>
             </main>
 
             {/* Footer */}

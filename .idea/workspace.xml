@@ -4,15 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="QR CODE: implement smart QR check-in gateway, duplicate registration prevention, and update guest_profiles schema">
-      <change afterPath="$PROJECT_DIR$/Components/admin/GuestManagement.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Components/admin/MemberRoster.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Components/admin/OverviewAnalytics.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Components/admin/QrGenerator.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Components/admin/StaffDirectory.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Components/admin/analytics/AttendanceTrends.tsx" afterDir="false" />
+    <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/admin/dashboard/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/dashboard/page.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -35,61 +28,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.0" />
-      <entry key="MS500" value="1.0" />
-      <entry key="S2" value="1.0" />
-      <entry key="S5" value="1.0" />
-      <entry key="S10" value="1.0" />
-      <entry key="S30" value="1.0" />
-      <entry key="S60" value="1.0" />
-      <entry key="M2" value="1.0" />
-      <entry key="M5" value="1.0000001661201814" />
-      <entry key="M10" value="1.000938329978377" />
-      <entry key="M15" value="1.0172275422593473" />
-      <entry key="M30" value="1.345767919011819" />
-      <entry key="H1" value="3.819723947937729" />
-      <entry key="H2" value="18.071073790115403" />
-      <entry key="H4" value="55.071154135599464" />
-      <entry key="D1" value="160.16076423945654" />
-      <entry key="W1" value="194.53088615955986" />
+      <entry key="MS100" value="1.0000005066310595" />
+      <entry key="MS500" value="1.0906003584620834" />
+      <entry key="S2" value="1.9198601069816585" />
+      <entry key="S5" value="2.4655456316555524" />
+      <entry key="S10" value="2.711972437443664" />
+      <entry key="S30" value="2.899465219291503" />
+      <entry key="S60" value="2.980730537666814" />
+      <entry key="M2" value="3.2297159789420893" />
+      <entry key="M5" value="4.165931389021129" />
+      <entry key="M10" value="6.504894848392602" />
+      <entry key="M15" value="9.630524859833471" />
+      <entry key="M30" value="21.3002718803758" />
+      <entry key="H1" value="45.15713313523559" />
+      <entry key="H2" value="80.7716411549906" />
+      <entry key="H4" value="132.13418136284932" />
+      <entry key="D1" value="279.53546676630566" />
+      <entry key="W1" value="333.52190836051835" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="9.667461665933013E-12" />
-      <entry key="MS500" value="0.006267040362128799" />
-      <entry key="S2" value="0.2813621169555367" />
-      <entry key="S5" value="0.6021521608443703" />
-      <entry key="S10" value="0.7759846395672857" />
-      <entry key="S30" value="0.9189341151201386" />
-      <entry key="S60" value="0.9586105127319117" />
-      <entry key="M2" value="0.9790865706013497" />
-      <entry key="M5" value="0.9915815652119716" />
-      <entry key="M10" value="0.9959045108823791" />
-      <entry key="M15" value="0.9996544442205396" />
-      <entry key="M30" value="1.0493100229010273" />
-      <entry key="H1" value="1.341730253984636" />
-      <entry key="H2" value="3.165952110647571" />
-      <entry key="H4" value="8.84608364945698" />
-      <entry key="D1" value="27.367226375527174" />
-      <entry key="W1" value="33.78032983903092" />
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="2.3206768755125486E-129" />
+      <entry key="S5" value="5.840136460041657E-52" />
+      <entry key="S10" value="3.998925705451485E-26" />
+      <entry key="S30" value="7.024635351564721E-9" />
+      <entry key="S60" value="1.4598752002006204E-4" />
+      <entry key="M2" value="0.02234268524953377" />
+      <entry key="M5" value="0.5692340998477009" />
+      <entry key="M10" value="2.211368688185788" />
+      <entry key="M15" value="3.967800072948551" />
+      <entry key="M30" value="8.550279389171815" />
+      <entry key="H1" value="14.931919294979117" />
+      <entry key="H2" value="22.46158233641223" />
+      <entry key="H4" value="31.790626356613185" />
+      <entry key="D1" value="58.13958429251768" />
+      <entry key="W1" value="68.05973455054871" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="4.01506906280604E-8" />
-      <entry key="MS500" value="0.03421323113047308" />
-      <entry key="S2" value="0.6065029941018758" />
-      <entry key="S5" value="1.214672680176463" />
-      <entry key="S10" value="1.5528697922451224" />
-      <entry key="S30" value="1.8366998326647055" />
-      <entry key="S60" value="1.9164125277385209" />
-      <entry key="M2" value="1.9577093901930378" />
-      <entry key="M5" value="1.9829630441488628" />
-      <entry key="M10" value="1.99252014214003" />
-      <entry key="M15" value="2.0139754080032093" />
-      <entry key="M30" value="2.393409570760367" />
-      <entry key="H1" value="5.1599282654981735" />
-      <entry key="H2" value="21.23407027843673" />
-      <entry key="H4" value="63.91249461583071" />
-      <entry key="D1" value="187.52550808078303" />
-      <entry key="W1" value="228.31077961328765" />
+      <entry key="MS100" value="1.4232089215167438E-5" />
+      <entry key="MS500" value="0.1954949713809897" />
+      <entry key="S2" value="1.4864601946395641" />
+      <entry key="S5" value="2.261845945436916" />
+      <entry key="S10" value="2.604240852034824" />
+      <entry key="S30" value="2.8621470929759116" />
+      <entry key="S60" value="2.96163560210435" />
+      <entry key="M2" value="3.2408342817901077" />
+      <entry key="M5" value="4.726538186704059" />
+      <entry key="M10" value="8.705433792075427" />
+      <entry key="M15" value="13.585550706121946" />
+      <entry key="M30" value="29.835470561149204" />
+      <entry key="H1" value="60.07434633091191" />
+      <entry key="H2" value="103.22099322650276" />
+      <entry key="H4" value="163.91485870326093" />
+      <entry key="D1" value="337.67124417586336" />
+      <entry key="W1" value="401.58097919931566" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -109,7 +102,6 @@
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
-    "git-widget-placeholder": "main",
     "ignore.virus.scanning.warn.message": "true",
     "javascript.preferred.runtime.type.id": "node",
     "js.debugger.nextJs.config.created.client": "true",
@@ -122,6 +114,7 @@
     "node.js.selected.package.jshint": "",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "project.propVCSSupport.DirectoryMappings",
     "ts.external.directory.path": "C:\\Users\\gbeng\\AppData\\Local\\Programs\\WebStorm 2026.2.4\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external"
   }
 }]]></component>
@@ -162,7 +155,9 @@
       <option name="presentableId" value="Default" />
       <updated>1793573181326</updated>
       <workItem from="1793573185649" duration="15592000" />
-      <workItem from="1793620859945" duration="19715000" />
+      <workItem from="1793620859945" duration="20057000" />
+      <workItem from="1793648539032" duration="551000" />
+      <workItem from="1793745466064" duration="12233000" />
     </task>
     <task id="LOCAL-00001" summary="Friction-free member onboarding, auth, and responsive UI:&#10;- Responsive landing page with emerald/indigo ambient lighting and mobile-first design.&#10;- Frictionless member registration &amp; login using phone numbers (no passwords required for church members).&#10;- Added localStorage form draft persistence to prevent data loss on mobile browser reloads.&#10;- Created dedicated admin login route with role verification.&#10;- Wrapped search params in Suspense and configured Supabase RLS policies for smooth database inserts.&#10;- Included Vercel Analytics and Speed Insights in root layout.">
       <option name="closed" value="true" />
@@ -260,7 +255,15 @@
       <option name="project" value="LOCAL" />
       <updated>1793631673817</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="Modularize dashboard into independent components, add mobile responsiveness, custom modals, and dynamic date/month filtering&#10;- Modularize Admin Dashboard into independent components inside components/admin/&#10;- Extract Sunday School Analytics Engine into components/admin/analytics/AttendanceTrends.tsx&#10;- Move Attendance Legend banner from OverviewAnalytics into MemberRoster header&#10;- Add mobile-first collapsible dropdowns for Key Metrics and Demographic Split in OverviewAnalytics&#10;- Update MemberRoster with dynamic month selection (0 hardcoded dates) and responsive mobile card view&#10;- Update GuestManagement with calendar date picker, name search filter, colorful options, and mobile card view&#10;- Update QrGenerator with live ticking countdown timer (MM:SS) and expiration badge&#10;- Update StaffDirectory with custom confirmation delete modal, super admin restrictions, and 5-admin account limit check&#10;- Ensure foreign key constraint independence for admin profiles without Supabase Auth ties">
+      <option name="closed" value="true" />
+      <created>1793648043519</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1793648043519</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -276,6 +279,7 @@
     <MESSAGE value="Change to url for QR Code" />
     <MESSAGE value="QR CODE: Added livestream to get live view of the code" />
     <MESSAGE value="QR CODE: implement smart QR check-in gateway, duplicate registration prevention, and update guest_profiles schema" />
-    <option name="LAST_COMMIT_MESSAGE" value="QR CODE: implement smart QR check-in gateway, duplicate registration prevention, and update guest_profiles schema" />
+    <MESSAGE value="Modularize dashboard into independent components, add mobile responsiveness, custom modals, and dynamic date/month filtering&#10;- Modularize Admin Dashboard into independent components inside components/admin/&#10;- Extract Sunday School Analytics Engine into components/admin/analytics/AttendanceTrends.tsx&#10;- Move Attendance Legend banner from OverviewAnalytics into MemberRoster header&#10;- Add mobile-first collapsible dropdowns for Key Metrics and Demographic Split in OverviewAnalytics&#10;- Update MemberRoster with dynamic month selection (0 hardcoded dates) and responsive mobile card view&#10;- Update GuestManagement with calendar date picker, name search filter, colorful options, and mobile card view&#10;- Update QrGenerator with live ticking countdown timer (MM:SS) and expiration badge&#10;- Update StaffDirectory with custom confirmation delete modal, super admin restrictions, and 5-admin account limit check&#10;- Ensure foreign key constraint independence for admin profiles without Supabase Auth ties" />
+    <option name="LAST_COMMIT_MESSAGE" value="Modularize dashboard into independent components, add mobile responsiveness, custom modals, and dynamic date/month filtering&#10;- Modularize Admin Dashboard into independent components inside components/admin/&#10;- Extract Sunday School Analytics Engine into components/admin/analytics/AttendanceTrends.tsx&#10;- Move Attendance Legend banner from OverviewAnalytics into MemberRoster header&#10;- Add mobile-first collapsible dropdowns for Key Metrics and Demographic Split in OverviewAnalytics&#10;- Update MemberRoster with dynamic month selection (0 hardcoded dates) and responsive mobile card view&#10;- Update GuestManagement with calendar date picker, name search filter, colorful options, and mobile card view&#10;- Update QrGenerator with live ticking countdown timer (MM:SS) and expiration badge&#10;- Update StaffDirectory with custom confirmation delete modal, super admin restrictions, and 5-admin account limit check&#10;- Ensure foreign key constraint independence for admin profiles without Supabase Auth ties" />
   </component>
 </project>

@@ -4,6 +4,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { UserCheck, Heart, Sparkles, BookOpen, ArrowRight, User, KeyRound } from 'lucide-react';
+import LoadingSpinner from '@/Components/LoadingSpinner';
 import Footer from '@/Components/Footer';
 
 function CheckInContent() {
@@ -51,11 +52,7 @@ function CheckInContent() {
     }, [supabase]);
 
     if (checking) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-950 text-emerald-400">
-                <div className="text-sm font-medium animate-pulse">Verifying Sunday check-in session...</div>
-            </div>
-        );
+        return <LoadingSpinner text="Verifying Sunday check-in session..." icon={BookOpen} />;
     }
 
     // A. RECOGNIZED DEVICE: Instant Check-In Success
@@ -76,9 +73,9 @@ function CheckInContent() {
                         </div>
 
                         <div className="space-y-2">
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 uppercase tracking-wider">
-                ✓ Attendance Recorded
-              </span>
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                                ✓ Attendance Recorded
+                            </span>
                             <h2 className="text-2xl font-bold text-white">Welcome back, {memberProfile.first_name}!</h2>
                             <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
                                 You are checked into Sunday School for <strong>{dateParam}</strong>. God bless you as you worship with us today!
@@ -104,13 +101,21 @@ function CheckInContent() {
         return (
             <div className="min-h-screen flex flex-col justify-between p-4 sm:p-6 lg:p-12 max-w-xl mx-auto">
                 <header className="pb-6 border-b border-slate-800/80 text-center">
-          <span className="text-[10px] uppercase font-semibold text-emerald-400 tracking-wider">
-            Member Portal Gateway
-          </span>
+                    <span className="text-[10px] uppercase font-semibold text-emerald-400 tracking-wider">
+                        Member Portal Gateway
+                    </span>
                     <p className="text-xs text-slate-400">RCCG Milk & Honey</p>
                 </header>
 
                 <main className="my-8 space-y-6">
+
+                    <button
+                        onClick={() => setMemberChoice('selection')}
+                        className="w-full text-left text-xs text-slate-500 hover:text-slate-300 pt-2"
+                    >
+                        ← Back to main options
+                    </button>
+
                     <div className="text-center space-y-2">
                         <h1 className="text-2xl font-extrabold text-white">Member Check-In</h1>
                         <p className="text-xs text-slate-400 max-w-sm mx-auto">
@@ -159,13 +164,6 @@ function CheckInContent() {
                             </div>
                         </button>
                     </div>
-
-                    <button
-                        onClick={() => setMemberChoice('selection')}
-                        className="w-full text-center text-xs text-slate-500 hover:text-slate-300 pt-2"
-                    >
-                        ← Back to main options
-                    </button>
                 </main>
 
                 <Footer />
@@ -241,11 +239,7 @@ function CheckInContent() {
 
 export default function CheckInPage() {
     return (
-        <Suspense fallback={
-                      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-emerald-400">
-                          <div className="text-sm font-medium animate-pulse">Loading Check-In Gateway...</div>
-                      </div>
-                  }>
+        <Suspense fallback={<LoadingSpinner text="Loading Check-In Gateway..." icon={BookOpen} />}>
             <CheckInContent />
         </Suspense>
     );

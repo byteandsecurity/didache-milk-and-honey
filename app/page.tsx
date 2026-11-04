@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { BookOpen, QrCode, ShieldCheck, UserCheck, Sparkles, ArrowRight, CheckCircle2, Zap } from 'lucide-react';
+import { BookOpen, QrCode, ShieldCheck, UserCheck, Sparkles, ArrowRight, CheckCircle2, Zap, UserPlus } from 'lucide-react';
 import Footer from "@/Components/Footer";
 
 export default function LandingPage() {
@@ -47,7 +47,7 @@ export default function LandingPage() {
             </h2>
 
             <p className="text-base sm:text-lg text-slate-400 leading-relaxed max-w-xl">
-              Welcome to the Didache portal for RCCG Milk & Honey. Scan the Sunday QR code in seconds without complicated passwords, or log in to view your attendance history.
+              Welcome to the Didache portal for RCCG Milk & Honey. Scan the Sunday QR code in seconds, check in as a visiting guest, or log in to view your attendance history.
             </p>
 
             {/* Desktop Feature Badges */}
@@ -63,14 +63,15 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Right Column: Interactive Action Card */}
+          {/* Right Column: Interactive Action Cards */}
           <div className="lg:col-span-5 w-full max-w-md mx-auto lg:max-w-none">
-            <div className="relative rounded-3xl border border-slate-800 bg-slate-900/70 p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-4">
+            <div className="relative rounded-3xl border border-slate-800 bg-slate-900/70 p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-3.5">
               <div className="space-y-1 mb-2">
                 <h3 className="text-lg font-bold text-white">Sunday School Access</h3>
-                <p className="text-xs text-slate-400">Select an option below to get started</p>
+                <p className="text-xs text-slate-400">Select an option below to check in today</p>
               </div>
 
+              {/* Regular Member Check-In */}
               <Link
                   href="/auth/member/login"
                   className="group flex w-full items-center justify-between rounded-2xl bg-linear-to-r from-emerald-600 via-teal-600 to-indigo-600 p-4 font-semibold text-white shadow-xl shadow-emerald-600/20 hover:opacity-95 active:scale-[0.98] transition-all"
@@ -80,19 +81,44 @@ export default function LandingPage() {
                     <QrCode className="h-6 w-6 text-white" />
                   </div>
                   <div className="text-left">
-                    <div className="text-sm sm:text-base">Scan QR / Member Check-In</div>
-                    <div className="text-xs text-emerald-100 font-normal">Check in or register your profile</div>
+                    <div className="text-sm sm:text-base font-bold">Member Check-In / Scan QR</div>
+                    <div className="text-xs text-emerald-100 font-normal">Registered members log attendance</div>
                   </div>
                 </div>
                 <ArrowRight className="h-5 w-5 opacity-80 group-hover:translate-x-1 transition-transform" />
               </Link>
 
+              {/* Guest / Visitor Quick Check-In */}
+              <Link
+                  href="/auth/guest"
+                  className="group flex w-full items-center justify-between rounded-2xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 p-4 text-amber-200 transition-all active:scale-[0.98]"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 shrink-0">
+                    <UserPlus className="h-5 w-5" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs sm:text-sm font-bold text-white">Visiting Today? Guest Check-In</div>
+                    <div className="text-[11px] text-amber-300/80 font-normal">Quick 1-minute check-in (No account needed)</div>
+                  </div>
+                </div>
+                <ArrowRight className="h-4 w-4 text-amber-400 opacity-80 group-hover:translate-x-1 transition-transform" />
+              </Link>
+
+              {/* First Time Member Registration */}
               <Link
                   href="/auth/member/register"
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-800 bg-slate-950/60 p-4 text-sm font-semibold text-slate-200 hover:border-emerald-500/40 hover:bg-slate-800/60 active:scale-[0.98] transition-all"
+                  className="group flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-800 bg-slate-950/60 p-3.5 text-xs sm:text-sm font-semibold text-slate-300 hover:border-emerald-500/40 hover:bg-slate-800/60 active:scale-[0.98] transition-all"
               >
-                <UserCheck className="h-4 w-4 text-emerald-400" />
-                <span>First Time? Instant Registration</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/20 text-amber-400 shrink-0">
+                  <UserCheck className="h-5 w-5 text-emerald-400" />
+                </div>
+                  <div className='text-left'>
+                  <div className="text-xs sm:text-sm font-bold text-white">Join Us/Become A Member</div>
+                  <span>Are you a member without an account, or new and planning to stay? Start here.</span>
+                </div>
+                </div>
               </Link>
             </div>
           </div>
