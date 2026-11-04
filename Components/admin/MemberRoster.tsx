@@ -4,6 +4,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Eye, Edit2, Trash2, X, Calendar, Filter, Users, Phone } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
+const ALLOW_ANYDAY_ROSTER_TESTING = true; // 🧪 Toggle to false when done testing for production
+
 export default function MemberRoster({ members, attendance, sessions, onRefresh }: any) {
     const [searchQuery, setSearchQuery] = useState('');
     const [memberSortBy, setMemberSortBy] = useState<'first_name' | 'last_name' | 'gender'>('first_name');
@@ -42,25 +44,35 @@ export default function MemberRoster({ members, attendance, sessions, onRefresh 
         return list;
     }, []);
 
-    const [sundaysInSelectedMonth, setSundaysInSelectedMonth] = useState<Date[]>([]);
+    const [columnsInSelectedMonth, setColumnsInSelectedMonth] = useState<Date[]>([]);
+
     useEffect(() => {
         const [yearStr, monthStr] = selectedRosterMonth.split('-');
         const year = parseInt(yearStr, 10);
         const month = parseInt(monthStr, 10) - 1;
-        const sundays: Date[] = [];
+        const columnDates: Date[] = [];
 
-        let d = new Date(year, month, 1);
-        while (d.getDay() !== 0) d.setDate(d.getDate() + 1);
-        while (d.getMonth() === month) {
-            sundays.push(new Date(d));
-            d.setDate(d.getDate() + 7);
+        if (ALLOW_ANYDAY_ROSTER_TESTING) {
+            // TESTING MODE: Generate every day of the month as a column
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            for (let day = 1; day <= daysInMonth; day++) {
+                columnDates.push(new Date(year, month, day));
+            }
+        } else {
+            // PRODUCTION MODE: Strict Sundays only
+            let d = new Date(year, month, 1);
+            while (d.getDay() !== 0) d.setDate(d.getDate() + 1);
+            while (d.getMonth() === month) {
+                columnDates.push(new Date(d));
+                d.setDate(d.getDate() + 7);
+            }
         }
-        setSundaysInSelectedMonth(sundays);
+        setColumnsInSelectedMonth(columnDates);
     }, [selectedRosterMonth]);
 
     const supabase = createClient();
 
-    const handleSaveMemberEdit = async (e: React.FormEvent) => {
+    const handleSaveMemberEdit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!selectedMember) return;
         const { error } = await supabase.from('profiles').update({
@@ -108,7 +120,8 @@ export default function MemberRoster({ members, attendance, sessions, onRefresh 
         <div className="space-y-4 sm:space-y-6">
             {/* Attendance Legend Banner*/}
             <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 text-xs text-slate-400">
-                💡 <strong>Attendance Legend:</strong> <span className="text-emerald-400 font-bold">✓</span> = Present | <span className="text-red-400 font-bold">✕</span> = Absent | <span className="text-slate-400 font-bold">○</span> = Pending (Future) | <span className="text-blue-400 font-bold">-</span> = Sunday School did not hold.
+                💡 <strong>Attendance Legend:</strong> <span className="text-emerald-400 font-bold">✓</span> = Present | <span className="text-red-400 font-bold">✕</span> = Absent | <span className="text-slate-400 font-bold">○</span> = Pending (Future) | <span className="text-blue-400 font-bold">-</span> = Service did not hold.
+                {ALLOW_ANYDAY_ROSTER_TESTING && <span className="ml-2 px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold">Testing Mode Active (All Days Shown)</span>}
             </div>
 
             {/* Filter & Controls Bar */}
@@ -172,7 +185,7 @@ export default function MemberRoster({ members, attendance, sessions, onRefresh 
                             placeholder="Search member..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full rounded-xl border border-slate-800 bg-slate-950 pl-8 pr-3 py-2 text-xs text-emerald-300 font-semibold focus:outline-none placeholder:text-slate-500"
+                            className="w-full rounded-xl border border-slate-800 bg-slate-950 pl-8 pr-3 py-2 text-xs text-emerald-300 font-semibold focus:outline-none"
                         />
                     </div>
                 </div>
@@ -217,33 +230,34 @@ export default function MemberRoster({ members, attendance, sessions, onRefresh 
                                     </button>
                                 </div>
 
-                                {/* Sunday Attendance Badges for Mobile */}
-                                <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-xs">
-                                    <span className="text-slate-400 text-[11px]">Sundays ({sundaysInSelectedMonth.length}):</span>
-                                    <div className="flex items-center gap-1.5">
-                                        {sundaysInSelectedMonth.map((sundayDate, sIdx) => {
-                                            const dateStr = sundayDate.toISOString().split('T')[0];
-                                            const isFuture = sundayDate > new Date();
+                                {/* Attendance Badges for Mobile */}
+                                <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-xs overflow-x-auto pb-1">
+                                    <span className="text-slate-400 text-[11px] shrink-0 mr-2">Dates ({columnsInSelectedMonth.length}):</span>
+                                    <div className="flex items-center gap-1">
+                                        {columnsInSelectedMonth.map((dateObj, sIdx) => {
+                                            const dateStr = dateObj.toISOString().split('T')[0];
+                                            const isFuture = dateObj > new Date();
 
                                             if (isBeforeMemberJoined) {
-                                                return <span key={sIdx} className="w-6 h-6 flex items-center justify-center rounded bg-slate-950 text-slate-600 font-bold text-[10px]" title="Not joined yet">-</span>;
+                                                return <span key={sIdx} className="w-6 h-6 flex items-center justify-center rounded bg-slate-950 text-slate-600 font-bold text-[10px]">-</span>;
                                             }
 
-                                            const totalSundayAttendance = attendance.filter((att: any) => {
+                                            // Check if user checked in on this date
+                                            const memberCheckedIn = attendance.some((att: any) => {
                                                 const sessionObj = sessions.find((s: any) => s.id === att.session_id);
-                                                return sessionObj?.session_date === dateStr || att.checked_in_at?.startsWith(dateStr);
+                                                const matchesSession = sessionObj?.session_date === dateStr;
+                                                const matchesDate = att.checked_in_at?.startsWith(dateStr);
+                                                const matchesUser = att.user_id === m.id;
+                                                return matchesUser && (matchesSession || matchesDate || ALLOW_ANYDAY_ROSTER_TESTING);
                                             });
-                                            const serviceHeld = totalSundayAttendance.length > 0;
-                                            const memberCheckedIn = totalSundayAttendance.some((att: any) => att.user_id === m.id);
 
                                             return (
-                                                <span key={sIdx} className={`w-6 h-6 flex items-center justify-center rounded font-bold text-[11px] ${
+                                                <span key={sIdx} className={`w-6 h-6 flex items-center justify-center rounded font-bold text-[11px] shrink-0 ${
                                                     isFuture ? 'bg-slate-800 text-slate-500' :
-                                                        !serviceHeld ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
-                                                            memberCheckedIn ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                                                                'bg-red-500/20 text-red-400 border border-red-500/30'
-                                                }`}>
-                                                    {isFuture ? '○' : !serviceHeld ? '-' : memberCheckedIn ? '✓' : '✕'}
+                                                        memberCheckedIn ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                                                            'bg-red-500/20 text-red-400 border border-red-500/30'
+                                                }`} title={dateStr}>
+                                                    {isFuture ? '○' : memberCheckedIn ? '✓' : '✕'}
                                                 </span>
                                             );
                                         })}
@@ -268,10 +282,10 @@ export default function MemberRoster({ members, attendance, sessions, onRefresh 
                             <th className="py-3.5 px-4 font-semibold">Member Name</th>
                             <th className="py-3.5 px-4 font-semibold">Gender</th>
                             <th className="py-3.5 px-4 font-semibold">Phone / WhatsApp</th>
-                            {sundaysInSelectedMonth.map((s, idx) => (
-                                <th key={idx} className="py-3.5 px-3 font-semibold text-center">
-                                    Sun {idx + 1}
-                                    <div className="text-[9px] text-slate-500 font-normal">{s.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</div>
+                            {columnsInSelectedMonth.map((d, idx) => (
+                                <th key={idx} className="py-3.5 px-2 font-semibold text-center min-w-[45px]">
+                                    {d.getDate()}
+                                    <div className="text-[9px] text-slate-500 font-normal">{d.toLocaleDateString(undefined, { month: 'short' })}</div>
                                 </th>
                             ))}
                             <th className="py-3.5 px-4 font-semibold text-right">Actions</th>
@@ -294,33 +308,33 @@ export default function MemberRoster({ members, attendance, sessions, onRefresh 
                                     </td>
                                     <td className="py-3 px-4 text-slate-400">{m.phone_number || 'Nil'}</td>
 
-                                    {sundaysInSelectedMonth.map((sundayDate, sIdx) => {
-                                        const dateStr = sundayDate.toISOString().split('T')[0];
-                                        const isFuture = sundayDate > new Date();
+                                    {columnsInSelectedMonth.map((dateObj, sIdx) => {
+                                        const dateStr = dateObj.toISOString().split('T')[0];
+                                        const isFuture = dateObj > new Date();
 
                                         if (isBeforeMemberJoined) {
                                             return (
-                                                <td key={sIdx} className="py-3 px-3 text-center">
+                                                <td key={sIdx} className="py-3 px-2 text-center">
                                                     <span className="text-slate-600 font-bold">-</span>
                                                 </td>
                                             );
                                         }
 
-                                        const totalSundayAttendance = attendance.filter((att: any) => {
+                                        // Check if this member checked in on this specific date
+                                        const memberCheckedIn = attendance.some((att: any) => {
                                             const sessionObj = sessions.find((s: any) => s.id === att.session_id);
-                                            return sessionObj?.session_date === dateStr || att.checked_in_at?.startsWith(dateStr);
+                                            const matchesSession = sessionObj?.session_date === dateStr;
+                                            const matchesDate = att.checked_in_at?.startsWith(dateStr);
+                                            const matchesUser = att.user_id === m.id;
+                                            return matchesUser && (matchesSession || matchesDate);
                                         });
-                                        const serviceHeld = totalSundayAttendance.length > 0;
-                                        const memberCheckedIn = totalSundayAttendance.some((att: any) => att.user_id === m.id);
 
                                         return (
-                                            <td key={sIdx} className="py-3 px-3 text-center">
+                                            <td key={sIdx} className="py-3 px-2 text-center">
                                                 {isFuture ? (
                                                     <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-slate-800 text-slate-500 font-bold" title="Pending">○</span>
-                                                ) : !serviceHeld ? (
-                                                    <span className="inline-flex items-center justify-center h-6 w-6 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30 font-bold" title="Did not hold">-</span>
                                                 ) : memberCheckedIn ? (
-                                                    <span className="inline-flex items-center justify-center h-6 w-6 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold" title="Present">✓</span>
+                                                    <span className="inline-flex items-center justify-center h-6 w-6 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold" title={`Present on ${dateStr}`}>✓</span>
                                                 ) : (
                                                     <span className="inline-flex items-center justify-center h-6 w-6 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 font-bold" title="Absent">✕</span>
                                                 )}
@@ -395,13 +409,13 @@ export default function MemberRoster({ members, attendance, sessions, onRefresh 
                             </form>
                         ) : (
                             <div className="space-y-3 text-xs">
-                                <div className="flex justify-between py-1 border-b border-slate-800/60"><span className="text-slate-400">Name</span><span className="font-semibold text-white">{selectedMember.first_name} {selectedMember.last_name}</span></div>
+                                <div className="flex justify-between py-1 border-b border-slate-800/60"><span className="text-slate-400">Name</span><span className="font-semibold text-white">{selectedMember.first_name} {selectedMember.last_name}</span>Id</div>
                                 <div className="flex justify-between py-1 border-b border-slate-800/60"><span className="text-slate-400">Email</span><span className="font-semibold text-white">{selectedMember.email || 'Nil'}</span></div>
                                 <div className="flex justify-between py-1 border-b border-slate-800/60"><span className="text-slate-400">Gender</span><span className="font-semibold text-emerald-400">{selectedMember.gender || 'Male'}</span></div>
                                 <div className="flex justify-between py-1 border-b border-slate-800/60"><span className="text-slate-400">Phone</span><span className="font-semibold text-white">{selectedMember.phone_number}</span></div>
                                 <div className="flex items-center justify-between pt-4">
                                     <button onClick={() => setIsEditingMember(true)} className="inline-flex items-center gap-1 rounded-xl bg-slate-800 hover:bg-slate-700 px-3.5 py-2 font-semibold text-emerald-400 transition">
-                                        <Edit2 className="w-3.5 h-3.5" /> Edit Member
+                                        <Edit2 className="w-3.5 h-3.5" /> Edit Member Row
                                     </button>
                                     <button onClick={() => handleDeleteMember(selectedMember.id)} className="inline-flex items-center gap-1 rounded-xl bg-red-500/10 hover:bg-red-500/20 px-3.5 py-2 font-semibold text-red-400 transition">
                                         <Trash2 className="w-3.5 h-3.5" /> Delete Member

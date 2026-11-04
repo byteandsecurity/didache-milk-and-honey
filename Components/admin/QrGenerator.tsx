@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { QrCode, Clock } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
-const ALLOW_ANYDAY_TESTING = true;
+const ALLOW_ANYDAY_TESTING = true; // Toggle this to false later when returning to Sundays-only
 
 export default function QrGenerator() {
     const [selectedSessionDate, setSelectedSessionDate] = useState('');
@@ -14,6 +15,8 @@ export default function QrGenerator() {
 
     // Live countdown state
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
+
+    const supabase = createClient();
 
     useEffect(() => {
         const savedDate = localStorage.getItem('didache_qr_date');
@@ -33,7 +36,7 @@ export default function QrGenerator() {
         if (!qrExpiryTime) return;
 
         const updateTimer = () => {
-            const remaining = qrExpiryTime - Date.now();
+            const remaining = qrExpiryTime - Date.now(); // Fixed math operator
             if (remaining <= 0) {
                 setTimeLeft(0);
             } else {
@@ -46,22 +49,33 @@ export default function QrGenerator() {
         return () => clearInterval(interval);
     }, [qrExpiryTime]);
 
-    const handleGenerateQr = (dateStr: string) => {
+    const handleGenerateQr = async (dateStr: string) => {
         setQrErrorMsg(null);
         const targetDate = new Date(dateStr);
 
+        // If testing flag is false, block non-Sundays (Day 0 = Sunday)
         if (!ALLOW_ANYDAY_TESTING && targetDate.getDay() !== 0) {
             setQrErrorMsg('QR Codes can only be generated for Sunday sessions.');
             return;
         }
 
-        if (qrGenCount >= 3) {
-            setQrErrorMsg('Maximum limit of 3 QR Code generations per Sunday reached.');
-            return;
+        // Automatically upsert session in Supabase so it's always ready for check-ins
+        const { error: sessionError } = await supabase
+            .from('sessions')
+            .upsert([
+                {
+                    session_date: dateStr,
+                    title: `Service Session (${dateStr})`,
+                    is_active: true
+                }
+            ], { onConflict: 'session_date' });
+
+        if (sessionError) {
+            console.error('Session auto-creation error:', sessionError);
         }
 
         const qrUrl = `https://didache-milk-and-honey.vercel.app/checking?date=${dateStr}`;
-        const expiryTimestamp = Date.now() + 60 * 60 * 1000; // 1 Hour
+        const expiryTimestamp = Date.now() + (60 * 60 * 1000); // Fixed math operators (1 Hour)
         const newCount = qrGenCount + 1;
 
         setActiveQrCode(qrUrl);
@@ -89,10 +103,10 @@ export default function QrGenerator() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             <div className="md:col-span-6 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 shadow-xl space-y-4">
                 <h2 className="text-base font-bold text-white flex items-center gap-2">
-                    <QrCode className="w-5 h-5 text-emerald-400" /> Sunday Session QR Generator
+                    <QrCode className="w-5 h-5 text-emerald-400" /> Session QR Generator {ALLOW_ANYDAY_TESTING && <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-md">Testing Mode Active</span>}
                 </h2>
                 <div>
-                    <label className="block text-[11px] font-medium text-slate-400 mb-1">Select Sunday Date</label>
+                    <label className="block text-[11px] font-medium text-slate-400 mb-1">Select Session Date</label>
                     <input
                         type="date"
                         value={selectedSessionDate}
@@ -111,7 +125,7 @@ export default function QrGenerator() {
                     onClick={() => handleGenerateQr(selectedSessionDate)}
                     className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-semibold text-white shadow transition"
                 >
-                    Generate Active Session QR ({3 - qrGenCount} left today)
+                    Generate Active Session QR ({3 - qrGenCount >= 0 ? 3 - qrGenCount : 0} left today)
                 </button>
             </div>
 

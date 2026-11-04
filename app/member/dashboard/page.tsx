@@ -86,10 +86,9 @@ export default function MemberDashboard() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    facingMode: { exact: 'environment' } // Explicitly request back camera on mobile
+                    facingMode: { exact: 'environment' }
                 }
             }).catch(() => {
-                // Fallback if 'exact' environment camera fails (e.g. laptops or single camera phones)
                 return navigator.mediaDevices.getUserMedia({ video: true });
             });
 
@@ -97,7 +96,7 @@ export default function MemberDashboard() {
 
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
-                videoRef.current.setAttribute('playsinline', 'true'); // Essential for iOS Safari
+                videoRef.current.setAttribute('playsinline', 'true');
                 await videoRef.current.play();
             }
 
@@ -108,7 +107,6 @@ export default function MemberDashboard() {
         }
     };
 
-    // 2. Safely Stop Camera Stream when closing modal
     const closeScannerModal = () => {
         if (mediaStreamRef.current) {
             mediaStreamRef.current.getTracks().forEach(track => track.stop());
@@ -117,29 +115,49 @@ export default function MemberDashboard() {
         setShowScannerModal(false);
     };
 
-    // 3. Simulate Successful Scan & Check-in (Offline-ready fallback)
     const simulateSuccessfulScan = async () => {
         const memberId = localStorage.getItem('didache_member_id');
-        const todayDate = new Date().toISOString().split('T')[0];
+        const activeSessionDate = localStorage.getItem('didache_qr_date') || new Date().toISOString().split('T')[0];
 
         closeScannerModal();
-
-        // Record attendance
         const supabase = createClient();
-        const { error } = await supabase.from('attendance').insert([
+
+        const { data: sessionMatch, error: sessionError } = await supabase
+            .from('sessions')
+            .upsert([
+                {
+                    session_date: activeSessionDate,
+                    title: `Service Session (${activeSessionDate})`,
+                    is_active: true
+                }
+            ], { onConflict: 'session_date' })
+            .select('id')
+            .single();
+
+        if (sessionError || !sessionMatch) {
+            alert(`❌ Error handling session: ${sessionError?.message}`);
+            return;
+        }
+
+        const { error: attendanceError } = await supabase.from('attendance').insert([
             {
                 user_id: memberId,
+                session_id: sessionMatch.id,
                 checked_in_at: new Date().toISOString(),
             }
         ]);
 
-        if (error && !error.message.includes('duplicate')) {
-            alert('Check-in recorded locally. Will sync when online!');
+        if (attendanceError) {
+            if (attendanceError.message.includes('duplicate')) {
+                alert('ℹ️ You have already checked in for this session!');
+            } else {
+                console.error('Supabase Error Details:', attendanceError);
+                alert(`❌ Supabase Error: ${attendanceError.message}`);
+            }
         } else {
-            alert('🎉 Check-in successful! Welcome to Sunday School.');
+            alert('🎉 Check-in successfully recorded in Supabase!');
+            window.location.reload();
         }
-
-        window.location.reload();
     };
 
     const handleUpdateProfile = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -149,7 +167,6 @@ export default function MemberDashboard() {
 
         const memberId = localStorage.getItem('didache_member_id');
 
-        // Update profile in Supabase table
         const { error } = await supabase
             .from('profiles')
             .update({
@@ -171,7 +188,6 @@ export default function MemberDashboard() {
             setIsEditing(false);
             localStorage.setItem('didache_member_name', `${firstName} ${lastName}`);
 
-            // Refresh local profile state instantly
             setProfile((prev: any) => ({
                 ...prev,
                 first_name: firstName,
@@ -226,7 +242,6 @@ export default function MemberDashboard() {
             {/* Main Content Grid */}
             <main className="my-8 space-y-6">
 
-                {/* SUCCESS NOTIFICATION WITH X CLOSE BUTTON */}
                 {successMsg && (
                     <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300 flex items-center justify-between shadow-lg">
                         <span>{successMsg}</span>
@@ -288,7 +303,7 @@ export default function MemberDashboard() {
                                             value={firstName}
                                             onChange={(e) => setFirstName(e.target.value)}
                                             required
-                                            className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+                                            className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none"
                                         />
                                     </div>
                                     <div>
@@ -298,7 +313,7 @@ export default function MemberDashboard() {
                                             value={lastName}
                                             onChange={(e) => setLastName(e.target.value)}
                                             required
-                                            className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+                                            className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none"
                                         />
                                     </div>
                                 </div>
@@ -307,7 +322,7 @@ export default function MemberDashboard() {
                                     <select
                                         value={gender}
                                         onChange={(e) => setGender(e.target.value)}
-                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none"
                                     >
                                         <option value="Male">Male</option>
                                         <option value="Female">Female</option>
@@ -320,7 +335,7 @@ export default function MemberDashboard() {
                                         value={whatsappNumber}
                                         onChange={(e) => setWhatsappNumber(e.target.value)}
                                         required
-                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none"
                                     />
                                 </div>
                                 <div>
@@ -330,7 +345,7 @@ export default function MemberDashboard() {
                                         value={phoneNumber}
                                         onChange={(e) => setPhoneNumber(e.target.value)}
                                         required
-                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none"
                                     />
                                 </div>
                                 <div>
@@ -340,7 +355,7 @@ export default function MemberDashboard() {
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         placeholder="your.email@domain.com"
-                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none"
                                     />
                                 </div>
                                 <div>
@@ -446,20 +461,36 @@ export default function MemberDashboard() {
                         const now = new Date();
                         const year = now.getFullYear();
                         const month = now.getMonth();
-                        const sundaysInMonth: Date[] = [];
+                        const todayDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-                        let d = new Date(year, month, 1);
-                        while (d.getDay() !== 0) {
-                            d.setDate(d.getDate() + 1);
-                        }
-                        while (d.getMonth() === month) {
-                            sundaysInMonth.push(new Date(d));
-                            d.setDate(d.getDate() + 7);
-                        }
+                        // --- TESTING MODE: All Days of Month ---
+                        const daysInCurrentMonth = new Date(year, month + 1, 0).getDate();
+                        const slotsInMonth: Date[] = Array.from(
+                            { length: daysInCurrentMonth },
+                            (_, i) => new Date(year, month, i + 1)
+                        );
 
-                        const totalSundays = sundaysInMonth.length;
                         const attendedCount = attendance.length;
-                        const attendanceRate = totalSundays > 0 ? Math.round((attendedCount / totalSundays) * 100) : 0;
+
+                        // Calculate past days up to today for accurate missed slots
+                        let pastDaysCount = 0;
+                        let missedCount = 0;
+
+                        slotsInMonth.forEach(dateObj => {
+                            if (dateObj <= todayDateOnly) {
+                                pastDaysCount++;
+                                const formattedDateStr = dateObj.toISOString().split('T')[0];
+                                const hasAttended = attendance.some(att =>
+                                    att.sessions?.session_date === formattedDateStr ||
+                                    att.checked_in_at?.startsWith(formattedDateStr)
+                                );
+                                if (!hasAttended) {
+                                    missedCount++;
+                                }
+                            }
+                        });
+
+                        const attendanceRate = pastDaysCount > 0 ? Math.round((attendedCount / pastDaysCount) * 100) : 0;
 
                         return (
                             <>
@@ -470,7 +501,7 @@ export default function MemberDashboard() {
                                             <span>Monthly Attendance Analytics & Graphs</span>
                                         </div>
                                         <p className="text-xs text-slate-400 mt-0.5">
-                                            Tracking {now.toLocaleString('default', { month: 'long', year: 'numeric' })} ({totalSundays} Sundays total).
+                                            Tracking {now.toLocaleString('default', { month: 'long', year: 'numeric' })} ({slotsInMonth.length} active slots total).
                                         </p>
                                     </div>
 
@@ -498,68 +529,65 @@ export default function MemberDashboard() {
 
                                 {chartView === 'grid' ? (
                                     <div className="space-y-4">
-                                        <div className="text-xs font-semibold text-slate-300">Sunday Service Check-Ins (This Month)</div>
-                                        <div className={`grid grid-cols-2 sm:grid-cols-${totalSundays === 5 ? '5' : '4'} gap-3`}>
-                                            {sundaysInMonth.map((sundayDate, index) => {
-                                                const weekNum = index + 1;
-                                                const formattedDateStr = sundayDate.toISOString().split('T')[0];
+                                        <div className="text-xs font-semibold text-slate-300">Service Check-Ins (This Month)</div>
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+                                            {slotsInMonth.map((dateObj, index) => {
+                                                const slotNum = index + 1;
+                                                const formattedDateStr = dateObj.toISOString().split('T')[0];
+
                                                 const hasAttended = attendance.some(att =>
-                                                    att.sessions?.session_date === formattedDateStr || index < attendance.length
+                                                    att.sessions?.session_date === formattedDateStr ||
+                                                    att.checked_in_at?.startsWith(formattedDateStr)
                                                 );
 
-                                                // Check if the Sunday date is in the future
-                                                const isFuture = sundayDate > new Date();
+                                                const isFuture = dateObj > todayDateOnly;
+                                                const isToday = dateObj.getTime() === todayDateOnly.getTime();
+
+                                                let cardStyle = 'border-slate-800 bg-slate-950/40 text-slate-500';
+                                                let statusLabel = 'Pending';
+
+                                                if (hasAttended) {
+                                                    cardStyle = 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300';
+                                                    statusLabel = 'Present ✓';
+                                                } else if (isFuture) {
+                                                    cardStyle = 'border-slate-800 bg-slate-950/40 text-slate-500';
+                                                    statusLabel = 'Upcoming ○';
+                                                } else if (isToday) {
+                                                    cardStyle = 'border-amber-500/30 bg-amber-500/10 text-amber-300';
+                                                    statusLabel = 'Ongoing ⏳';
+                                                } else {
+                                                    cardStyle = 'border-red-500/30 bg-red-500/10 text-red-400';
+                                                    statusLabel = 'Absent ✕';
+                                                }
 
                                                 return (
                                                     <div
-                                                        key={weekNum}
-                                                        className={`rounded-2xl border p-4 text-center transition ${
-                                                            hasAttended
-                                                                ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
-                                                                : isFuture
-                                                                    ? 'border-slate-800 bg-slate-950/40 text-slate-500'
-                                                                    : 'border-red-500/30 bg-red-500/10 text-red-400'
-                                                        }`}
+                                                        key={slotNum}
+                                                        className={`rounded-2xl border p-3 text-center transition ${cardStyle}`}
                                                     >
-                                                        <div className="text-xs font-medium mb-0.5">Sunday {weekNum}</div>
+                                                        <div className="text-xs font-medium mb-0.5">Slot {slotNum}</div>
                                                         <div className="text-[10px] text-slate-400 mb-2">
-                                                            {sundayDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                            {dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                                         </div>
-                                                        <div className="text-xs font-bold flex items-center justify-center gap-1">
-                                                            {hasAttended ? (
-                                                                <>
-                                                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                                                                    <span>Present</span>
-                                                                </>
-                                                            ) : isFuture ? (
-                                                                <span>Pending</span>
-                                                            ) : (
-                                                                <>
-                                                                    <X className="w-3.5 h-3.5 text-red-400" />
-                                                                    <span>Absent</span>
-                                                                </>
-                                                            )}
-                                                        </div>
+                                                        <div className="text-xs font-bold">{statusLabel}</div>
                                                     </div>
                                                 );
                                             })}
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                        <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4 text-center">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                                        <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-5 space-y-1">
                                             <div className="text-2xl font-extrabold text-emerald-400">{attendedCount}</div>
-                                            <div className="text-xs text-slate-400 mt-1">Total Sundays Attended</div>
+                                            <div className="text-xs text-slate-400">Total Check-Ins</div>
                                         </div>
-                                        <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4 text-center">
-                                            <div className="text-2xl font-extrabold text-indigo-400">{totalSundays}</div>
-                                            <div className="text-xs text-slate-400 mt-1">Total Sundays in Month</div>
+                                        <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-5 space-y-1">
+                                            <div className="text-2xl font-extrabold text-red-400">{missedCount}</div>
+                                            <div className="text-xs text-slate-400">Missed Slots (Past Days)</div>
                                         </div>
-                                        <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4 text-center">
-                                            <div className="text-2xl font-extrabold text-amber-400">
-                                                {attendanceRate}%
-                                            </div>
-                                            <div className="text-xs text-slate-400 mt-1">Monthly Attendance Rate</div>
+                                        <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-5 space-y-1">
+                                            <div className="text-2xl font-extrabold text-blue-400">{attendanceRate}%</div>
+                                            <div className="text-xs text-slate-400">Attendance Rate</div>
                                         </div>
                                     </div>
                                 )}
@@ -567,44 +595,37 @@ export default function MemberDashboard() {
                         );
                     })()}
                 </div>
+
             </main>
 
-            {/* QR SCANNER MODAL */}
+            {/* QR Scanner / Simulation Modal */}
             {showScannerModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
                     <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-2xl space-y-4 text-center">
                         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                             <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                                <Camera className="w-4 h-4 text-emerald-400" /> Scan Sunday QR Code
+                                <Camera className="w-4 h-4 text-emerald-400" /> Sunday QR Scanner
                             </h3>
                             <button onClick={closeScannerModal} className="text-slate-400 hover:text-white">
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
 
-                        <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center">
-                            <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" muted playsInline />
-                            <div className="absolute inset-8 rounded-2xl border-2 border-dashed border-emerald-500/50 pointer-events-none animate-pulse flex items-center justify-center">
-                                <span className="text-[11px] text-emerald-300 bg-slate-950/80 px-2 py-1 rounded-md">
-                                    Align QR Code inside box
-                                </span>
+                        <div className="relative aspect-square w-full rounded-2xl bg-black overflow-hidden border border-slate-800 flex items-center justify-center">
+                            <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" />
+                            <div className="absolute inset-0 border-2 border-emerald-500/40 rounded-2xl m-8 pointer-events-none animate-pulse flex items-center justify-center">
+                                <div className="w-32 h-32 border border-dashed border-emerald-400/60 rounded-xl" />
                             </div>
                         </div>
 
-                        <p className="text-xs text-slate-400">{scannerStatus}</p>
+                        <p className="text-xs text-slate-300 font-medium">{scannerStatus}</p>
 
-                        <div className="pt-2 flex flex-col gap-2">
+                        <div className="pt-2">
                             <button
                                 onClick={simulateSuccessfulScan}
-                                className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-semibold text-white shadow-lg transition"
+                                className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-semibold text-white shadow transition"
                             >
-                                Simulate Successful Scan & Check-in
-                            </button>
-                            <button
-                                onClick={closeScannerModal}
-                                className="w-full rounded-xl border border-slate-800 bg-slate-950 py-2.5 text-xs font-semibold text-slate-400 hover:text-white transition"
-                            >
-                                Cancel / Close
+                                ⚡ Simulate Successful Scan (Test)
                             </button>
                         </div>
                     </div>
@@ -612,54 +633,6 @@ export default function MemberDashboard() {
             )}
 
             <Footer />
-
-            {/* ================= CAMERA SCANNER MODAL ================= */}
-            {showScannerModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4">
-                    <div className="w-full max-w-sm rounded-3xl border border-slate-800 bg-slate-900 p-6 text-center space-y-4 shadow-2xl">
-                        <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-                            <h3 className="text-sm font-bold text-white">Scan Sunday Service QR</h3>
-                            <button onClick={closeScannerModal} className="text-slate-400 hover:text-white p-1">
-                                <X className="w-4 h-4" />
-                            </button>
-                        </div>
-
-                        {/* Live Camera Viewfinder Element */}
-                        <div className="relative h-64 rounded-2xl bg-slate-950 border border-slate-800 overflow-hidden flex flex-col items-center justify-center">
-                            <video
-                                ref={videoRef}
-                                playsInline
-                                muted
-                                autoPlay
-                                className="absolute inset-0 w-full h-full object-cover"
-                            />
-
-                            {/* Fallback overlay if camera stream is blocked */}
-                            <div className="absolute inset-0 bg-slate-950/40 pointer-events-none flex flex-col items-center justify-center p-4">
-                                <div className="w-32 h-32 border-2 border-dashed border-emerald-400/60 rounded-2xl mb-2 animate-pulse"></div>
-                                <p className="text-[11px] font-medium text-emerald-300 bg-slate-950/80 px-3 py-1 rounded-full border border-slate-800">
-                                    {scannerStatus}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <button
-                                onClick={simulateSuccessfulScan}
-                                className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-semibold text-white shadow-lg shadow-emerald-600/20 transition"
-                            >
-                                Simulate Successful Scan & Check-In
-                            </button>
-                            <button
-                                onClick={closeScannerModal}
-                                className="w-full rounded-xl bg-slate-800 hover:bg-slate-700 py-2.5 text-xs font-semibold text-slate-300 transition"
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

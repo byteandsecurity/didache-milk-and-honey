@@ -60,9 +60,9 @@ function CheckInContent() {
         return (
             <div className="min-h-screen flex flex-col justify-between p-4 sm:p-6 lg:p-12 max-w-xl mx-auto">
                 <header className="pb-6 border-b border-slate-800/80 text-center">
-          <span className="text-[10px] uppercase font-semibold text-emerald-400 tracking-wider">
-            Sunday Service Check-In
-          </span>
+                    <span className="text-[10px] uppercase font-semibold text-emerald-400 tracking-wider">
+                        Sunday Service Check-In
+                    </span>
                     <p className="text-xs text-slate-400">RCCG Milk & Honey</p>
                 </header>
 
@@ -83,7 +83,7 @@ function CheckInContent() {
                         </div>
 
                         <button
-                            onClick={() => router.push('/dashboard')}
+                            onClick={() => router.push('/member/dashboard')}
                             className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-semibold text-white shadow-lg shadow-emerald-600/20 transition"
                         >
                             Go to Member Dashboard
