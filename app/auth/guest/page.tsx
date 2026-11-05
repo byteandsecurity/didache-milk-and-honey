@@ -58,6 +58,7 @@ function GuestContent() {
             const savedGender = localStorage.getItem('didache_guest_draft_gender');
             const savedAddress = localStorage.getItem('didache_guest_draft_address');
 
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             if (savedPhone) setPhoneNumber(savedPhone);
             if (savedName) setFullName(savedName);
             if (savedGender) setGender(savedGender);

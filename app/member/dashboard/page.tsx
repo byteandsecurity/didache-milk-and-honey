@@ -3,30 +3,54 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { User, QrCode, Calendar, Edit3, Save, LifeBuoy, ArrowRight, BookOpen, LogOut, MessageCircle, BarChart3, PieChart, X } from 'lucide-react';
+import { User, QrCode, Edit3, Save, LifeBuoy, ArrowRight, BookOpen, LogOut, MessageCircle, X, Maximize2 } from 'lucide-react';
 import LoadingSpinner from '@/Components/LoadingSpinner';
 import Footer from '@/Components/Footer';
 import QrScanner from '@/Components/member/QrScanner';
+import MemberAnalyticsTestable from "@/Components/Test/member/MemeberAnalyticsTest";
+
+interface MemberProfile {
+    id: string;
+    first_name: string;
+    last_name: string;
+    gender?: string;
+    marital_status?: string;
+    whatsapp_number?: string;
+    phone_number?: string;
+    email?: string;
+    home_address?: string;
+    occupation_type?: string;
+    occupation_detail?: string;
+    created_at?: string;
+}
+
+interface AttendanceRecord {
+    id: string;
+    user_id: string;
+    session_date: string;
+    checked_in_at?: string;
+}
 
 export default function MemberDashboard() {
-    const [profile, setProfile] = useState<any>(null);
-    const [attendance, setAttendance] = useState<any[]>([]);
+    const [profile, setProfile] = useState<MemberProfile | null>(null);
+    const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
-    const [chartView, setChartView] = useState<'grid' | 'stats'>('grid');
     const [showScannerModal, setShowScannerModal] = useState(false);
+    const [showExpandModal, setShowExpandModal] = useState(false); // Modal for expanded profile view
 
-    // Editable fields state
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [gender, setGender] = useState('Male');
+    const [maritalStatus, setMaritalStatus] = useState('Single');
     const [whatsappNumber, setWhatsappNumber] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
     const [email, setEmail] = useState('');
     const [homeAddress, setHomeAddress] = useState('');
-    const [occupationType, setOccupationType] = useState('');
+    const [occupationType, setOccupationType] = useState('student');
+    const [occupationDetail, setOccupationDetail] = useState('');
 
     const router = useRouter();
     const supabase = createClient();
@@ -51,35 +75,38 @@ export default function MemberDashboard() {
                 return;
             }
 
-            setProfile(profileData);
+            setProfile(profileData as MemberProfile);
             setFirstName(profileData.first_name || '');
             setLastName(profileData.last_name || '');
             setGender(profileData.gender || 'Male');
+            setMaritalStatus(profileData.marital_status || 'Single');
             setWhatsappNumber(profileData.whatsapp_number || '');
             setPhoneNumber(profileData.phone_number || '');
             setEmail(profileData.email || '');
             setHomeAddress(profileData.home_address || '');
             setOccupationType(profileData.occupation_type || 'student');
+            setOccupationDetail(profileData.occupation_detail || '');
 
             const { data: attendanceData } = await supabase
                 .from('attendance')
-                .select('*, sessions(session_date, title)')
+                .select('*')
                 .eq('user_id', memberId)
-                .order('checked_in_at', { ascending: false });
+                .order('session_date', { ascending: false });
 
-            setAttendance(attendanceData || []);
+            setAttendance((attendanceData as AttendanceRecord[]) || []);
             setLoading(false);
         };
 
         void fetchMemberData();
     }, [router, supabase]);
 
-    const handleUpdateProfile = async (e: React.FormEvent<HTMLFormElement>) => {
+    const handleUpdateProfile = async (e: React.SyntheticEvent) => {
         e.preventDefault();
         setSaving(true);
         setSuccessMsg(null);
 
         const memberId = localStorage.getItem('didache_member_id');
+        const cleanEmail = email.trim() !== '' ? email.trim() : null;
 
         const { error } = await supabase
             .from('profiles')
@@ -87,32 +114,36 @@ export default function MemberDashboard() {
                 first_name: firstName,
                 last_name: lastName,
                 gender: gender,
+                marital_status: maritalStatus,
                 whatsapp_number: whatsappNumber,
                 phone_number: phoneNumber,
-                email: email,
+                email: cleanEmail,
                 home_address: homeAddress,
                 occupation_type: occupationType,
+                occupation_detail: occupationDetail,
             })
             .eq('id', memberId);
 
         if (error) {
-            alert(`Failed to update profile: ${error.message}`);
+            window.alert(`Failed to update profile: ${error.message}`);
         } else {
             setSuccessMsg('Profile updated successfully!');
             setIsEditing(false);
             localStorage.setItem('didache_member_name', `${firstName} ${lastName}`);
 
-            setProfile((prev: any) => ({
+            setProfile((prev) => prev ? {
                 ...prev,
                 first_name: firstName,
                 last_name: lastName,
                 gender: gender,
+                marital_status: maritalStatus,
                 whatsapp_number: whatsappNumber,
                 phone_number: phoneNumber,
-                email: email,
+                email: cleanEmail || undefined,
                 home_address: homeAddress,
                 occupation_type: occupationType,
-            }));
+                occupation_detail: occupationDetail,
+            } : null);
         }
         setSaving(false);
     };
@@ -120,6 +151,7 @@ export default function MemberDashboard() {
     const handleLogout = () => {
         localStorage.removeItem('didache_member_id');
         localStorage.removeItem('didache_member_name');
+        localStorage.removeItem('didache_qr_date');
         router.push('/');
     };
 
@@ -129,8 +161,6 @@ export default function MemberDashboard() {
 
     return (
         <div className="min-h-screen flex flex-col justify-between p-4 sm:p-6 lg:p-12 max-w-5xl mx-auto">
-
-            {/* Top Bar */}
             <header className="flex items-center justify-between pb-6 border-b border-slate-800/80">
                 <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
@@ -153,9 +183,7 @@ export default function MemberDashboard() {
                 </button>
             </header>
 
-            {/* Main Content Grid */}
             <main className="my-8 space-y-6">
-
                 {successMsg && (
                     <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300 flex items-center justify-between shadow-lg">
                         <span>{successMsg}</span>
@@ -169,7 +197,6 @@ export default function MemberDashboard() {
                     </div>
                 )}
 
-                {/* Quick Actions Card */}
                 <div className="rounded-3xl border border-emerald-500/30 bg-linear-to-r from-emerald-950/40 via-slate-900/80 to-slate-900 p-6 shadow-2xl backdrop-blur-xl flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="space-y-1 text-center sm:text-left">
                         <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 uppercase tracking-wider">
@@ -188,27 +215,35 @@ export default function MemberDashboard() {
                     </button>
                 </div>
 
-                {/* Profile Details & Support Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-                    {/* Left Column: Profile Card */}
                     <div className="lg:col-span-6 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 shadow-xl backdrop-blur-xl space-y-4">
                         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                             <div className="flex items-center gap-2 text-sm font-bold text-white">
                                 <User className="w-4 h-4 text-emerald-400" />
                                 <span>My Profile Info</span>
                             </div>
-                            <button
-                                onClick={() => setIsEditing(!isEditing)}
-                                className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 hover:underline"
-                            >
-                                <Edit3 className="w-3.5 h-3.5" />
-                                {isEditing ? 'Cancel' : 'Edit'}
-                            </button>
+
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => setShowExpandModal(true)}
+                                    className="inline-flex items-center gap-1 text-xs font-semibold text-slate-300 hover:text-emerald-400 transition"
+                                    title="Expand Profile View"
+                                >
+                                    <Maximize2 className="w-3.5 h-3.5" />
+                                    <span>Expand</span>
+                                </button>
+                                <button
+                                    onClick={() => setIsEditing(!isEditing)}
+                                    className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 hover:underline"
+                                >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                    {isEditing ? 'Cancel' : 'Edit'}
+                                </button>
+                            </div>
                         </div>
 
                         {isEditing ? (
-                            <form onSubmit={handleUpdateProfile} className="space-y-3">
+                            <form onSubmit={(e) => void handleUpdateProfile(e)} className="space-y-3">
                                 <div className="grid grid-cols-2 gap-2">
                                     <div>
                                         <label className="block text-[11px] font-medium text-slate-400 mb-1">First Name</label>
@@ -231,17 +266,34 @@ export default function MemberDashboard() {
                                         />
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="block text-[11px] font-medium text-slate-400 mb-1">Gender</label>
-                                    <select
-                                        value={gender}
-                                        onChange={(e) => setGender(e.target.value)}
-                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none"
-                                    >
-                                        <option value="Male">Male</option>
-                                        <option value="Female">Female</option>
-                                    </select>
+
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label className="block text-[11px] font-medium text-slate-400 mb-1">Gender</label>
+                                        <select
+                                            value={gender}
+                                            onChange={(e) => setGender(e.target.value)}
+                                            className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none"
+                                        >
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[11px] font-medium text-slate-400 mb-1">Marital Status</label>
+                                        <select
+                                            value={maritalStatus}
+                                            onChange={(e) => setMaritalStatus(e.target.value)}
+                                            className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none"
+                                        >
+                                            <option value="Single">Single</option>
+                                            <option value="Married">Married</option>
+                                            <option value="Widowed">Widowed</option>
+                                            <option value="Divorced">Divorced</option>
+                                        </select>
+                                    </div>
                                 </div>
+
                                 <div>
                                     <label className="block text-[11px] font-medium text-slate-400 mb-1">Whatsapp Number</label>
                                     <input
@@ -272,6 +324,33 @@ export default function MemberDashboard() {
                                         className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none"
                                     />
                                 </div>
+
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label className="block text-[11px] font-medium text-slate-400 mb-1">Occupation</label>
+                                        <select
+                                            value={occupationType}
+                                            onChange={(e) => setOccupationType(e.target.value)}
+                                            className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none"
+                                        >
+                                            <option value="student">Student</option>
+                                            <option value="employed">Employed</option>
+                                            <option value="self_employed">Self Employed</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[11px] font-medium text-slate-400 mb-1">Profession Detail</label>
+                                        <input
+                                            type="text"
+                                            value={occupationDetail}
+                                            onChange={(e) => setOccupationDetail(e.target.value)}
+                                            placeholder="e.g. Developer"
+                                            className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none"
+                                        />
+                                    </div>
+                                </div>
+
                                 <div>
                                     <label className="block text-[11px] font-medium text-slate-400 mb-1">Address</label>
                                     <input
@@ -298,12 +377,8 @@ export default function MemberDashboard() {
                                     <span className="font-semibold text-slate-200">{profile?.first_name} {profile?.last_name}</span>
                                 </div>
                                 <div className="flex justify-between py-1 border-b border-slate-800/60">
-                                    <span className="text-slate-400">Gender</span>
-                                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${
-                                        profile?.gender === 'Female' ? 'bg-pink-500/10 text-pink-400 border border-pink-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                                    }`}>
-                                        {profile?.gender || 'Male'}
-                                    </span>
+                                    <span className="text-slate-400">Gender / Status</span>
+                                    <span className="font-semibold text-slate-200">{profile?.gender || 'Male'} • {profile?.marital_status || 'Single'}</span>
                                 </div>
                                 <div className="flex justify-between py-1 border-b border-slate-800/60">
                                     <span className="text-slate-400">Whatsapp Number</span>
@@ -319,7 +394,7 @@ export default function MemberDashboard() {
                                 </div>
                                 <div className="flex justify-between py-1 border-b border-slate-800/60">
                                     <span className="text-slate-400">Occupation</span>
-                                    <span className="font-semibold text-slate-200 capitalize">{profile?.occupation_type || 'Student'}</span>
+                                    <span className="font-semibold text-slate-200 capitalize">{profile?.occupation_type} {profile?.occupation_detail ? `(${profile.occupation_detail})` : ''}</span>
                                 </div>
                                 <div className="flex justify-between py-1">
                                     <span className="text-slate-400">Address</span>
@@ -329,7 +404,6 @@ export default function MemberDashboard() {
                         )}
                     </div>
 
-                    {/* Right Column: Support Cards */}
                     <div className="lg:col-span-6 space-y-4">
                         <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 shadow-xl backdrop-blur-xl space-y-2">
                             <div className="flex items-center gap-2 text-sm font-bold text-white">
@@ -369,148 +443,93 @@ export default function MemberDashboard() {
                     </div>
                 </div>
 
-                {/* Monthly Analytics Section */}
-                <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 shadow-xl backdrop-blur-xl space-y-6">
-                    {(() => {
-                        const now = new Date();
-                        const year = now.getFullYear();
-                        const month = now.getMonth();
-                        const todayDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-                        const daysInCurrentMonth = new Date(year, month + 1, 0).getDate();
-                        const slotsInMonth: Date[] = Array.from(
-                            { length: daysInCurrentMonth },
-                            (_, i) => new Date(year, month, i + 1)
-                        );
-
-                        const attendedCount = attendance.length;
-                        let pastDaysCount = 0;
-                        let missedCount = 0;
-
-                        slotsInMonth.forEach(dateObj => {
-                            if (dateObj <= todayDateOnly) {
-                                pastDaysCount++;
-                                const formattedDateStr = dateObj.toISOString().split('T')[0];
-                                const hasAttended = attendance.some(att =>
-                                    att.sessions?.session_date === formattedDateStr ||
-                                    att.checked_in_at?.startsWith(formattedDateStr)
-                                );
-                                if (!hasAttended) {
-                                    missedCount++;
-                                }
-                            }
-                        });
-
-                        const attendanceRate = pastDaysCount > 0 ? Math.round((attendedCount / pastDaysCount) * 100) : 0;
-
-                        return (
-                            <>
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
-                                    <div>
-                                        <div className="flex items-center gap-2 text-base font-bold text-white">
-                                            <Calendar className="w-5 h-5 text-emerald-400" />
-                                            <span>Monthly Attendance Analytics & Graphs</span>
-                                        </div>
-                                        <p className="text-xs text-slate-400 mt-0.5">
-                                            Tracking {now.toLocaleString('default', { month: 'long', year: 'numeric' })} ({slotsInMonth.length} active slots total).
-                                        </p>
-                                    </div>
-
-                                    <div className="flex items-center gap-1 bg-slate-950/60 p-1 rounded-xl border border-slate-800">
-                                        <button
-                                            onClick={() => setChartView('grid')}
-                                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                                                chartView === 'grid' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-slate-200'
-                                            }`}
-                                        >
-                                            <BarChart3 className="w-3.5 h-3.5" />
-                                            <span>Grid View</span>
-                                        </button>
-                                        <button
-                                            onClick={() => setChartView('stats')}
-                                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                                                chartView === 'stats' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-slate-200'
-                                            }`}
-                                        >
-                                            <PieChart className="w-3.5 h-3.5" />
-                                            <span>Summary Stats</span>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {chartView === 'grid' ? (
-                                    <div className="space-y-4">
-                                        <div className="text-xs font-semibold text-slate-300">Service Check-Ins (This Month)</div>
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-                                            {slotsInMonth.map((dateObj, index) => {
-                                                const slotNum = index + 1;
-                                                const formattedDateStr = dateObj.toISOString().split('T')[0];
-
-                                                const hasAttended = attendance.some(att =>
-                                                    att.sessions?.session_date === formattedDateStr ||
-                                                    att.checked_in_at?.startsWith(formattedDateStr)
-                                                );
-
-                                                const isFuture = dateObj > todayDateOnly;
-                                                const isToday = dateObj.getTime() === todayDateOnly.getTime();
-
-                                                let cardStyle = 'border-slate-800 bg-slate-950/40 text-slate-500';
-                                                let statusLabel = 'Pending';
-
-                                                if (hasAttended) {
-                                                    // Prioritize Present if checked in
-                                                    cardStyle = 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300';
-                                                    statusLabel = 'Present ✓';
-                                                } else if (isFuture) {
-                                                    cardStyle = 'border-slate-800 bg-slate-950/40 text-slate-500';
-                                                    statusLabel = 'Upcoming ○';
-                                                } else if (isToday) {
-                                                    cardStyle = 'border-amber-500/30 bg-amber-500/10 text-amber-300';
-                                                    statusLabel = 'Ongoing ⏳';
-                                                } else {
-                                                    cardStyle = 'border-red-500/30 bg-red-500/10 text-red-400';
-                                                    statusLabel = 'Absent ✕';
-                                                }
-
-                                                return (
-                                                    <div
-                                                        key={slotNum}
-                                                        className={`rounded-2xl border p-3 text-center transition ${cardStyle}`}
-                                                    >
-                                                        <div className="text-xs font-medium mb-0.5">Slot {slotNum}</div>
-                                                        <div className="text-[10px] text-slate-400 mb-2">
-                                                            {dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                                        </div>
-                                                        <div className="text-xs font-bold">{statusLabel}</div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                                        <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-5 space-y-1">
-                                            <div className="text-2xl font-extrabold text-emerald-400">{attendedCount}</div>
-                                            <div className="text-xs text-slate-400">Total Check-Ins</div>
-                                        </div>
-                                        <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-5 space-y-1">
-                                            <div className="text-2xl font-extrabold text-red-400">{missedCount}</div>
-                                            <div className="text-xs text-slate-400">Missed Slots (Past Days)</div>
-                                        </div>
-                                        <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-5 space-y-1">
-                                            <div className="text-2xl font-extrabold text-blue-400">{attendanceRate}%</div>
-                                            <div className="text-xs text-slate-400">Attendance Rate</div>
-                                        </div>
-                                    </div>
-                                )}
-                            </>
-                        );
-                    })()}
-                </div>
-
+                {/* Testable Analytics Component */}
+                <MemberAnalyticsTestable attendanceHistory={attendance} profileCreatedAt={profile?.created_at} />
             </main>
 
-            {/* Modular QR Scanner Component */}
+            {/* EXPANDED PROFILE VIEW MODAL */}
+            {showExpandModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+                    <div className="relative w-full max-w-lg rounded-3xl border border-slate-800 bg-slate-900 p-6 sm:p-8 shadow-2xl space-y-6">
+                        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                            <div className="flex items-center gap-2 text-base font-bold text-white">
+                                <User className="w-5 h-5 text-emerald-400" />
+                                <span>Expanded Profile Information</span>
+                            </div>
+                            <button
+                                onClick={() => setShowExpandModal(false)}
+                                className="rounded-xl p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4 text-xs sm:text-sm">
+                            <div className="grid grid-cols-2 gap-4 rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+                                <div>
+                                    <span className="text-[10px] uppercase font-bold text-slate-500">First Name</span>
+                                    <p className="font-semibold text-slate-200 mt-0.5">{profile?.first_name}</p>
+                                </div>
+                                <div>
+                                    <span className="text-[10px] uppercase font-bold text-slate-500">Last Name</span>
+                                    <p className="font-semibold text-slate-200 mt-0.5">{profile?.last_name}</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+                                <div>
+                                    <span className="text-[10px] uppercase font-bold text-slate-500">Gender</span>
+                                    <p className="font-semibold text-slate-200 mt-0.5">{profile?.gender || 'Male'}</p>
+                                </div>
+                                <div>
+                                    <span className="text-[10px] uppercase font-bold text-slate-500">Marital Status</span>
+                                    <p className="font-semibold text-slate-200 mt-0.5">{profile?.marital_status || 'Single'}</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+                                <div>
+                                    <span className="text-[10px] uppercase font-bold text-slate-500">Phone Number</span>
+                                    <p className="font-semibold text-slate-200 mt-0.5">{profile?.phone_number}</p>
+                                </div>
+                                <div>
+                                    <span className="text-[10px] uppercase font-bold text-slate-500">WhatsApp Number</span>
+                                    <p className="font-semibold text-slate-200 mt-0.5">{profile?.whatsapp_number || profile?.phone_number}</p>
+                                </div>
+                            </div>
+
+                            <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+                                <span className="text-[10px] uppercase font-bold text-slate-500">Email Address</span>
+                                <p className="font-semibold text-slate-200 mt-0.5 break-all">{profile?.email || 'Not provided'}</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+                                <div>
+                                    <span className="text-[10px] uppercase font-bold text-slate-500">Occupation</span>
+                                    <p className="font-semibold text-slate-200 mt-0.5 capitalize">{profile?.occupation_type}</p>
+                                </div>
+                                <div>
+                                    <span className="text-[10px] uppercase font-bold text-slate-500">Profession Detail</span>
+                                    <p className="font-semibold text-slate-200 mt-0.5">{profile?.occupation_detail || 'None specified'}</p>
+                                </div>
+                            </div>
+
+                            <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+                                <span className="text-[10px] uppercase font-bold text-slate-500">Residential Address</span>
+                                <p className="font-semibold text-slate-200 mt-0.5 break-words">{profile?.home_address || 'Not provided'}</p>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => setShowExpandModal(false)}
+                            className="w-full rounded-xl bg-slate-800 hover:bg-slate-700 py-3 text-xs font-semibold text-white transition"
+                        >
+                            Close View
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <QrScanner
                 isOpen={showScannerModal}
                 onClose={() => setShowScannerModal(false)}
