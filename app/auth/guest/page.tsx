@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense, useRef } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Heart, Sparkles, Phone, MapPin, User, ArrowLeft, CheckCircle2, UserPlus, LogIn, AlertCircle } from 'lucide-react';
@@ -11,7 +11,6 @@ import GuestQrScanner from '@/Components/guest/GuestQrScanner';
 function GuestContent() {
     const [mode, setMode] = useState<'returning' | 'new'>('returning');
 
-    // Local Storage Persisted Inputs
     const [phoneNumber, setPhoneNumber] = useState('');
     const [fullName, setFullName] = useState('');
     const [gender, setGender] = useState('Male');
@@ -23,9 +22,6 @@ function GuestContent() {
     const [visitCount, setVisitCount] = useState(1);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [showScannerModal, setShowScannerModal] = useState(false);
-
-    // Track pending action for auto-execution upon scan
-    const pendingActionRef = useRef<'returning' | 'new' | null>(null);
 
     const supabase = createClient();
     const router = useRouter();
@@ -55,7 +51,6 @@ function GuestContent() {
         }
     }, [rawDateParam]);
 
-    // Input Change Handlers with Auto-Save
     const handlePhoneChange = (val: string) => {
         setPhoneNumber(val);
         localStorage.setItem('didache_guest_draft_phone', val);
@@ -93,6 +88,7 @@ function GuestContent() {
             localStorage.removeItem('didache_guest_draft_name');
             localStorage.removeItem('didache_guest_draft_gender');
             localStorage.removeItem('didache_guest_draft_address');
+            sessionStorage.removeItem('didache_pending_action');
         }
         setIsCheckedIn(false);
         setPhoneNumber('');
@@ -223,7 +219,7 @@ function GuestContent() {
         const currentActiveDate = localStorage.getItem('didache_qr_date');
 
         if (!currentActiveDate) {
-            pendingActionRef.current = 'returning';
+            sessionStorage.setItem('didache_pending_action', 'returning');
             setShowScannerModal(true);
             return;
         }
@@ -236,7 +232,7 @@ function GuestContent() {
         const currentActiveDate = localStorage.getItem('didache_qr_date');
 
         if (!currentActiveDate) {
-            pendingActionRef.current = 'new';
+            sessionStorage.setItem('didache_pending_action', 'new');
             setShowScannerModal(true);
             return;
         }
@@ -244,17 +240,17 @@ function GuestContent() {
         await executeNewVisitorRegistration();
     };
 
-    // ⚡ INSTANT AUTO-CHECK-IN: Executed immediately when QR Scanner reads code
+    // INSTANT AUTO-CHECK-IN with sessionStorage fallback
     const handleScanSuccess = async (scannedDate: string) => {
         setShowScannerModal(false);
         localStorage.setItem('didache_qr_date', scannedDate);
 
-        // Auto-run the pending check-in directly without making them click again!
-        if (pendingActionRef.current === 'returning') {
-            pendingActionRef.current = null;
+        const pendingAction = sessionStorage.getItem('didache_pending_action');
+        sessionStorage.removeItem('didache_pending_action');
+
+        if (pendingAction === 'returning') {
             await executeReturningCheckIn();
-        } else if (pendingActionRef.current === 'new') {
-            pendingActionRef.current = null;
+        } else if (pendingAction === 'new') {
             await executeNewVisitorRegistration();
         }
     };
@@ -336,7 +332,7 @@ function GuestContent() {
 
                         {errorMsg && (
                             <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
-                                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                                <AlertCircle className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />
                                 <span>{errorMsg}</span>
                             </div>
                         )}
@@ -463,7 +459,7 @@ function GuestContent() {
                 isOpen={showScannerModal}
                 onClose={() => {
                     setShowScannerModal(false);
-                    pendingActionRef.current = null;
+                    sessionStorage.removeItem('didache_pending_action');
                 }}
                 onSuccess={handleScanSuccess}
             />
