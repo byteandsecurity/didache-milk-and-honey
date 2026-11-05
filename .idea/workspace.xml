@@ -4,14 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="Pre-scan check update for Visitor">
-      <change afterPath="$PROJECT_DIR$/Components/Test/member/MemeberAnalyticsTest.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Components/member/MemberAnalytics.tsx" afterDir="false" />
+    <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="Test: Member Page now reflecting sig in as soon as it goes through. Optimized login and register page of member">
+      <change afterPath="$PROJECT_DIR$/Components/Test/member/QrScannerTest.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/auth/guest/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/auth/guest/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/auth/member/login/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/auth/member/login/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/auth/member/register/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/auth/member/register/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/member/dashboard/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/member/dashboard/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/member/QrScanner.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/member/QrScanner.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -35,61 +31,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="3.9674234091180433E-25" />
-      <entry key="MS500" value="1.3173582156119867E-5" />
-      <entry key="S2" value="0.0630952620936343" />
-      <entry key="S5" value="0.4209866009399798" />
-      <entry key="S10" value="0.8798568665548528" />
-      <entry key="S30" value="1.50578500641977" />
-      <entry key="S60" value="1.7331518003154047" />
-      <entry key="M2" value="1.8611998669119776" />
-      <entry key="M5" value="1.94312850564346" />
-      <entry key="M10" value="1.9719526526466864" />
-      <entry key="M15" value="1.9964413331790587" />
-      <entry key="M30" value="2.4071384721906837" />
-      <entry key="H1" value="4.996241943064152" />
-      <entry key="H2" value="13.946462745923382" />
-      <entry key="H4" value="35.762060106001734" />
-      <entry key="D1" value="246.0593072755225" />
-      <entry key="W1" value="413.4341259805882" />
+      <entry key="MS100" value="1.0" />
+      <entry key="MS500" value="1.000285031768133" />
+      <entry key="S2" value="1.192000950864171" />
+      <entry key="S5" value="1.9392378299828257" />
+      <entry key="S10" value="2.6614921956581816" />
+      <entry key="S30" value="3.4584899819831065" />
+      <entry key="S60" value="3.807100376910561" />
+      <entry key="M2" value="5.513933932721829" />
+      <entry key="M5" value="13.362677992647669" />
+      <entry key="M10" value="20.781481111839852" />
+      <entry key="M15" value="24.371008718015837" />
+      <entry key="M30" value="28.74170716820131" />
+      <entry key="H1" value="31.67621979417994" />
+      <entry key="H2" value="36.73131323002061" />
+      <entry key="H4" value="52.78548725921936" />
+      <entry key="D1" value="256.28693336213803" />
+      <entry key="W1" value="441.49087671890595" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="1.0" />
-      <entry key="MS500" value="1.0" />
-      <entry key="S2" value="1.0" />
-      <entry key="S5" value="1.0" />
-      <entry key="S10" value="1.0" />
-      <entry key="S30" value="1.0" />
-      <entry key="S60" value="1.0" />
-      <entry key="M2" value="1.0" />
-      <entry key="M5" value="1.0" />
-      <entry key="M10" value="1.0000000004139222" />
-      <entry key="M15" value="1.0000007399359117" />
-      <entry key="M30" value="1.0014879741426772" />
-      <entry key="H1" value="1.0735454261819695" />
-      <entry key="H2" value="1.5799770927007866" />
-      <entry key="H4" value="3.904757620437866" />
-      <entry key="D1" value="40.67844968719006" />
-      <entry key="W1" value="71.6331982702145" />
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="0.0" />
+      <entry key="S5" value="0.0" />
+      <entry key="S10" value="0.0" />
+      <entry key="S30" value="3.945755013873136E-127" />
+      <entry key="S60" value="6.281524507532498E-64" />
+      <entry key="M2" value="2.5062969711373967E-32" />
+      <entry key="M5" value="2.288827230574672E-13" />
+      <entry key="M10" value="4.784168927274063E-7" />
+      <entry key="M15" value="6.116993118402841E-5" />
+      <entry key="M30" value="0.007832755567077755" />
+      <entry key="H1" value="0.09494122775768005" />
+      <entry key="H2" value="0.46985948594016497" />
+      <entry key="H4" value="2.1293776213678606" />
+      <entry key="D1" value="36.768351633477664" />
+      <entry key="W1" value="70.60643901055353" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.857673119689224E-7" />
-      <entry key="MS500" value="0.045060277414167106" />
-      <entry key="S2" value="0.46562852107614006" />
-      <entry key="S5" value="0.9082139515477446" />
-      <entry key="S10" value="1.444211517152192" />
-      <entry key="S30" value="2.277647275612882" />
-      <entry key="S60" value="2.603957813552466" />
-      <entry key="M2" value="2.7923411495848987" />
-      <entry key="M5" value="2.914494092643942" />
-      <entry key="M10" value="2.9574476211774914" />
-      <entry key="M15" value="2.98672925570251" />
-      <entry key="M30" value="3.4037240904696158" />
-      <entry key="H1" value="6.067153464165262" />
-      <entry key="H2" value="15.524748613920913" />
-      <entry key="H4" value="39.66521592384376" />
-      <entry key="D1" value="286.73505216725204" />
-      <entry key="W1" value="485.06662021061254" />
+      <entry key="MS100" value="1.1432487509747434E-12" />
+      <entry key="MS500" value="0.004371810374461118" />
+      <entry key="S2" value="0.4380037712818714" />
+      <entry key="S5" value="1.4903432929198939" />
+      <entry key="S10" value="2.3936289784837395" />
+      <entry key="S30" value="3.355778913942041" />
+      <entry key="S60" value="3.7535840320789577" />
+      <entry key="M2" value="5.485386356640717" />
+      <entry key="M5" value="13.348603909240564" />
+      <entry key="M10" value="20.77321164350266" />
+      <entry key="M15" value="24.365158823636527" />
+      <entry key="M30" value="28.746305566987402" />
+      <entry key="H1" value="31.769260590289395" />
+      <entry key="H2" value="37.19981735254212" />
+      <entry key="H4" value="54.913560320773904" />
+      <entry key="D1" value="293.05276766176524" />
+      <entry key="W1" value="512.0966114023585" />
     </decayedShown>
   </component>
   <component name="ProblemsViewState">
@@ -169,7 +165,7 @@
       <workItem from="1793620859945" duration="20057000" />
       <workItem from="1793648539032" duration="551000" />
       <workItem from="1793745466064" duration="12484000" />
-      <workItem from="1793829403933" duration="31197000" />
+      <workItem from="1793829403933" duration="31827000" />
     </task>
     <task id="LOCAL-00001" summary="Friction-free member onboarding, auth, and responsive UI:&#10;- Responsive landing page with emerald/indigo ambient lighting and mobile-first design.&#10;- Frictionless member registration &amp; login using phone numbers (no passwords required for church members).&#10;- Added localStorage form draft persistence to prevent data loss on mobile browser reloads.&#10;- Created dedicated admin login route with role verification.&#10;- Wrapped search params in Suspense and configured Supabase RLS policies for smooth database inserts.&#10;- Included Vercel Analytics and Speed Insights in root layout.">
       <option name="closed" value="true" />
@@ -403,7 +399,15 @@
       <option name="project" value="LOCAL" />
       <updated>1793888876743</updated>
     </task>
-    <option name="localTasksCounter" value="30" />
+    <task id="LOCAL-00030" summary="Test: Member Page now reflecting sig in as soon as it goes through. Optimized login and register page of member">
+      <option name="closed" value="true" />
+      <created>1793909301843</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1793909301843</updated>
+    </task>
+    <option name="localTasksCounter" value="31" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -430,6 +434,7 @@
     <MESSAGE value="Test: QR Code scan update immediately for visitors page. New QrScanner for guest" />
     <MESSAGE value="Optimize guest portal check-in &amp; fix roster UI layout&#10;- Fix modal layout bug in GuestManagement where the left visitor summary stretched heightwise when expanding attendance logs (applied 'self-start').&#10;- Resolve 'activeDate' scope and reference initialization errors during guest check-in execution in GuestContent.&#10;- Replace deprecated FormEvent types with React.SyntheticEvent across guest check-in flows.&#10;- Add strict TypeScript interfaces for GuestProfile and AttendanceLog state handlers.&#10;- Ensure draft local storage values sync cleanly with useRef boundaries during rapid visitor form inputs.&quot;" />
     <MESSAGE value="Pre-scan check update for Visitor" />
-    <option name="LAST_COMMIT_MESSAGE" value="Pre-scan check update for Visitor" />
+    <MESSAGE value="Test: Member Page now reflecting sig in as soon as it goes through. Optimized login and register page of member" />
+    <option name="LAST_COMMIT_MESSAGE" value="Test: Member Page now reflecting sig in as soon as it goes through. Optimized login and register page of member" />
   </component>
 </project>

@@ -38,72 +38,84 @@ export default function QrScanner({ isOpen, onClose, onSuccess }: QrScannerProps
         processingScanRef.current = true;
 
         const memberId = localStorage.getItem('didache_member_id');
-        setScannerStatus(`QR Code detected for ${scannedDateStr}! Recording...`);
 
-        // 1. Automatically Upsert Session
-        const { data: sessionMatch, error: sessionError } = await supabase
-            .from('sessions')
-            .upsert([
-                {
-                    session_date: scannedDateStr,
-                    title: `Service Session (${scannedDateStr})`,
-                    is_active: true
-                }
-            ], { onConflict: 'session_date' })
-            .select('id')
-            .single();
-
-        if (sessionError || !sessionMatch) {
-            setSuccessMessage(`Error handling session: ${sessionError?.message}`);
+        if (!memberId) {
+            setSuccessMessage('Error: No active member session found. Please log in again.');
             setIsSuccessState(true);
             processingScanRef.current = false;
             return;
         }
 
-        // 2. Record Attendance
-        const { error: attendanceError } = await supabase.from('attendance').insert([
-            {
-                user_id: memberId,
-                session_id: sessionMatch.id,
-                checked_in_at: new Date().toISOString(),
-            }
-        ]);
+        setScannerStatus(`QR Code detected for ${scannedDateStr}! Recording attendance...`);
 
-        if (attendanceError) {
-            if (attendanceError.message.includes('duplicate')) {
+        try {
+            const { data: existingAttendance } = await supabase
+                .from('attendance')
+                .select('id')
+                .eq('user_id', memberId)
+                .eq('session_date', scannedDateStr)
+                .maybeSingle();
+
+            if (existingAttendance) {
                 setSuccessMessage('ℹ️ You have already checked in for this session!');
-            } else {
-                console.error('Supabase Error Details:', attendanceError);
-                setSuccessMessage(`Error: ${attendanceError.message}`);
+                setIsSuccessState(true);
+                processingScanRef.current = false;
+                return;
             }
-        } else {
-            setSuccessMessage('Attendance successfully recorded!');
-            setTimeout(() => {
-                onClose();
-                onSuccess();
-            }, 1200);
+
+            const { data: existingSession } = await supabase
+                .from('sessions')
+                .select('id')
+                .eq('session_date', scannedDateStr)
+                .maybeSingle();
+
+            const attendancePayload: {
+                user_id: string;
+                session_date: string;
+                checked_in_at: string;
+                session_id?: string;
+            } = {
+                user_id: memberId,
+                session_date: scannedDateStr,
+                checked_in_at: new Date().toISOString(),
+            };
+
+            if (existingSession?.id) {
+                attendancePayload.session_id = existingSession.id;
+            }
+
+            const { error: attendanceError } = await supabase
+                .from('attendance')
+                .insert([attendancePayload]);
+
+            if (attendanceError) {
+                if (attendanceError.message.includes('duplicate') || attendanceError.code === '23505') {
+                    setSuccessMessage('ℹ️ You have already checked in for this session!');
+                } else {
+                    console.error('Supabase Attendance Error:', attendanceError);
+                    setSuccessMessage(`Error recording attendance: ${attendanceError.message}`);
+                }
+            } else {
+                setSuccessMessage('Attendance successfully recorded! God bless you!');
+                setTimeout(() => {
+                    onClose();
+                    onSuccess();
+                }, 1200);
+            }
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'Failed to record attendance.';
+            setSuccessMessage(`Error: ${msg}`);
         }
 
         setIsSuccessState(true);
         processingScanRef.current = false;
     }, [supabase, onClose, onSuccess]);
 
-    /* =========================================================================
-       // SIMULATION FALLBACK (Commented out for physical testing backup)
-       // =========================================================================
-       const simulatePhysicalScan = async () => {
-           const activeDate = localStorage.getItem('didache_qr_date') || new Date().toISOString().split('T')[0];
-           await processScannedDate(activeDate);
-       };
-    */
-
     const startCamera = useCallback(async () => {
         setScannerStatus('Starting camera...');
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: { exact: 'environment' }
-                }
+                video: { facingMode: { exact: 'environment' } }
             }).catch(() => {
                 return navigator.mediaDevices.getUserMedia({ video: true });
             });
@@ -118,9 +130,8 @@ export default function QrScanner({ isOpen, onClose, onSuccess }: QrScannerProps
 
             setScannerStatus('Camera active! Point at Sunday QR code.');
 
-            // Initialize Native BarcodeDetector if available
             if ('BarcodeDetector' in window) {
-                // @ts-expect-error - BarcodeDetector is supported in modern mobile/Chrome browsers
+                // @ts-expect-error - BarcodeDetector is supported in modern mobile Chrome/Android browsers
                 const barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
 
                 scanIntervalRef.current = setInterval(() => {
@@ -130,38 +141,45 @@ export default function QrScanner({ isOpen, onClose, onSuccess }: QrScannerProps
                             const barcodes = await barcodeDetector.detect(videoRef.current);
                             if (barcodes.length > 0) {
                                 const rawValue = barcodes[0].rawValue;
+                                let detectedDate: string | null = null;
+
                                 try {
                                     const urlObj = new URL(rawValue);
-                                    const dateParam = urlObj.searchParams.get('date');
-                                    if (dateParam) {
-                                        stopCamera();
-                                        await processScannedDate(dateParam);
-                                    }
+                                    detectedDate = urlObj.searchParams.get('date');
                                 } catch {
-                                    if (rawValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                                        stopCamera();
-                                        await processScannedDate(rawValue);
+                                    try {
+                                        const parsedJson = JSON.parse(rawValue);
+                                        detectedDate = parsedJson.date || null;
+                                    } catch {
+                                        if (rawValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                                            detectedDate = rawValue;
+                                        }
                                     }
+                                }
+
+                                if (detectedDate) {
+                                    stopCamera();
+                                    await processScannedDate(detectedDate);
                                 }
                             }
                         } catch {
-                            // Suppress scanning frame errors
+                            // Suppress frame processing noise
                         }
                     })();
                 }, 500);
             } else {
-                setScannerStatus('Live camera scanning requires Chrome Mobile or supported browser.');
+                setScannerStatus('Live camera scanning active.');
             }
         } catch (err) {
             console.error('Camera error:', err);
-            setScannerStatus('Camera access blocked. Please check permissions.');
+            setScannerStatus('Camera access blocked or unavailable on this device.');
         }
     }, [stopCamera, processScannedDate]);
 
     useEffect(() => {
         if (isOpen) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIsSuccessState(false);
+            processingScanRef.current = false;
             void startCamera();
         } else {
             stopCamera();
@@ -180,15 +198,15 @@ export default function QrScanner({ isOpen, onClose, onSuccess }: QrScannerProps
                     <h3 className="text-sm font-bold text-white flex items-center gap-2">
                         <Camera className="w-4 h-4 text-emerald-400" /> Sunday QR Scanner
                     </h3>
-                    <button onClick={onClose} className="text-slate-400 hover:text-white">
+                    <button onClick={onClose} className="text-slate-400 hover:text-white transition">
                         <X className="w-4 h-4" />
                     </button>
                 </div>
 
                 {isSuccessState ? (
-                    <div className="py-10 space-y-3 flex flex-col items-center justify-center">
-                        <CheckCircle2 className="w-16 h-16 text-emerald-400 animate-bounce" />
-                        <p className="text-sm font-bold text-white">{successMessage}</p>
+                    <div className="py-8 space-y-3 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-200">
+                        <CheckCircle2 className="w-14 h-14 text-emerald-400 animate-bounce" />
+                        <p className="text-sm font-bold text-white px-4">{successMessage}</p>
                     </div>
                 ) : (
                     <>
@@ -200,16 +218,6 @@ export default function QrScanner({ isOpen, onClose, onSuccess }: QrScannerProps
                         </div>
 
                         <p className="text-xs text-slate-300 font-medium">{scannerStatus}</p>
-
-                        {/* Uncomment below button if you need backup simulation during physical tests */}
-                        {/*
-                        <button
-                            onClick={() => void simulatePhysicalScan()}
-                            className="w-full rounded-xl bg-slate-800 hover:bg-slate-700 py-2.5 text-[11px] font-semibold text-slate-300 transition"
-                        >
-                            ⚡ Backup Simulate Scan
-                        </button>
-                        */}
                     </>
                 )}
             </div>
