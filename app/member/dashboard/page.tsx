@@ -278,7 +278,7 @@ export default function MemberDashboard() {
                                         type="text"
                                         value={homeAddress}
                                         onChange={(e) => setHomeAddress(e.target.value)}
-                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none"
                                     />
                                 </div>
 
@@ -458,6 +458,7 @@ export default function MemberDashboard() {
                                                 let statusLabel = 'Pending';
 
                                                 if (hasAttended) {
+                                                    // Prioritize Present if checked in
                                                     cardStyle = 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300';
                                                     statusLabel = 'Present ✓';
                                                 } else if (isFuture) {

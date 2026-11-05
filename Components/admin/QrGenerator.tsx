@@ -125,7 +125,7 @@ export default function QrGenerator() {
                     onClick={() => handleGenerateQr(selectedSessionDate)}
                     className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-semibold text-white shadow transition"
                 >
-                    Generate Active Session QR ({3 - qrGenCount >= 0 ? 3 - qrGenCount : 0} left today)
+                    Generate Active Session QR ({10 - qrGenCount >= 0 ? 10 - qrGenCount : 0} left today)
                 </button>
             </div>
 

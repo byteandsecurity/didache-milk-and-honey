@@ -242,13 +242,13 @@ export default function MemberRoster({ members, attendance, sessions, onRefresh 
                                                 return <span key={sIdx} className="w-6 h-6 flex items-center justify-center rounded bg-slate-950 text-slate-600 font-bold text-[10px]">-</span>;
                                             }
 
-                                            // Check if user checked in on this date
+                                            // Check if user checked in on this date (normalized date matching)
                                             const memberCheckedIn = attendance.some((att: any) => {
                                                 const sessionObj = sessions.find((s: any) => s.id === att.session_id);
-                                                const matchesSession = sessionObj?.session_date === dateStr;
-                                                const matchesDate = att.checked_in_at?.startsWith(dateStr);
+                                                const sessionDateOnly = sessionObj?.session_date?.split('T')[0];
+                                                const checkInDateOnly = att.checked_in_at?.split('T')[0];
                                                 const matchesUser = att.user_id === m.id;
-                                                return matchesUser && (matchesSession || matchesDate || ALLOW_ANYDAY_ROSTER_TESTING);
+                                                return matchesUser && (sessionDateOnly === dateStr || checkInDateOnly === dateStr);
                                             });
 
                                             return (
@@ -283,7 +283,7 @@ export default function MemberRoster({ members, attendance, sessions, onRefresh 
                             <th className="py-3.5 px-4 font-semibold">Gender</th>
                             <th className="py-3.5 px-4 font-semibold">Phone / WhatsApp</th>
                             {columnsInSelectedMonth.map((d, idx) => (
-                                <th key={idx} className="py-3.5 px-2 font-semibold text-center min-w-[45px]">
+                                <th key={idx} className="py-3.5 px-2 font-semibold text-center min-w-11.25">
                                     {d.getDate()}
                                     <div className="text-[9px] text-slate-500 font-normal">{d.toLocaleDateString(undefined, { month: 'short' })}</div>
                                 </th>
@@ -320,13 +320,13 @@ export default function MemberRoster({ members, attendance, sessions, onRefresh 
                                             );
                                         }
 
-                                        // Check if this member checked in on this specific date
+                                        // Check if this member checked in on this specific date (normalized date matching)
                                         const memberCheckedIn = attendance.some((att: any) => {
                                             const sessionObj = sessions.find((s: any) => s.id === att.session_id);
-                                            const matchesSession = sessionObj?.session_date === dateStr;
-                                            const matchesDate = att.checked_in_at?.startsWith(dateStr);
+                                            const sessionDateOnly = sessionObj?.session_date?.split('T')[0];
+                                            const checkInDateOnly = att.checked_in_at?.split('T')[0];
                                             const matchesUser = att.user_id === m.id;
-                                            return matchesUser && (matchesSession || matchesDate);
+                                            return matchesUser && (sessionDateOnly === dateStr || checkInDateOnly === dateStr);
                                         });
 
                                         return (
@@ -409,7 +409,7 @@ export default function MemberRoster({ members, attendance, sessions, onRefresh 
                             </form>
                         ) : (
                             <div className="space-y-3 text-xs">
-                                <div className="flex justify-between py-1 border-b border-slate-800/60"><span className="text-slate-400">Name</span><span className="font-semibold text-white">{selectedMember.first_name} {selectedMember.last_name}</span>Id</div>
+                                <div className="flex justify-between py-1 border-b border-slate-800/60"><span className="text-slate-400">Name</span><span className="font-semibold text-white">{selectedMember.first_name} {selectedMember.last_name}</span></div>
                                 <div className="flex justify-between py-1 border-b border-slate-800/60"><span className="text-slate-400">Email</span><span className="font-semibold text-white">{selectedMember.email || 'Nil'}</span></div>
                                 <div className="flex justify-between py-1 border-b border-slate-800/60"><span className="text-slate-400">Gender</span><span className="font-semibold text-emerald-400">{selectedMember.gender || 'Male'}</span></div>
                                 <div className="flex justify-between py-1 border-b border-slate-800/60"><span className="text-slate-400">Phone</span><span className="font-semibold text-white">{selectedMember.phone_number}</span></div>

@@ -1,17 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Heart, Sparkles, Phone, MapPin, User, ArrowLeft, CheckCircle2, UserPlus, LogIn, AlertCircle } from 'lucide-react';
-import LoadingSpinner from '@/Components/LoadingSpinner'
+import { Heart, Sparkles, Phone, MapPin, User, ArrowLeft, CheckCircle2, UserPlus, LogIn, AlertCircle, QrCode } from 'lucide-react';
+import LoadingSpinner from '@/Components/LoadingSpinner';
 import Footer from '@/Components/Footer';
+import QrScanner from '@/Components/member/QrScanner';
 
-export default function GuestCheckInPage() {
-    // Mode toggle: 'returning' (lookup by phone) OR 'new' (full registration)
+function GuestContent() {
     const [mode, setMode] = useState<'returning' | 'new'>('returning');
 
-    // Input States
     const [phoneNumber, setPhoneNumber] = useState('');
     const [fullName, setFullName] = useState('');
     const [gender, setGender] = useState('Male');
@@ -22,22 +21,79 @@ export default function GuestCheckInPage() {
     const [guestNameConfirmed, setGuestNameConfirmed] = useState('');
     const [visitCount, setVisitCount] = useState(1);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [showScannerModal, setShowScannerModal] = useState(false);
 
     const supabase = createClient();
     const router = useRouter();
+    const searchParams = useSearchParams();
+
+    const rawDateParam = searchParams.get('date');
+    const activeDate = rawDateParam || (typeof window !== 'undefined' ? localStorage.getItem('didache_qr_date') : null);
+
+    useEffect(() => {
+        if (rawDateParam) {
+            localStorage.setItem('didache_qr_date', rawDateParam);
+        }
+    }, [rawDateParam]);
 
     const handleBack = () => {
-        // Checks if there is history in the browser tab
         if (typeof window !== 'undefined' && window.history.length > 1) {
-            router.back(); // Navigates back to wherever they just came from!
+            router.back();
         } else {
-            router.push('/'); // Fallback to landing page if opened directly
+            router.push('/');
         }
     };
 
-    // 1. Handle Returning Visitor Check-In (Phone lookup)
+    // Helper: Ensure Session exists and record visitor attendance
+    const recordGuestAttendance = async (guestId: string) => {
+        const targetDate = activeDate || new Date().toISOString().split('T')[0];
+
+        // 1. Upsert Session for today
+        const { data: sessionMatch, error: sessionError } = await supabase
+            .from('sessions')
+            .upsert([
+                {
+                    session_date: targetDate,
+                    title: `Service Session (${targetDate})`,
+                    is_active: true
+                }
+            ], { onConflict: 'session_date' })
+            .select('id')
+            .single();
+
+        if (sessionError || !sessionMatch) {
+            console.error('Session error:', sessionError);
+            return;
+        }
+
+        // 2. Check if visitor already checked in for this session
+        const { data: existingAtt } = await supabase
+            .from('guest_attendance')
+            .select('id')
+            .eq('guest_id', guestId)
+            .eq('session_id', sessionMatch.id)
+            .maybeSingle();
+
+        if (!existingAtt) {
+            await supabase.from('guest_attendance').insert([
+                {
+                    guest_id: guestId,
+                    session_id: sessionMatch.id,
+                    checked_in_at: new Date().toISOString()
+                }
+            ]);
+        }
+    };
+
+    // 1. Handle Returning Visitor Check-In
     const handleReturningCheckIn = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!activeDate) {
+            setShowScannerModal(true);
+            return;
+        }
+
         const cleanPhone = phoneNumber.trim();
         if (!cleanPhone) {
             setErrorMsg('Please enter your phone number.');
@@ -60,10 +116,9 @@ export default function GuestCheckInPage() {
         }
 
         if (existingGuest) {
-            // Found existing visitor -> increment visit count
             const newCount = (existingGuest.attendance_count || 0) + 1;
 
-            const { error: updateError } = await supabase
+            await supabase
                 .from('guest_profiles')
                 .update({
                     attendance_count: newCount,
@@ -71,17 +126,12 @@ export default function GuestCheckInPage() {
                 })
                 .eq('id', existingGuest.id);
 
-            if (updateError) {
-                setErrorMsg('Error recording attendance. Please try again.');
-                setSubmitting(false);
-                return;
-            }
+            await recordGuestAttendance(existingGuest.id);
 
             setGuestNameConfirmed(existingGuest.full_name);
             setVisitCount(newCount);
             setIsCheckedIn(true);
         } else {
-            // Phone number not found in visitor database -> Prompt to register as new
             setErrorMsg('No visitor record found with this phone number. Please click "Register as a First-Time Visitor" below.');
         }
 
@@ -91,6 +141,12 @@ export default function GuestCheckInPage() {
     // 2. Handle New First-Time Visitor Registration
     const handleNewVisitorSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!activeDate) {
+            setShowScannerModal(true);
+            return;
+        }
+
         const cleanPhone = phoneNumber.trim();
         const cleanName = fullName.trim();
 
@@ -102,7 +158,6 @@ export default function GuestCheckInPage() {
         setSubmitting(true);
         setErrorMsg(null);
 
-        // Check if phone already registered
         const { data: existingGuest } = await supabase
             .from('guest_profiles')
             .select('id, full_name, attendance_count')
@@ -110,12 +165,13 @@ export default function GuestCheckInPage() {
             .maybeSingle();
 
         if (existingGuest) {
-            // Already registered! Update visit count and inform them
             const newCount = (existingGuest.attendance_count || 0) + 1;
             await supabase
                 .from('guest_profiles')
                 .update({ attendance_count: newCount, last_attended_at: new Date().toISOString() })
                 .eq('id', existingGuest.id);
+
+            await recordGuestAttendance(existingGuest.id);
 
             setGuestNameConfirmed(existingGuest.full_name);
             setVisitCount(newCount);
@@ -124,7 +180,6 @@ export default function GuestCheckInPage() {
             return;
         }
 
-        // Insert new visitor
         const { data: newGuest, error: insertError } = await supabase
             .from('guest_profiles')
             .insert([
@@ -145,6 +200,8 @@ export default function GuestCheckInPage() {
             return;
         }
 
+        await recordGuestAttendance(newGuest.id);
+
         setGuestNameConfirmed(newGuest.full_name);
         setVisitCount(1);
         setIsCheckedIn(true);
@@ -153,7 +210,6 @@ export default function GuestCheckInPage() {
 
     return (
         <div className="min-h-screen flex flex-col justify-between p-4 sm:p-6 lg:p-12 max-w-xl mx-auto">
-            {/* Header */}
             <header className="flex items-center justify-between pb-6 border-b border-slate-800/80">
                 <button
                     onClick={handleBack}
@@ -170,15 +226,13 @@ export default function GuestCheckInPage() {
                 </div>
             </header>
 
-            {/* Main Content Card */}
             <main className="my-8">
                 {submitting ? (
-                        <LoadingSpinner
-                            text={mode === 'returning' ? 'Verifying visitor record...' : 'Registering first-time visitor...'}
-                            icon={Heart}
-                        />
+                    <LoadingSpinner
+                        text={mode === 'returning' ? 'Verifying visitor record...' : 'Registering first-time visitor...'}
+                        icon={Heart}
+                    />
                 ) : isCheckedIn ? (
-                    /* SUCCESS CONFIRMATION DISPLAY */
                     <div className="rounded-3xl border border-emerald-500/30 bg-slate-900/80 p-8 text-center space-y-6 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in duration-300">
                         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
                             <CheckCircle2 className="h-8 w-8" />
@@ -199,15 +253,6 @@ export default function GuestCheckInPage() {
                             <span className="font-extrabold text-amber-400 text-sm">{visitCount} {visitCount === 1 ? 'Sunday' : 'Sundays'}</span>
                         </div>
 
-                        <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 p-4 text-[11px] text-amber-300/90 text-left space-y-1">
-                            <p className="font-semibold flex items-center gap-1 text-amber-400">
-                                <Heart className="w-3.5 h-3.5" /> Note for Visitors:
-                            </p>
-                            <p>
-                                Visitor check-ins do not require passwords or dashboard setup. If you attend regularly, your profile can easily be upgraded to full membership!
-                            </p>
-                        </div>
-
                         <button
                             onClick={() => router.push('/')}
                             className="w-full rounded-xl bg-slate-800 hover:bg-slate-700 py-3 text-xs font-semibold text-slate-200 transition"
@@ -216,10 +261,22 @@ export default function GuestCheckInPage() {
                         </button>
                     </div>
                 ) : (
-                    /* MAIN VISITOR FORM CARD WITH TOGGLE */
                     <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 shadow-xl backdrop-blur-xl space-y-6">
+                        {!activeDate && (
+                            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-center space-y-2">
+                                <p className="text-xs text-amber-300">
+                                    No active Sunday QR scan context detected. Please scan the church QR code to check in.
+                                </p>
+                                <button
+                                    onClick={() => setShowScannerModal(true)}
+                                    className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-500 transition"
+                                >
+                                    <QrCode className="w-3.5 h-3.5" />
+                                    <span>Scan Hall QR Code</span>
+                                </button>
+                            </div>
+                        )}
 
-                        {/* Top Mode Selector Buttons */}
                         <div className="flex rounded-2xl bg-slate-950 p-1.5 border border-slate-800">
                             <button
                                 onClick={() => { setMode('returning'); setErrorMsg(null); }}
@@ -248,7 +305,6 @@ export default function GuestCheckInPage() {
                             </div>
                         )}
 
-                        {/* MODE 1: RETURNING VISITOR CHECK-IN */}
                         {mode === 'returning' ? (
                             <form onSubmit={handleReturningCheckIn} className="space-y-4">
                                 <div className="space-y-1">
@@ -282,27 +338,13 @@ export default function GuestCheckInPage() {
                                 >
                                     {submitting ? 'Checking in...' : 'Quick Visitor Check-In'}
                                 </button>
-
-                                {/* Switch to New Visitor Option Text */}
-                                <div className="pt-3 border-t border-slate-800/80 text-center text-xs text-slate-400">
-                                    Visiting for the very first time?{' '}
-                                    <button
-                                        type="button"
-                                        onClick={() => { setMode('new'); setErrorMsg(null); }}
-                                        className="font-bold text-amber-400 hover:underline inline-block"
-                                    >
-                                        Register here as a new visitor
-                                    </button>
-                                </div>
                             </form>
                         ) : (
-                            /* MODE 2: NEW FIRST-TIME VISITOR FORM */
                             <form onSubmit={handleNewVisitorSubmit} className="space-y-4">
                                 <div className="space-y-1">
                                     <h1 className="text-lg font-bold text-white">First-Time Visitor Registration</h1>
                                     <p className="text-xs text-slate-400">
-                                        Welcome! Please fill in your details once so we can record your attendance. <br/>
-                                        Kindly Note, the information that we collect is for attendance and follow up purposes only!
+                                        Welcome! Please fill in your details once so we can record your attendance.
                                     </p>
                                 </div>
 
@@ -375,25 +417,27 @@ export default function GuestCheckInPage() {
                                 >
                                     {submitting ? 'Registering...' : 'Complete First-Time Check-In'}
                                 </button>
-
-                                {/* Switch to Returning Visitor Option Text */}
-                                <div className="pt-3 border-t border-slate-800/80 text-center text-xs text-slate-400">
-                                    Already visited us before?{' '}
-                                    <button
-                                        type="button"
-                                        onClick={() => { setMode('returning'); setErrorMsg(null); }}
-                                        className="font-bold text-amber-400 hover:underline inline-block"
-                                    >
-                                        Click here to check in as returning visitor
-                                    </button>
-                                </div>
                             </form>
                         )}
                     </div>
                 )}
             </main>
 
+            <QrScanner
+                isOpen={showScannerModal}
+                onClose={() => setShowScannerModal(false)}
+                onSuccess={() => window.location.reload()}
+            />
+
             <Footer />
         </div>
+    );
+}
+
+export default function GuestCheckInPage() {
+    return (
+        <Suspense fallback={<LoadingSpinner text="Loading Visitor Gateway..." icon={Heart} />}>
+            <GuestContent />
+        </Suspense>
     );
 }
