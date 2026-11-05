@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useState, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Heart, Sparkles, Phone, MapPin, User, ArrowLeft, CheckCircle2, UserPlus, LogIn, AlertCircle, QrCode } from 'lucide-react';
+import { Heart, Sparkles, Phone, MapPin, User, ArrowLeft, CheckCircle2, UserPlus, LogIn, AlertCircle } from 'lucide-react';
 import LoadingSpinner from '@/Components/LoadingSpinner';
 import Footer from '@/Components/Footer';
-import QrScanner from '@/Components/member/QrScanner';
 
 function GuestContent() {
     const [mode, setMode] = useState<'returning' | 'new'>('returning');
@@ -21,20 +20,9 @@ function GuestContent() {
     const [guestNameConfirmed, setGuestNameConfirmed] = useState('');
     const [visitCount, setVisitCount] = useState(1);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
-    const [showScannerModal, setShowScannerModal] = useState(false);
 
     const supabase = createClient();
     const router = useRouter();
-    const searchParams = useSearchParams();
-
-    const rawDateParam = searchParams.get('date');
-    const activeDate = rawDateParam || (typeof window !== 'undefined' ? localStorage.getItem('didache_qr_date') : null);
-
-    useEffect(() => {
-        if (rawDateParam) {
-            localStorage.setItem('didache_qr_date', rawDateParam);
-        }
-    }, [rawDateParam]);
 
     const handleBack = () => {
         if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -44,56 +32,17 @@ function GuestContent() {
         }
     };
 
-    // Helper: Ensure Session exists and record visitor attendance
-    const recordGuestAttendance = async (guestId: string) => {
-        const targetDate = activeDate || new Date().toISOString().split('T')[0];
-
-        // 1. Upsert Session for today
-        const { data: sessionMatch, error: sessionError } = await supabase
-            .from('sessions')
-            .upsert([
-                {
-                    session_date: targetDate,
-                    title: `Service Session (${targetDate})`,
-                    is_active: true
-                }
-            ], { onConflict: 'session_date' })
-            .select('id')
-            .single();
-
-        if (sessionError || !sessionMatch) {
-            console.error('Session error:', sessionError);
-            return;
-        }
-
-        // 2. Check if visitor already checked in for this session
-        const { data: existingAtt } = await supabase
-            .from('guest_attendance')
-            .select('id')
-            .eq('guest_id', guestId)
-            .eq('session_id', sessionMatch.id)
-            .maybeSingle();
-
-        if (!existingAtt) {
-            await supabase.from('guest_attendance').insert([
-                {
-                    guest_id: guestId,
-                    session_id: sessionMatch.id,
-                    checked_in_at: new Date().toISOString()
-                }
-            ]);
-        }
+    const handleReset = () => {
+        setIsCheckedIn(false);
+        setPhoneNumber('');
+        setFullName('');
+        setHomeAddress('');
+        setErrorMsg(null);
     };
 
-    // 1. Handle Returning Visitor Check-In
+    // 1. Handle Returning Visitor Check-In (Directly updates guest_profiles)
     const handleReturningCheckIn = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        if (!activeDate) {
-            setShowScannerModal(true);
-            return;
-        }
-
         const cleanPhone = phoneNumber.trim();
         if (!cleanPhone) {
             setErrorMsg('Please enter your phone number.');
@@ -118,7 +67,7 @@ function GuestContent() {
         if (existingGuest) {
             const newCount = (existingGuest.attendance_count || 0) + 1;
 
-            await supabase
+            const { error: updateError } = await supabase
                 .from('guest_profiles')
                 .update({
                     attendance_count: newCount,
@@ -126,27 +75,25 @@ function GuestContent() {
                 })
                 .eq('id', existingGuest.id);
 
-            await recordGuestAttendance(existingGuest.id);
+            if (updateError) {
+                setErrorMsg('Error recording attendance. Please try again.');
+                setSubmitting(false);
+                return;
+            }
 
             setGuestNameConfirmed(existingGuest.full_name);
             setVisitCount(newCount);
             setIsCheckedIn(true);
         } else {
-            setErrorMsg('No visitor record found with this phone number. Please click "Register as a First-Time Visitor" below.');
+            setErrorMsg('No visitor record found with this phone number. Please click "First-Time Visitor" above to register.');
         }
 
         setSubmitting(false);
     };
 
-    // 2. Handle New First-Time Visitor Registration
+    // 2. Handle New First-Time Visitor Registration (Inserts into guest_profiles)
     const handleNewVisitorSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        if (!activeDate) {
-            setShowScannerModal(true);
-            return;
-        }
-
         const cleanPhone = phoneNumber.trim();
         const cleanName = fullName.trim();
 
@@ -168,10 +115,11 @@ function GuestContent() {
             const newCount = (existingGuest.attendance_count || 0) + 1;
             await supabase
                 .from('guest_profiles')
-                .update({ attendance_count: newCount, last_attended_at: new Date().toISOString() })
+                .update({
+                    attendance_count: newCount,
+                    last_attended_at: new Date().toISOString()
+                })
                 .eq('id', existingGuest.id);
-
-            await recordGuestAttendance(existingGuest.id);
 
             setGuestNameConfirmed(existingGuest.full_name);
             setVisitCount(newCount);
@@ -189,18 +137,17 @@ function GuestContent() {
                     gender: gender,
                     home_address: homeAddress.trim() || null,
                     attendance_count: 1,
+                    last_attended_at: new Date().toISOString(),
                 },
             ])
             .select()
             .single();
 
         if (insertError || !newGuest) {
-            setErrorMsg('Could not register visitor. Please try again.');
+            setErrorMsg(`Could not register visitor: ${insertError?.message || 'Server error'}`);
             setSubmitting(false);
             return;
         }
-
-        await recordGuestAttendance(newGuest.id);
 
         setGuestNameConfirmed(newGuest.full_name);
         setVisitCount(1);
@@ -253,30 +200,23 @@ function GuestContent() {
                             <span className="font-extrabold text-amber-400 text-sm">{visitCount} {visitCount === 1 ? 'Sunday' : 'Sundays'}</span>
                         </div>
 
-                        <button
-                            onClick={() => router.push('/')}
-                            className="w-full rounded-xl bg-slate-800 hover:bg-slate-700 py-3 text-xs font-semibold text-slate-200 transition"
-                        >
-                            Done / Return Home
-                        </button>
+                        <div className="grid grid-cols-2 gap-3 pt-2">
+                            <button
+                                onClick={handleReset}
+                                className="rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800 py-3 text-xs font-semibold text-amber-400 transition"
+                            >
+                                Check In Another Guest
+                            </button>
+                            <button
+                                onClick={() => router.push('/')}
+                                className="rounded-xl bg-slate-800 hover:bg-slate-700 py-3 text-xs font-semibold text-slate-200 transition"
+                            >
+                                Done / Return Home
+                            </button>
+                        </div>
                     </div>
                 ) : (
                     <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 shadow-xl backdrop-blur-xl space-y-6">
-                        {!activeDate && (
-                            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-center space-y-2">
-                                <p className="text-xs text-amber-300">
-                                    No active Sunday QR scan context detected. Please scan the church QR code to check in.
-                                </p>
-                                <button
-                                    onClick={() => setShowScannerModal(true)}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-500 transition"
-                                >
-                                    <QrCode className="w-3.5 h-3.5" />
-                                    <span>Scan Hall QR Code</span>
-                                </button>
-                            </div>
-                        )}
-
                         <div className="flex rounded-2xl bg-slate-950 p-1.5 border border-slate-800">
                             <button
                                 onClick={() => { setMode('returning'); setErrorMsg(null); }}
@@ -422,12 +362,6 @@ function GuestContent() {
                     </div>
                 )}
             </main>
-
-            <QrScanner
-                isOpen={showScannerModal}
-                onClose={() => setShowScannerModal(false)}
-                onSuccess={() => window.location.reload()}
-            />
 
             <Footer />
         </div>
