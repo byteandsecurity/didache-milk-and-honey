@@ -1,12 +1,20 @@
 'use client';
 
-import React, { useState, useEffect, Suspense, useRef } from 'react';
+import React, { useState, useEffect, Suspense, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Heart, Sparkles, Phone, MapPin, User, ArrowLeft, CheckCircle2, UserPlus, LogIn, AlertCircle } from 'lucide-react';
 import LoadingSpinner from '@/Components/LoadingSpinner';
 import Footer from '@/Components/Footer';
 import GuestQrScanner from '@/Components/guest/GuestQrScanner';
+
+export default function GuestCheckInPage() {
+    return (
+        <Suspense fallback={<LoadingSpinner text="Loading Visitor Gateway..." icon={Heart} />}>
+            <GuestContent />
+        </Suspense>
+    );
+}
 
 function GuestContent() {
     const [mode, setMode] = useState<'returning' | 'new'>('returning');
@@ -18,12 +26,13 @@ function GuestContent() {
 
     const [submitting, setSubmitting] = useState(false);
     const [isCheckedIn, setIsCheckedIn] = useState(false);
+    const [alreadyCheckedInToday, setAlreadyCheckedInToday] = useState(false);
     const [guestNameConfirmed, setGuestNameConfirmed] = useState('');
     const [visitCount, setVisitCount] = useState(1);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [showScannerModal, setShowScannerModal] = useState(false);
 
-    // Keep active inputs synced in refs so callbacks always read fresh values regardless of unmounts
+    // Keep active inputs synced in refs for callbacks
     const currentModeRef = useRef<'returning' | 'new'>('returning');
     const phoneRef = useRef('');
     const nameRef = useRef('');
@@ -49,7 +58,6 @@ function GuestContent() {
             const savedGender = localStorage.getItem('didache_guest_draft_gender');
             const savedAddress = localStorage.getItem('didache_guest_draft_address');
 
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             if (savedPhone) setPhoneNumber(savedPhone);
             if (savedName) setFullName(savedName);
             if (savedGender) setGender(savedGender);
@@ -102,6 +110,7 @@ function GuestContent() {
             localStorage.removeItem('didache_guest_draft_address');
         }
         setIsCheckedIn(false);
+        setAlreadyCheckedInToday(false);
         setPhoneNumber('');
         setFullName('');
         setHomeAddress('');
@@ -109,8 +118,8 @@ function GuestContent() {
         router.push('/');
     };
 
-    // Database check-in executor reading straight from fresh refs
-    const executeCheckIn = async () => {
+    // Execute Final Check-In after all pre-validations pass
+    const executeCheckIn = useCallback(async () => {
         setSubmitting(true);
         setErrorMsg(null);
 
@@ -120,98 +129,45 @@ function GuestContent() {
         const todayDateStr = activeDate || new Date().toISOString().split('T')[0];
 
         if (targetMode === 'returning') {
-            if (!cleanPhone) {
-                setErrorMsg('Please enter your phone number.');
-                setSubmitting(false);
-                return;
-            }
-
-            const { data: existingGuest, error } = await supabase
+            const { data: existingGuest } = await supabase
                 .from('guest_profiles')
                 .select('*')
                 .eq('phone_number', cleanPhone)
-                .maybeSingle();
+                .single();
 
-            if (error) {
-                setErrorMsg('Could not verify visitor record. Please try again.');
-                setSubmitting(false);
-                return;
-            }
+            if (!existingGuest) return;
 
-            if (existingGuest) {
-                const newCount = (existingGuest.attendance_count || 0) + 1;
-
-                const { error: updateError } = await supabase
-                    .from('guest_profiles')
-                    .update({
-                        attendance_count: newCount,
-                        last_attended_at: new Date().toISOString(),
-                    })
-                    .eq('id', existingGuest.id);
-
-                if (updateError) {
-                    setErrorMsg('Error recording attendance. Please try again.');
-                    setSubmitting(false);
-                    return;
-                }
-
-                // Record permanent log in guest_attendance table
-                await supabase.from('guest_attendance').insert([
-                    {
-                        guest_id: existingGuest.id,
-                        guest_name: existingGuest.full_name,
-                        session_date: todayDateStr,
-                    }
-                ]);
-
-                setGuestNameConfirmed(existingGuest.full_name);
-                setVisitCount(newCount);
-                setIsCheckedIn(true);
-            } else {
-                setErrorMsg('No visitor record found with this phone number. Please click "First-Time Visitor" above to register.');
-            }
-        } else {
-            // New Visitor Mode
-            const cleanName = nameRef.current.trim();
-            if (!cleanPhone || !cleanName) {
-                setErrorMsg('Please fill in your phone number and full name.');
-                setSubmitting(false);
-                return;
-            }
-
-            const { data: existingGuest } = await supabase
+            const newCount = (existingGuest.attendance_count || 0) + 1;
+            const { error: updateError } = await supabase
                 .from('guest_profiles')
-                .select('id, full_name, attendance_count')
-                .eq('phone_number', cleanPhone)
-                .maybeSingle();
+                .update({
+                    attendance_count: newCount,
+                    last_attended_at: new Date().toISOString(),
+                })
+                .eq('id', existingGuest.id);
 
-            if (existingGuest) {
-                const newCount = (existingGuest.attendance_count || 0) + 1;
-                await supabase
-                    .from('guest_profiles')
-                    .update({
-                        attendance_count: newCount,
-                        last_attended_at: new Date().toISOString()
-                    })
-                    .eq('id', existingGuest.id);
-
-                // Record permanent log for existing phone match
-                await supabase.from('guest_attendance').insert([
-                    {
-                        guest_id: existingGuest.id,
-                        guest_name: existingGuest.full_name,
-                        session_date: todayDateStr,
-                    }
-                ]);
-
-                setGuestNameConfirmed(existingGuest.full_name);
-                setVisitCount(newCount);
-                setIsCheckedIn(true);
+            if (updateError) {
+                setErrorMsg('Error recording attendance. Please try again.');
                 setSubmitting(false);
                 return;
             }
 
-            // Insert completely new guest profile
+            await supabase.from('guest_attendance').insert([
+                {
+                    guest_id: existingGuest.id,
+                    guest_name: existingGuest.full_name,
+                    session_date: todayDateStr,
+                }
+            ]);
+
+            setGuestNameConfirmed(existingGuest.full_name);
+            setVisitCount(newCount);
+            setAlreadyCheckedInToday(false);
+            setIsCheckedIn(true);
+        } else {
+            // New Visitor Mode Insertion
+            const cleanName = nameRef.current.trim();
+
             const { data: newGuest, error: insertError } = await supabase
                 .from('guest_profiles')
                 .insert([
@@ -233,7 +189,6 @@ function GuestContent() {
                 return;
             }
 
-            // Record permanent log for brand-new guest
             await supabase.from('guest_attendance').insert([
                 {
                     guest_id: newGuest.id,
@@ -244,37 +199,133 @@ function GuestContent() {
 
             setGuestNameConfirmed(newGuest.full_name);
             setVisitCount(1);
+            setAlreadyCheckedInToday(false);
             setIsCheckedIn(true);
         }
 
         setSubmitting(false);
-    };
+    }, [supabase, rawDateParam]);
 
+    // Handler for Returning Visitor Form
     const handleReturningCheckIn = async (e: React.SyntheticEvent) => {
         e.preventDefault();
-        const activeDate = rawDateParam || (typeof window !== 'undefined' ? localStorage.getItem('didache_qr_date') : null);
+        setSubmitting(true);
+        setErrorMsg(null);
 
-        if (!activeDate) {
-            setShowScannerModal(true);
+        const cleanPhone = phoneNumber.trim();
+        if (!cleanPhone) {
+            setErrorMsg('Please enter your phone number.');
+            setSubmitting(false);
             return;
         }
 
-        await executeCheckIn();
+        const activeDate = rawDateParam || (typeof window !== 'undefined' ? localStorage.getItem('didache_qr_date') : null);
+        const todayDateStr = activeDate || new Date().toISOString().split('T')[0];
+
+        // PRE-CHECK 1: Check if phone number exists in database
+        const { data: existingGuest, error } = await supabase
+            .from('guest_profiles')
+            .select('*')
+            .eq('phone_number', cleanPhone)
+            .maybeSingle();
+
+        if (error) {
+            setErrorMsg('Could not verify visitor record. Please try again.');
+            setSubmitting(false);
+            return;
+        }
+
+        if (!existingGuest) {
+            setErrorMsg('No account found for this phone number. Please click "First-Time Visitor" to register.');
+            setSubmitting(false);
+            return;
+        }
+
+        // PRE-CHECK 2: Check if already checked in for today
+        const { data: existingAttendance } = await supabase
+            .from('guest_attendance')
+            .select('id')
+            .eq('guest_id', existingGuest.id)
+            .eq('session_date', todayDateStr)
+            .maybeSingle();
+
+        if (existingAttendance) {
+            setGuestNameConfirmed(existingGuest.full_name);
+            setVisitCount(existingGuest.attendance_count || 1);
+            setAlreadyCheckedInToday(true);
+            setIsCheckedIn(true);
+            setSubmitting(false);
+            return;
+        }
+
+        setSubmitting(false);
+
+        // Pre-checks passed! Open scanner if date context is missing, otherwise check in immediately
+        if (!activeDate) {
+            setShowScannerModal(true);
+        } else {
+            await executeCheckIn();
+        }
     };
 
+    // Handler for First-Time Visitor Form
     const handleNewVisitorSubmit = async (e: React.SyntheticEvent) => {
         e.preventDefault();
-        const activeDate = rawDateParam || (typeof window !== 'undefined' ? localStorage.getItem('didache_qr_date') : null);
+        setSubmitting(true);
+        setErrorMsg(null);
 
-        if (!activeDate) {
-            setShowScannerModal(true);
+        const cleanPhone = phoneNumber.trim();
+        const cleanName = fullName.trim();
+
+        if (!cleanPhone || !cleanName) {
+            setErrorMsg('Please fill in your phone number and full name.');
+            setSubmitting(false);
             return;
         }
 
-        await executeCheckIn();
+        const activeDate = rawDateParam || (typeof window !== 'undefined' ? localStorage.getItem('didache_qr_date') : null);
+        const todayDateStr = activeDate || new Date().toISOString().split('T')[0];
+
+        // PRE-CHECK: Check if account already exists
+        const { data: existingGuest } = await supabase
+            .from('guest_profiles')
+            .select('*')
+            .eq('phone_number', cleanPhone)
+            .maybeSingle();
+
+        if (existingGuest) {
+            // Check if checked in today
+            const { data: existingAttendance } = await supabase
+                .from('guest_attendance')
+                .select('id')
+                .eq('guest_id', existingGuest.id)
+                .eq('session_date', todayDateStr)
+                .maybeSingle();
+
+            if (existingAttendance) {
+                setGuestNameConfirmed(existingGuest.full_name);
+                setVisitCount(existingGuest.attendance_count || 1);
+                setAlreadyCheckedInToday(true);
+                setIsCheckedIn(true);
+                setSubmitting(false);
+                return;
+            }
+
+            setErrorMsg(`You already have an account as "${existingGuest.full_name}". Click "Returning Visitor" above and enter your phone number to sign in.`);
+            setSubmitting(false);
+            return;
+        }
+
+        setSubmitting(false);
+
+        // Pre-checks passed! Open scanner if date context is missing, otherwise check in immediately
+        if (!activeDate) {
+            setShowScannerModal(true);
+        } else {
+            await executeCheckIn();
+        }
     };
 
-    // Executed the split second a valid QR code is scanned in the modal
     const handleScanSuccess = async (scannedDate: string) => {
         setShowScannerModal(false);
         localStorage.setItem('didache_qr_date', scannedDate);
@@ -302,7 +353,7 @@ function GuestContent() {
             <main className="my-8">
                 {submitting ? (
                     <LoadingSpinner
-                        text={mode === 'returning' ? 'Verifying visitor record...' : 'Registering first-time visitor...'}
+                        text={mode === 'returning' ? 'Verifying visitor record...' : 'Checking visitor status...'}
                         icon={Heart}
                     />
                 ) : isCheckedIn ? (
@@ -313,11 +364,14 @@ function GuestContent() {
 
                         <div className="space-y-2">
                             <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 uppercase tracking-wider">
-                                <Sparkles className="w-3.5 h-3.5" /> Check-In Confirmed
+                                <Sparkles className="w-3.5 h-3.5" />
+                                {alreadyCheckedInToday ? 'Already Checked In Today' : 'Check-In Confirmed'}
                             </span>
                             <h2 className="text-2xl font-bold text-white">Welcome, {guestNameConfirmed}!</h2>
                             <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
-                                Thank you for worshipping with us today at RCCG Milk & Honey Sunday School. We are blessed to have you!
+                                {alreadyCheckedInToday
+                                    ? 'You have already checked in for today’s Sunday service! God bless you as you worship with us.'
+                                    : 'Thank you for worshipping with us today at RCCG Milk & Honey Sunday School. We are blessed to have you!'}
                             </p>
                         </div>
 
@@ -473,7 +527,7 @@ function GuestContent() {
                                     disabled={submitting}
                                     className="w-full rounded-xl bg-amber-600 hover:bg-amber-500 py-3 text-xs font-semibold text-white shadow-lg shadow-amber-600/20 transition"
                                 >
-                                    {submitting ? 'Registering...' : 'Complete First-Time Check-In'}
+                                    {submitting ? 'Checking in...' : 'Complete First-Time Check-In'}
                                 </button>
                             </form>
                         )}
@@ -489,13 +543,5 @@ function GuestContent() {
 
             <Footer />
         </div>
-    );
-}
-
-export default function GuestCheckInPage() {
-    return (
-        <Suspense fallback={<LoadingSpinner text="Loading Visitor Gateway..." icon={Heart} />}>
-            <GuestContent />
-        </Suspense>
     );
 }

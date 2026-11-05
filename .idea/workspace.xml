@@ -4,19 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="Test: QR Code scan update immediately for visitors page. New QrScanner for guest">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Components/Footer.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/Footer.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Components/admin/BirthdayDirectory.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/BirthdayDirectory.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Components/admin/GuestManagement.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/GuestManagement.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Components/admin/StaffDirectory.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/StaffDirectory.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Components/guest/GuestQrScanner.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/guest/GuestQrScanner.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Components/member/QrScanner.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/member/QrScanner.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/auth/admin/login/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/auth/admin/login/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/auth/guest/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/auth/guest/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/checking/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/checking/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/globals.css" beforeDir="false" afterPath="$PROJECT_DIR$/app/globals.css" afterDir="false" />
-    </list>
+    <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="Optimize guest portal check-in &amp; fix roster UI layout&#10;- Fix modal layout bug in GuestManagement where the left visitor summary stretched heightwise when expanding attendance logs (applied 'self-start').&#10;- Resolve 'activeDate' scope and reference initialization errors during guest check-in execution in GuestContent.&#10;- Replace deprecated FormEvent types with React.SyntheticEvent across guest check-in flows.&#10;- Add strict TypeScript interfaces for GuestProfile and AttendanceLog state handlers.&#10;- Ensure draft local storage values sync cleanly with useRef boundaries during rapid visitor form inputs.&quot;" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -46,54 +34,54 @@
       <entry key="S10" value="1.0" />
       <entry key="S30" value="1.0" />
       <entry key="S60" value="1.0" />
-      <entry key="M2" value="1.00000000000007" />
-      <entry key="M5" value="1.000025196646202" />
-      <entry key="M10" value="1.0250675538140235" />
-      <entry key="M15" value="1.2797909992524865" />
-      <entry key="M30" value="4.500698511084098" />
-      <entry key="H1" value="14.169228840641264" />
-      <entry key="H2" value="27.95855702578487" />
-      <entry key="H4" value="52.31559642929742" />
-      <entry key="D1" value="261.9189334763464" />
-      <entry key="W1" value="407.87079705168605" />
+      <entry key="M2" value="1.0000000000028302" />
+      <entry key="M5" value="1.0000240288370266" />
+      <entry key="M10" value="1.0050247376535715" />
+      <entry key="M15" value="1.0369300294972792" />
+      <entry key="M30" value="1.7645400195294012" />
+      <entry key="H1" value="6.83991283789858" />
+      <entry key="H2" value="18.949188917259704" />
+      <entry key="H4" value="42.91758161495919" />
+      <entry key="D1" value="253.42230794568349" />
+      <entry key="W1" value="406.72456468611244" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
       <entry key="MS500" value="0.0" />
       <entry key="S2" value="0.0" />
       <entry key="S5" value="0.0" />
-      <entry key="S10" value="2.033298329242353E-170" />
-      <entry key="S30" value="4.330886037511227E-57" />
-      <entry key="S60" value="9.306389842355308E-29" />
-      <entry key="M2" value="1.364269233748095E-14" />
-      <entry key="M5" value="4.312516431755851E-6" />
-      <entry key="M10" value="0.002991450211150415" />
-      <entry key="M15" value="0.027658973650569123" />
-      <entry key="M30" value="0.28768443266425825" />
-      <entry key="H1" value="1.022624416074753" />
-      <entry key="H2" value="2.1626741287515916" />
-      <entry key="H4" value="5.609188331215162" />
-      <entry key="D1" value="44.27783546668931" />
-      <entry key="W1" value="71.74859454456805" />
+      <entry key="S10" value="5.36852995702899E-309" />
+      <entry key="S30" value="2.7784004987202217E-103" />
+      <entry key="S60" value="7.454015427012057E-52" />
+      <entry key="M2" value="3.8610427334768405E-26" />
+      <entry key="M5" value="1.0362214358258158E-10" />
+      <entry key="M10" value="1.4663670173564921E-5" />
+      <entry key="M15" value="7.981355653982582E-4" />
+      <entry key="M30" value="0.04886936132819471" />
+      <entry key="H1" value="0.4214793566361238" />
+      <entry key="H2" value="1.3884209570483945" />
+      <entry key="H4" value="4.494331054509702" />
+      <entry key="D1" value="42.67241497587386" />
+      <entry key="W1" value="71.37105058479185" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="2.514254110010086E-26" />
-      <entry key="MS500" value="7.587205266366685E-6" />
-      <entry key="S2" value="0.05248321830900877" />
-      <entry key="S5" value="0.3076154777922527" />
-      <entry key="S10" value="0.554630938365552" />
-      <entry key="S30" value="0.8216143777848899" />
-      <entry key="S60" value="0.9064294665250517" />
-      <entry key="M2" value="0.9520658940037765" />
-      <entry key="M5" value="0.9805728212256999" />
-      <entry key="M10" value="1.0182667249869688" />
-      <entry key="M15" value="1.300824039359143" />
-      <entry key="M30" value="4.784632329752047" />
-      <entry key="H1" value="15.18940932436259" />
-      <entry key="H2" value="30.119545534512778" />
-      <entry key="H4" value="57.92289632379727" />
-      <entry key="D1" value="306.1938675801488" />
-      <entry key="W1" value="479.61869167304354" />
+      <entry key="MS100" value="0.8766057213160351" />
+      <entry key="MS500" value="0.974004268543241" />
+      <entry key="S2" value="0.9934367347173356" />
+      <entry key="S5" value="0.9973695065410157" />
+      <entry key="S10" value="0.9986838871940489" />
+      <entry key="S30" value="0.999561103129068" />
+      <entry key="S60" value="0.9997805274804406" />
+      <entry key="M2" value="0.9998902577212305" />
+      <entry key="M5" value="0.9999796630729705" />
+      <entry key="M10" value="1.004969451522857" />
+      <entry key="M15" value="1.0375223321546678" />
+      <entry key="M30" value="1.812764942228315" />
+      <entry key="H1" value="7.260381258304302" />
+      <entry key="H2" value="20.336525889457118" />
+      <entry key="H4" value="47.41039865545097" />
+      <entry key="D1" value="296.0919266035126" />
+      <entry key="W1" value="478.09491900894204" />
     </decayedShown>
   </component>
   <component name="ProblemsViewState">
@@ -173,7 +161,7 @@
       <workItem from="1793620859945" duration="20057000" />
       <workItem from="1793648539032" duration="551000" />
       <workItem from="1793745466064" duration="12484000" />
-      <workItem from="1793829403933" duration="24104000" />
+      <workItem from="1793829403933" duration="24761000" />
     </task>
     <task id="LOCAL-00001" summary="Friction-free member onboarding, auth, and responsive UI:&#10;- Responsive landing page with emerald/indigo ambient lighting and mobile-first design.&#10;- Frictionless member registration &amp; login using phone numbers (no passwords required for church members).&#10;- Added localStorage form draft persistence to prevent data loss on mobile browser reloads.&#10;- Created dedicated admin login route with role verification.&#10;- Wrapped search params in Suspense and configured Supabase RLS policies for smooth database inserts.&#10;- Included Vercel Analytics and Speed Insights in root layout.">
       <option name="closed" value="true" />
@@ -391,7 +379,15 @@
       <option name="project" value="LOCAL" />
       <updated>1793880484514</updated>
     </task>
-    <option name="localTasksCounter" value="28" />
+    <task id="LOCAL-00028" summary="Optimize guest portal check-in &amp; fix roster UI layout&#10;- Fix modal layout bug in GuestManagement where the left visitor summary stretched heightwise when expanding attendance logs (applied 'self-start').&#10;- Resolve 'activeDate' scope and reference initialization errors during guest check-in execution in GuestContent.&#10;- Replace deprecated FormEvent types with React.SyntheticEvent across guest check-in flows.&#10;- Add strict TypeScript interfaces for GuestProfile and AttendanceLog state handlers.&#10;- Ensure draft local storage values sync cleanly with useRef boundaries during rapid visitor form inputs.&quot;">
+      <option name="closed" value="true" />
+      <created>1793888142657</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1793888142657</updated>
+    </task>
+    <option name="localTasksCounter" value="29" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -416,6 +412,7 @@
     <MESSAGE value="Test: QR Code scan update immediately for visitors page. &#10;PWA now receives update instantly." />
     <MESSAGE value="Test: QR Code scan update immediately for visitors page." />
     <MESSAGE value="Test: QR Code scan update immediately for visitors page. New QrScanner for guest" />
-    <option name="LAST_COMMIT_MESSAGE" value="Test: QR Code scan update immediately for visitors page. New QrScanner for guest" />
+    <MESSAGE value="Optimize guest portal check-in &amp; fix roster UI layout&#10;- Fix modal layout bug in GuestManagement where the left visitor summary stretched heightwise when expanding attendance logs (applied 'self-start').&#10;- Resolve 'activeDate' scope and reference initialization errors during guest check-in execution in GuestContent.&#10;- Replace deprecated FormEvent types with React.SyntheticEvent across guest check-in flows.&#10;- Add strict TypeScript interfaces for GuestProfile and AttendanceLog state handlers.&#10;- Ensure draft local storage values sync cleanly with useRef boundaries during rapid visitor form inputs.&quot;" />
+    <option name="LAST_COMMIT_MESSAGE" value="Optimize guest portal check-in &amp; fix roster UI layout&#10;- Fix modal layout bug in GuestManagement where the left visitor summary stretched heightwise when expanding attendance logs (applied 'self-start').&#10;- Resolve 'activeDate' scope and reference initialization errors during guest check-in execution in GuestContent.&#10;- Replace deprecated FormEvent types with React.SyntheticEvent across guest check-in flows.&#10;- Add strict TypeScript interfaces for GuestProfile and AttendanceLog state handlers.&#10;- Ensure draft local storage values sync cleanly with useRef boundaries during rapid visitor form inputs.&quot;" />
   </component>
 </project>
