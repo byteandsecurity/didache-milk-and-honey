@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Heart, Sparkles, Phone, MapPin, User, ArrowLeft, CheckCircle2, UserPlus, LogIn, AlertCircle } from 'lucide-react';
 import LoadingSpinner from '@/Components/LoadingSpinner';
 import Footer from '@/Components/Footer';
+import QrScanner from '@/Components/member/QrScanner';
 
 function GuestContent() {
     const [mode, setMode] = useState<'returning' | 'new'>('returning');
@@ -20,9 +21,20 @@ function GuestContent() {
     const [guestNameConfirmed, setGuestNameConfirmed] = useState('');
     const [visitCount, setVisitCount] = useState(1);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [showScannerModal, setShowScannerModal] = useState(false);
 
     const supabase = createClient();
     const router = useRouter();
+    const searchParams = useSearchParams();
+
+    const rawDateParam = searchParams.get('date');
+    const activeDate = rawDateParam || (typeof window !== 'undefined' ? localStorage.getItem('didache_qr_date') : null);
+
+    useEffect(() => {
+        if (rawDateParam) {
+            localStorage.setItem('didache_qr_date', rawDateParam);
+        }
+    }, [rawDateParam]);
 
     const handleBack = () => {
         if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -32,17 +44,30 @@ function GuestContent() {
         }
     };
 
-    const handleReset = () => {
+    // Cleanly reset visitor state when finishing check-in
+    const handleFinishCheckIn = () => {
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('didache_guest_session');
+            localStorage.removeItem('didache_guest_checked_date');
+        }
         setIsCheckedIn(false);
         setPhoneNumber('');
         setFullName('');
         setHomeAddress('');
         setErrorMsg(null);
+        router.push('/');
     };
 
-    // 1. Handle Returning Visitor Check-In (Directly updates guest_profiles)
+    // 1. Handle Returning Visitor Check-In (Updates guest_profiles directly)
     const handleReturningCheckIn = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // 🛡️ QR Guard: Force scan modal if missing QR context
+        if (!activeDate) {
+            setShowScannerModal(true);
+            return;
+        }
+
         const cleanPhone = phoneNumber.trim();
         if (!cleanPhone) {
             setErrorMsg('Please enter your phone number.');
@@ -91,9 +116,16 @@ function GuestContent() {
         setSubmitting(false);
     };
 
-    // 2. Handle New First-Time Visitor Registration (Inserts into guest_profiles)
+    // 2. Handle New First-Time Visitor Registration (Inserts into guest_profiles directly)
     const handleNewVisitorSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // 🛡️ QR Guard: Force scan modal if missing QR context
+        if (!activeDate) {
+            setShowScannerModal(true);
+            return;
+        }
+
         const cleanPhone = phoneNumber.trim();
         const cleanName = fullName.trim();
 
@@ -200,20 +232,12 @@ function GuestContent() {
                             <span className="font-extrabold text-amber-400 text-sm">{visitCount} {visitCount === 1 ? 'Sunday' : 'Sundays'}</span>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3 pt-2">
-                            <button
-                                onClick={handleReset}
-                                className="rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800 py-3 text-xs font-semibold text-amber-400 transition"
-                            >
-                                Check In Another Guest
-                            </button>
-                            <button
-                                onClick={() => router.push('/')}
-                                className="rounded-xl bg-slate-800 hover:bg-slate-700 py-3 text-xs font-semibold text-slate-200 transition"
-                            >
-                                Done / Return Home
-                            </button>
-                        </div>
+                        <button
+                            onClick={handleFinishCheckIn}
+                            className="w-full rounded-xl bg-slate-800 hover:bg-slate-700 py-3 text-xs font-semibold text-slate-200 transition"
+                        >
+                            Done / Return Home
+                        </button>
                     </div>
                 ) : (
                     <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 shadow-xl backdrop-blur-xl space-y-6">
@@ -362,6 +386,13 @@ function GuestContent() {
                     </div>
                 )}
             </main>
+
+            {/* QR Scanner Modal Guard */}
+            <QrScanner
+                isOpen={showScannerModal}
+                onClose={() => setShowScannerModal(false)}
+                onSuccess={() => window.location.reload()}
+            />
 
             <Footer />
         </div>
