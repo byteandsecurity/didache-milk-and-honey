@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -11,6 +11,16 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
     title: "Didache x Milk & Honey | Attendance & Portal",
     description: "Modern Sunday School Attendance & Youth Community Platform",
+    manifest: "/manifest.json",
+    appleWebApp: {
+        capable: true,
+        statusBarStyle: "black-translucent",
+        title: "Didache:M&H",
+    },
+};
+
+export const viewport: Viewport = {
+    themeColor: "#059669",
 };
 
 export default function RootLayout({

@@ -111,7 +111,7 @@ export default function QrGenerator() {
                         type="date"
                         value={selectedSessionDate}
                         onChange={(e) => setSelectedSessionDate(e.target.value)}
-                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none"
+                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none font-semibold focus:outline-none w-full [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
                     />
                 </div>
 

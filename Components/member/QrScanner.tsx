@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, X } from 'lucide-react';
+import { Camera, X, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 interface QrScannerProps {
@@ -12,6 +12,8 @@ interface QrScannerProps {
 
 export default function QrScanner({ isOpen, onClose, onSuccess }: QrScannerProps) {
     const [scannerStatus, setScannerStatus] = useState<string | null>(null);
+    const [isSuccessState, setIsSuccessState] = useState(false);
+    const [successMessage, setSuccessMessage] = useState('');
 
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -22,6 +24,7 @@ export default function QrScanner({ isOpen, onClose, onSuccess }: QrScannerProps
 
     useEffect(() => {
         if (isOpen) {
+            setIsSuccessState(false);
             startCamera();
         } else {
             stopCamera();
@@ -106,9 +109,9 @@ export default function QrScanner({ isOpen, onClose, onSuccess }: QrScannerProps
         processingScanRef.current = true;
 
         const memberId = localStorage.getItem('didache_member_id');
-        setScannerStatus(`🎯 QR Code detected for ${scannedDateStr}! Recording attendance...`);
+        setScannerStatus(`QR Code detected for ${scannedDateStr}! Recording...`);
 
-        // Automatically Upsert Session
+        // 1. Automatically Upsert Session
         const { data: sessionMatch, error: sessionError } = await supabase
             .from('sessions')
             .upsert([
@@ -122,13 +125,13 @@ export default function QrScanner({ isOpen, onClose, onSuccess }: QrScannerProps
             .single();
 
         if (sessionError || !sessionMatch) {
-            alert(`❌ Error handling session: ${sessionError?.message}`);
+            setSuccessMessage(`Error handling session: ${sessionError?.message}`);
+            setIsSuccessState(true);
             processingScanRef.current = false;
-            onClose();
             return;
         }
 
-        // Record Attendance
+        // 2. Record Attendance
         const { error: attendanceError } = await supabase.from('attendance').insert([
             {
                 user_id: memberId,
@@ -137,21 +140,33 @@ export default function QrScanner({ isOpen, onClose, onSuccess }: QrScannerProps
             }
         ]);
 
-        onClose();
-
         if (attendanceError) {
             if (attendanceError.message.includes('duplicate')) {
-                alert('ℹ️ You have already checked in for this session!');
+                setSuccessMessage('ℹ️ You have already checked in for this session!');
             } else {
                 console.error('Supabase Error Details:', attendanceError);
-                alert(`❌ Supabase Error: ${attendanceError.message}`);
+                setSuccessMessage(`Error: ${attendanceError.message}`);
             }
         } else {
-            alert('🎉 Check-in successfully recorded in Supabase!');
-            onSuccess();
+            setSuccessMessage('Attendance successfully recorded!');
+            setTimeout(() => {
+                onClose();
+                onSuccess();
+            }, 1200); // Wait 1.2s to show success modal before reloading
         }
+
+        setIsSuccessState(true);
         processingScanRef.current = false;
     };
+
+    /* =========================================================================
+       // SIMULATION FALLBACK (Commented out for physical testing backup)
+       // =========================================================================
+       const simulatePhysicalScan = async () => {
+           const activeDate = localStorage.getItem('didache_qr_date') || new Date().toISOString().split('T')[0];
+           await processScannedDate(activeDate);
+       };
+    */
 
     if (!isOpen) return null;
 
@@ -167,14 +182,33 @@ export default function QrScanner({ isOpen, onClose, onSuccess }: QrScannerProps
                     </button>
                 </div>
 
-                <div className="relative aspect-square w-full rounded-2xl bg-black overflow-hidden border border-slate-800 flex items-center justify-center">
-                    <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" />
-                    <div className="absolute inset-0 border-2 border-emerald-500/40 rounded-2xl m-8 pointer-events-none animate-pulse flex items-center justify-center">
-                        <div className="w-32 h-32 border border-dashed border-emerald-400/60 rounded-xl" />
+                {isSuccessState ? (
+                    <div className="py-10 space-y-3 flex flex-col items-center justify-center">
+                        <CheckCircle2 className="w-16 h-16 text-emerald-400 animate-bounce" />
+                        <p className="text-sm font-bold text-white">{successMessage}</p>
                     </div>
-                </div>
+                ) : (
+                    <>
+                        <div className="relative aspect-square w-full rounded-2xl bg-black overflow-hidden border border-slate-800 flex items-center justify-center">
+                            <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" />
+                            <div className="absolute inset-0 border-2 border-emerald-500/40 rounded-2xl m-8 pointer-events-none animate-pulse flex items-center justify-center">
+                                <div className="w-32 h-32 border border-dashed border-emerald-400/60 rounded-xl" />
+                            </div>
+                        </div>
 
-                <p className="text-xs text-slate-300 font-medium">{scannerStatus}</p>
+                        <p className="text-xs text-slate-300 font-medium">{scannerStatus}</p>
+
+                        {/* Uncomment below button if you need backup simulation during physical tests */}
+                        {/*
+                        <button
+                            onClick={simulatePhysicalScan}
+                            className="w-full rounded-xl bg-slate-800 hover:bg-slate-700 py-2.5 text-[11px] font-semibold text-slate-300 transition"
+                        >
+                            ⚡ Backup Simulate Scan
+                        </button>
+                        */}
+                    </>
+                )}
             </div>
         </div>
     );
