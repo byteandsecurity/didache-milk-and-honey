@@ -4,11 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="Comprehensive update on profiles, auth, birthdays &amp; UX loaders:&#10;- Database &amp; Profiles: Made email optional in profiles table, stored date_of_birth as TEXT to support flexible year-agnostic (MM-DD) and full YYYY-MM-DD formats.&#10;- Auth Logic: Implemented .or() queries across phone_number and whatsapp_number for seamless login and registration without duplicate loops.&#10;- Birthday Directory: Added full 12-month accordion layout, collapsible active month Spotlight Hero with live countdown badges, and robust year-agnostic date parsing.&#10;- UI &amp; UX: Created a reusable LoadingSpinner component and integrated it across all member, guest, admin, and check-in portals.&#10;- Navigation: Implemented history-aware router.back() navigation across portals to preserve context when returning from sub-pages.">
+    <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="Implement automated session upsert and fix member dashboard attendance stats">
+      <change afterPath="$PROJECT_DIR$/Components/member/QrScanner.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Components/admin/MemberRoster.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/MemberRoster.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Components/admin/QrGenerator.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/QrGenerator.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/checking/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/checking/page.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/member/dashboard/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/member/dashboard/page.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -32,61 +30,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="2.1538155983667024E-71" />
-      <entry key="MS500" value="7.402743596191225E-15" />
-      <entry key="S2" value="3.7554609873349825E-4" />
-      <entry key="S5" value="0.06188658698565655" />
-      <entry key="S10" value="0.34978996237239146" />
-      <entry key="S30" value="1.2550953063813433" />
-      <entry key="S60" value="2.0197874280243644" />
-      <entry key="M2" value="2.75519298423687" />
-      <entry key="M5" value="3.5382598436533566" />
-      <entry key="M10" value="4.820638891521556" />
-      <entry key="M15" value="6.85800697448544" />
-      <entry key="M30" value="15.731982146653717" />
-      <entry key="H1" value="37.42792303297353" />
-      <entry key="H2" value="74.57509649075273" />
-      <entry key="H4" value="129.40794878764476" />
-      <entry key="D1" value="288.16568020637027" />
-      <entry key="W1" value="347.43158749756424" />
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="2.7327937410000004E-259" />
+      <entry key="S5" value="3.7552836096957994E-104" />
+      <entry key="S10" value="1.9378554150647568E-52" />
+      <entry key="S30" value="5.7868264382597066E-18" />
+      <entry key="S60" value="2.4055823490913187E-9" />
+      <entry key="M2" value="4.904673640868411E-5" />
+      <entry key="M5" value="0.018900095794856818" />
+      <entry key="M10" value="0.14537085500301364" />
+      <entry key="M15" value="0.361878503161726" />
+      <entry key="M30" value="2.373034535857952" />
+      <entry key="H1" value="13.577343261994605" />
+      <entry key="H2" value="44.559398926897835" />
+      <entry key="H4" value="99.99550858781336" />
+      <entry key="D1" value="276.6054383907405" />
+      <entry key="W1" value="346.22718160238753" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="1.0" />
-      <entry key="MS500" value="1.0000000000720606" />
-      <entry key="S2" value="1.0029135625521317" />
-      <entry key="S5" value="1.096776461485394" />
-      <entry key="S10" value="1.311089153596512" />
-      <entry key="S30" value="1.677581629736399" />
-      <entry key="S60" value="1.8231534666976743" />
-      <entry key="M2" value="1.9072780560702962" />
-      <entry key="M5" value="1.9627513807189563" />
-      <entry key="M10" value="2.069925466973777" />
-      <entry key="M15" value="2.453784382777337" />
-      <entry key="M30" value="4.925862060661659" />
-      <entry key="H1" value="10.74119695391032" />
-      <entry key="H2" value="19.18729254241389" />
-      <entry key="H4" value="29.809325763092165" />
-      <entry key="D1" value="58.85756136768742" />
-      <entry key="W1" value="69.84328836376069" />
+      <entry key="MS500" value="1.0000000000028941" />
+      <entry key="S2" value="1.0013043077252253" />
+      <entry key="S5" value="1.0701700888796006" />
+      <entry key="S10" value="1.264896373851362" />
+      <entry key="S30" value="1.6422320937701333" />
+      <entry key="S60" value="1.8013938443550295" />
+      <entry key="M2" value="1.8952060345836987" />
+      <entry key="M5" value="1.9566908281180662" />
+      <entry key="M10" value="1.9815072302342278" />
+      <entry key="M15" value="2.019536507807912" />
+      <entry key="M30" value="2.5740842074800927" />
+      <entry key="H1" value="5.686627511676448" />
+      <entry key="H2" value="13.244693947268189" />
+      <entry key="H4" value="24.82113135211774" />
+      <entry key="D1" value="58.294785955676936" />
+      <entry key="W1" value="71.40051568200838" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="3.888681155761565E-10" />
-      <entry key="MS500" value="0.013120804577283063" />
-      <entry key="S2" value="0.33909590446754184" />
-      <entry key="S5" value="0.7455011675574763" />
-      <entry key="S10" value="1.34053154800157" />
-      <entry key="S30" value="2.7355783335867816" />
-      <entry key="S60" value="3.701227019611005" />
-      <entry key="M2" value="4.568639983032044" />
-      <entry key="M5" value="5.453925119224168" />
-      <entry key="M10" value="6.8636046060969615" />
-      <entry key="M15" value="9.291530760691458" />
-      <entry key="M30" value="20.64250827821164" />
-      <entry key="H1" value="48.155150191608975" />
-      <entry key="H2" value="93.75026721125546" />
-      <entry key="H4" value="159.2071667738411" />
-      <entry key="D1" value="347.0192811040716" />
-      <entry key="W1" value="417.27418024090883" />
+      <entry key="MS100" value="5.1242925902446544E-9" />
+      <entry key="MS500" value="0.021974893748642494" />
+      <entry key="S2" value="0.38507068195781796" />
+      <entry key="S5" value="0.7019931313314983" />
+      <entry key="S10" value="0.9653313984500889" />
+      <entry key="S30" value="1.4564982615889852" />
+      <entry key="S60" value="1.6885096113128764" />
+      <entry key="M2" value="1.832691731569395" />
+      <entry key="M5" value="1.9489225970457607" />
+      <entry key="M10" value="2.1131955071422794" />
+      <entry key="M15" value="2.371963812922634" />
+      <entry key="M30" value="4.940679998773252" />
+      <entry key="H1" value="19.256844157777934" />
+      <entry key="H2" value="57.79582067228126" />
+      <entry key="H4" value="124.80831695826046" />
+      <entry key="D1" value="334.89633876996294" />
+      <entry key="W1" value="417.62699213563064" />
     </decayedShown>
   </component>
   <component name="ProblemsViewState">
@@ -166,7 +164,7 @@
       <workItem from="1793620859945" duration="20057000" />
       <workItem from="1793648539032" duration="551000" />
       <workItem from="1793745466064" duration="12484000" />
-      <workItem from="1793829403933" duration="5958000" />
+      <workItem from="1793829403933" duration="7449000" />
     </task>
     <task id="LOCAL-00001" summary="Friction-free member onboarding, auth, and responsive UI:&#10;- Responsive landing page with emerald/indigo ambient lighting and mobile-first design.&#10;- Frictionless member registration &amp; login using phone numbers (no passwords required for church members).&#10;- Added localStorage form draft persistence to prevent data loss on mobile browser reloads.&#10;- Created dedicated admin login route with role verification.&#10;- Wrapped search params in Suspense and configured Supabase RLS policies for smooth database inserts.&#10;- Included Vercel Analytics and Speed Insights in root layout.">
       <option name="closed" value="true" />
@@ -280,7 +278,15 @@
       <option name="project" value="LOCAL" />
       <updated>1793758831770</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="Implement automated session upsert and fix member dashboard attendance stats">
+      <option name="closed" value="true" />
+      <created>1793836481733</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1793836481733</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -298,6 +304,7 @@
     <MESSAGE value="QR CODE: implement smart QR check-in gateway, duplicate registration prevention, and update guest_profiles schema" />
     <MESSAGE value="Modularize dashboard into independent components, add mobile responsiveness, custom modals, and dynamic date/month filtering&#10;- Modularize Admin Dashboard into independent components inside components/admin/&#10;- Extract Sunday School Analytics Engine into components/admin/analytics/AttendanceTrends.tsx&#10;- Move Attendance Legend banner from OverviewAnalytics into MemberRoster header&#10;- Add mobile-first collapsible dropdowns for Key Metrics and Demographic Split in OverviewAnalytics&#10;- Update MemberRoster with dynamic month selection (0 hardcoded dates) and responsive mobile card view&#10;- Update GuestManagement with calendar date picker, name search filter, colorful options, and mobile card view&#10;- Update QrGenerator with live ticking countdown timer (MM:SS) and expiration badge&#10;- Update StaffDirectory with custom confirmation delete modal, super admin restrictions, and 5-admin account limit check&#10;- Ensure foreign key constraint independence for admin profiles without Supabase Auth ties" />
     <MESSAGE value="Comprehensive update on profiles, auth, birthdays &amp; UX loaders:&#10;- Database &amp; Profiles: Made email optional in profiles table, stored date_of_birth as TEXT to support flexible year-agnostic (MM-DD) and full YYYY-MM-DD formats.&#10;- Auth Logic: Implemented .or() queries across phone_number and whatsapp_number for seamless login and registration without duplicate loops.&#10;- Birthday Directory: Added full 12-month accordion layout, collapsible active month Spotlight Hero with live countdown badges, and robust year-agnostic date parsing.&#10;- UI &amp; UX: Created a reusable LoadingSpinner component and integrated it across all member, guest, admin, and check-in portals.&#10;- Navigation: Implemented history-aware router.back() navigation across portals to preserve context when returning from sub-pages." />
-    <option name="LAST_COMMIT_MESSAGE" value="Comprehensive update on profiles, auth, birthdays &amp; UX loaders:&#10;- Database &amp; Profiles: Made email optional in profiles table, stored date_of_birth as TEXT to support flexible year-agnostic (MM-DD) and full YYYY-MM-DD formats.&#10;- Auth Logic: Implemented .or() queries across phone_number and whatsapp_number for seamless login and registration without duplicate loops.&#10;- Birthday Directory: Added full 12-month accordion layout, collapsible active month Spotlight Hero with live countdown badges, and robust year-agnostic date parsing.&#10;- UI &amp; UX: Created a reusable LoadingSpinner component and integrated it across all member, guest, admin, and check-in portals.&#10;- Navigation: Implemented history-aware router.back() navigation across portals to preserve context when returning from sub-pages." />
+    <MESSAGE value="Implement automated session upsert and fix member dashboard attendance stats" />
+    <option name="LAST_COMMIT_MESSAGE" value="Implement automated session upsert and fix member dashboard attendance stats" />
   </component>
 </project>

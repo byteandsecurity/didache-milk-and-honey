@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { User, QrCode, Calendar, Camera, Shield, Edit3, Save, LifeBuoy, ArrowRight, BookOpen, LogOut, MessageCircle, BarChart3, PieChart, CheckCircle2, X } from 'lucide-react';
+import { User, QrCode, Calendar, Edit3, Save, LifeBuoy, ArrowRight, BookOpen, LogOut, MessageCircle, BarChart3, PieChart, X } from 'lucide-react';
 import LoadingSpinner from '@/Components/LoadingSpinner';
 import Footer from '@/Components/Footer';
+import QrScanner from '@/Components/member/QrScanner';
 
 export default function MemberDashboard() {
     const [profile, setProfile] = useState<any>(null);
@@ -16,7 +17,6 @@ export default function MemberDashboard() {
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [chartView, setChartView] = useState<'grid' | 'stats'>('grid');
     const [showScannerModal, setShowScannerModal] = useState(false);
-    const [scannerStatus, setScannerStatus] = useState<string | null>(null);
 
     // Editable fields state
     const [firstName, setFirstName] = useState('');
@@ -27,10 +27,6 @@ export default function MemberDashboard() {
     const [email, setEmail] = useState('');
     const [homeAddress, setHomeAddress] = useState('');
     const [occupationType, setOccupationType] = useState('');
-
-    // Refs for video stream handling
-    const videoRef = useRef<HTMLVideoElement | null>(null);
-    const mediaStreamRef = useRef<MediaStream | null>(null);
 
     const router = useRouter();
     const supabase = createClient();
@@ -77,88 +73,6 @@ export default function MemberDashboard() {
 
         void fetchMemberData();
     }, [router, supabase]);
-
-    // Scanner Handler function
-    const handleScanQRCode = async () => {
-        setShowScannerModal(true);
-        setScannerStatus('Starting camera...');
-
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: { exact: 'environment' }
-                }
-            }).catch(() => {
-                return navigator.mediaDevices.getUserMedia({ video: true });
-            });
-
-            mediaStreamRef.current = stream;
-
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-                videoRef.current.setAttribute('playsinline', 'true');
-                await videoRef.current.play();
-            }
-
-            setScannerStatus('Camera active! Point at Sunday QR code.');
-        } catch (err) {
-            console.error('Camera error:', err);
-            setScannerStatus('Camera access blocked. Use simulation button below.');
-        }
-    };
-
-    const closeScannerModal = () => {
-        if (mediaStreamRef.current) {
-            mediaStreamRef.current.getTracks().forEach(track => track.stop());
-            mediaStreamRef.current = null;
-        }
-        setShowScannerModal(false);
-    };
-
-    const simulateSuccessfulScan = async () => {
-        const memberId = localStorage.getItem('didache_member_id');
-        const activeSessionDate = localStorage.getItem('didache_qr_date') || new Date().toISOString().split('T')[0];
-
-        closeScannerModal();
-        const supabase = createClient();
-
-        const { data: sessionMatch, error: sessionError } = await supabase
-            .from('sessions')
-            .upsert([
-                {
-                    session_date: activeSessionDate,
-                    title: `Service Session (${activeSessionDate})`,
-                    is_active: true
-                }
-            ], { onConflict: 'session_date' })
-            .select('id')
-            .single();
-
-        if (sessionError || !sessionMatch) {
-            alert(`❌ Error handling session: ${sessionError?.message}`);
-            return;
-        }
-
-        const { error: attendanceError } = await supabase.from('attendance').insert([
-            {
-                user_id: memberId,
-                session_id: sessionMatch.id,
-                checked_in_at: new Date().toISOString(),
-            }
-        ]);
-
-        if (attendanceError) {
-            if (attendanceError.message.includes('duplicate')) {
-                alert('ℹ️ You have already checked in for this session!');
-            } else {
-                console.error('Supabase Error Details:', attendanceError);
-                alert(`❌ Supabase Error: ${attendanceError.message}`);
-            }
-        } else {
-            alert('🎉 Check-in successfully recorded in Supabase!');
-            window.location.reload();
-        }
-    };
 
     const handleUpdateProfile = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -266,7 +180,7 @@ export default function MemberDashboard() {
                     </div>
 
                     <button
-                        onClick={handleScanQRCode}
+                        onClick={() => setShowScannerModal(true)}
                         className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-600/30 active:scale-95 transition-all"
                     >
                         <QrCode className="w-4 h-4" />
@@ -463,7 +377,6 @@ export default function MemberDashboard() {
                         const month = now.getMonth();
                         const todayDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-                        // --- TESTING MODE: All Days of Month ---
                         const daysInCurrentMonth = new Date(year, month + 1, 0).getDate();
                         const slotsInMonth: Date[] = Array.from(
                             { length: daysInCurrentMonth },
@@ -471,8 +384,6 @@ export default function MemberDashboard() {
                         );
 
                         const attendedCount = attendance.length;
-
-                        // Calculate past days up to today for accurate missed slots
                         let pastDaysCount = 0;
                         let missedCount = 0;
 
@@ -598,39 +509,12 @@ export default function MemberDashboard() {
 
             </main>
 
-            {/* QR Scanner / Simulation Modal */}
-            {showScannerModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-                    <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-2xl space-y-4 text-center">
-                        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                                <Camera className="w-4 h-4 text-emerald-400" /> Sunday QR Scanner
-                            </h3>
-                            <button onClick={closeScannerModal} className="text-slate-400 hover:text-white">
-                                <X className="w-4 h-4" />
-                            </button>
-                        </div>
-
-                        <div className="relative aspect-square w-full rounded-2xl bg-black overflow-hidden border border-slate-800 flex items-center justify-center">
-                            <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" />
-                            <div className="absolute inset-0 border-2 border-emerald-500/40 rounded-2xl m-8 pointer-events-none animate-pulse flex items-center justify-center">
-                                <div className="w-32 h-32 border border-dashed border-emerald-400/60 rounded-xl" />
-                            </div>
-                        </div>
-
-                        <p className="text-xs text-slate-300 font-medium">{scannerStatus}</p>
-
-                        <div className="pt-2">
-                            <button
-                                onClick={simulateSuccessfulScan}
-                                className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-semibold text-white shadow transition"
-                            >
-                                ⚡ Simulate Successful Scan (Test)
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Modular QR Scanner Component */}
+            <QrScanner
+                isOpen={showScannerModal}
+                onClose={() => setShowScannerModal(false)}
+                onSuccess={() => window.location.reload()}
+            />
 
             <Footer />
         </div>
