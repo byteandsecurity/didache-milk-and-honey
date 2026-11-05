@@ -21,6 +21,7 @@ export default function QrScannerTestable({ isOpen, onClose, onSuccess }: QrScan
     const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const processingScanRef = useRef<boolean>(false);
 
+
     const supabase = createClient();
 
     const stopCamera = useCallback(() => {
