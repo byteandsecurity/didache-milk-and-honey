@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Heart, Sparkles, Phone, MapPin, User, ArrowLeft, CheckCircle2, UserPlus, LogIn, AlertCircle } from 'lucide-react';
 import LoadingSpinner from '@/Components/LoadingSpinner';
 import Footer from '@/Components/Footer';
-import GuestQrScanner from "@/Components/guest/GuestQrScanner";
+import GuestQrScanner from '@/Components/guest/GuestQrScanner';
 
 function GuestContent() {
     const [mode, setMode] = useState<'returning' | 'new'>('returning');
@@ -22,6 +22,9 @@ function GuestContent() {
     const [visitCount, setVisitCount] = useState(1);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [showScannerModal, setShowScannerModal] = useState(false);
+
+    // Track which submission was pending when scanner was triggered
+    const pendingActionRef = useRef<'returning' | 'new' | null>(null);
 
     const supabase = createClient();
     const router = useRouter();
@@ -44,11 +47,11 @@ function GuestContent() {
         }
     };
 
-    // Cleanly reset visitor state when finishing check-in
     const handleFinishCheckIn = () => {
         if (typeof window !== 'undefined') {
             localStorage.removeItem('didache_guest_session');
             localStorage.removeItem('didache_guest_checked_date');
+            localStorage.removeItem('didache_qr_date');
         }
         setIsCheckedIn(false);
         setPhoneNumber('');
@@ -58,19 +61,12 @@ function GuestContent() {
         router.push('/');
     };
 
-    // 1. Handle Returning Visitor Check-In (Updates guest_profiles directly)
-    const handleReturningCheckIn = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        // 🛡️ QR Guard: Force scan modal if missing QR context
-        if (!activeDate) {
-            setShowScannerModal(true);
-            return;
-        }
-
+    // Core Returning Check-In Logic
+    const executeReturningCheckIn = async () => {
         const cleanPhone = phoneNumber.trim();
         if (!cleanPhone) {
             setErrorMsg('Please enter your phone number.');
+            setSubmitting(false);
             return;
         }
 
@@ -116,21 +112,14 @@ function GuestContent() {
         setSubmitting(false);
     };
 
-    // 2. Handle New First-Time Visitor Registration (Inserts into guest_profiles directly)
-    const handleNewVisitorSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        // 🛡️ QR Guard: Force scan modal if missing QR context
-        if (!activeDate) {
-            setShowScannerModal(true);
-            return;
-        }
-
+    // Core New Visitor Registration Logic
+    const executeNewVisitorRegistration = async () => {
         const cleanPhone = phoneNumber.trim();
         const cleanName = fullName.trim();
 
         if (!cleanPhone || !cleanName) {
             setErrorMsg('Please fill in your phone number and full name.');
+            setSubmitting(false);
             return;
         }
 
@@ -185,6 +174,48 @@ function GuestContent() {
         setVisitCount(1);
         setIsCheckedIn(true);
         setSubmitting(false);
+    };
+
+    // Form Submit Handlers
+    const handleReturningCheckIn = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const currentActiveDate = localStorage.getItem('didache_qr_date');
+
+        if (!currentActiveDate) {
+            pendingActionRef.current = 'returning';
+            setShowScannerModal(true);
+            return;
+        }
+
+        await executeReturningCheckIn();
+    };
+
+    const handleNewVisitorSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const currentActiveDate = localStorage.getItem('didache_qr_date');
+
+        if (!currentActiveDate) {
+            pendingActionRef.current = 'new';
+            setShowScannerModal(true);
+            return;
+        }
+
+        await executeNewVisitorRegistration();
+    };
+
+    // Triggered automatically when the QR scanner successfully reads a code
+    const handleScanSuccess = async (scannedDate: string) => {
+        setShowScannerModal(false);
+        localStorage.setItem('didache_qr_date', scannedDate);
+
+        // Resume whatever submission the user was trying to make!
+        if (pendingActionRef.current === 'returning') {
+            pendingActionRef.current = null;
+            await executeReturningCheckIn();
+        } else if (pendingActionRef.current === 'new') {
+            pendingActionRef.current = null;
+            await executeNewVisitorRegistration();
+        }
     };
 
     return (
@@ -387,11 +418,13 @@ function GuestContent() {
                 )}
             </main>
 
-            {/* QR Scanner Modal Guard */}
             <GuestQrScanner
                 isOpen={showScannerModal}
-                onClose={() => setShowScannerModal(false)}
-                onSuccess={() => window.location.reload()}
+                onClose={() => {
+                    setShowScannerModal(false);
+                    pendingActionRef.current = null;
+                }}
+                onSuccess={handleScanSuccess}
             />
 
             <Footer />
