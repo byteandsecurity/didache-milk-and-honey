@@ -83,6 +83,7 @@ function MemberLoginForm() {
             const activeScanDate = rawDateParam || (typeof window !== 'undefined' ? localStorage.getItem('didache_qr_date') : null);
 
             if (activeScanDate) {
+                // Check if already checked in for this date
                 const { data: existingAttendance } = await supabase
                     .from('attendance')
                     .select('id')
@@ -90,22 +91,22 @@ function MemberLoginForm() {
                     .eq('session_date', activeScanDate)
                     .maybeSingle();
 
-                const { count } = await supabase
-                    .from('attendance')
-                    .select('id', { count: 'exact', head: true })
-                    .eq('user_id', profile.id);
-
-                const countVal = count || 1;
-
                 if (existingAttendance) {
+                    // Fetch real total count from DB
+                    const { count: realCount } = await supabase
+                        .from('attendance')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('user_id', profile.id);
+
                     setMemberProfile(profile as MemberProfile);
-                    setTotalVisits(countVal);
+                    setTotalVisits(realCount || 1);
                     setAlreadyCheckedInToday(true);
                     setIsCheckedIn(true);
                     setLoading(false);
                     return;
                 }
 
+                // Insert new check-in
                 await supabase.from('attendance').insert([
                     {
                         user_id: profile.id,
@@ -114,18 +115,19 @@ function MemberLoginForm() {
                     }
                 ]);
 
+                // Query DB AFTER insert so the number is 100% accurate (No artificial +1)
+                const { count: updatedCount } = await supabase
+                    .from('attendance')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('user_id', profile.id);
+
                 setMemberProfile(profile as MemberProfile);
-                setTotalVisits(countVal + 1);
+                setTotalVisits(updatedCount || 1);
                 setAlreadyCheckedInToday(false);
                 setIsCheckedIn(true);
                 setLoading(false);
                 return;
             }
-
-            // Direct Login Success -> Show Compact Welcome Card
-            setMemberProfile(profile as MemberProfile);
-            setIsDirectLoginSuccess(true);
-            setLoading(false);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : 'Login failed.';
             setErrorMsg(message);

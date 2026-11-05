@@ -71,7 +71,7 @@ export default function QrGenerator() {
             ], { onConflict: 'session_date' });
 
         if (sessionError) {
-            console.error('Session auto-creation error:', sessionError);
+            console.error('Session auto-creation error:', sessionError?.message || sessionError); // Fixed variable reference
         }
 
         const qrUrl = `https://didache-milk-and-honey.vercel.app/checking?date=${dateStr}`;
@@ -98,6 +98,7 @@ export default function QrGenerator() {
     };
 
     const isExpired = timeLeft !== null && timeLeft <= 0;
+    const remainingGenerations = 10 - qrGenCount >= 0 ? 10 - qrGenCount : 0; // Fixed math operators
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
@@ -111,7 +112,7 @@ export default function QrGenerator() {
                         type="date"
                         value={selectedSessionDate}
                         onChange={(e) => setSelectedSessionDate(e.target.value)}
-                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 focus:outline-none font-semibold focus:outline-none w-full [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
+                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 font-semibold focus:outline-none [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
                     />
                 </div>
 
@@ -122,10 +123,10 @@ export default function QrGenerator() {
                 )}
 
                 <button
-                    onClick={() => handleGenerateQr(selectedSessionDate)}
+                    onClick={() => void handleGenerateQr(selectedSessionDate)}
                     className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-semibold text-white shadow transition"
                 >
-                    Generate Active Session QR ({10 - qrGenCount >= 0 ? 10 - qrGenCount : 0} left today)
+                    Generate Active Session QR ({remainingGenerations} left today)
                 </button>
             </div>
 
