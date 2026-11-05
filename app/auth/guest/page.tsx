@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Heart, Sparkles, Phone, MapPin, User, ArrowLeft, CheckCircle2, UserPlus, LogIn, AlertCircle } from 'lucide-react';
 import LoadingSpinner from '@/Components/LoadingSpinner';
 import Footer from '@/Components/Footer';
-import QrScanner from '@/Components/member/QrScanner';
+import GuestQrScanner from "@/Components/guest/GuestQrScanner";
 
 function GuestContent() {
     const [mode, setMode] = useState<'returning' | 'new'>('returning');
@@ -388,7 +388,7 @@ function GuestContent() {
             </main>
 
             {/* QR Scanner Modal Guard */}
-            <QrScanner
+            <GuestQrScanner
                 isOpen={showScannerModal}
                 onClose={() => setShowScannerModal(false)}
                 onSuccess={() => window.location.reload()}
