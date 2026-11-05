@@ -23,15 +23,24 @@ function GuestContent() {
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [showScannerModal, setShowScannerModal] = useState(false);
 
-    // Direct memory holders for pending submission data when scanner opens
-    const pendingSubmissionRef = useRef<{ mode: 'returning' | 'new'; phone: string; name: string; gender: string; address: string } | null>(null);
+    // Keep active inputs synced in refs so callbacks always read fresh values regardless of unmounts
+    const currentModeRef = useRef<'returning' | 'new'>('returning');
+    const phoneRef = useRef('');
+    const nameRef = useRef('');
+    const genderRef = useRef('Male');
+    const addressRef = useRef('');
+
+    useEffect(() => { currentModeRef.current = mode; }, [mode]);
+    useEffect(() => { phoneRef.current = phoneNumber; }, [phoneNumber]);
+    useEffect(() => { nameRef.current = fullName; }, [fullName]);
+    useEffect(() => { genderRef.current = gender; }, [gender]);
+    useEffect(() => { addressRef.current = homeAddress; }, [homeAddress]);
 
     const supabase = createClient();
     const router = useRouter();
     const searchParams = useSearchParams();
 
     const rawDateParam = searchParams.get('date');
-    const activeDate = rawDateParam || (typeof window !== 'undefined' ? localStorage.getItem('didache_qr_date') : null);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -91,7 +100,6 @@ function GuestContent() {
             localStorage.removeItem('didache_guest_draft_gender');
             localStorage.removeItem('didache_guest_draft_address');
         }
-        pendingSubmissionRef.current = null;
         setIsCheckedIn(false);
         setPhoneNumber('');
         setFullName('');
@@ -100,14 +108,15 @@ function GuestContent() {
         router.push('/');
     };
 
-    // Core Database Execution Function
-    const processSubmission = async (submissionData: { mode: 'returning' | 'new'; phone: string; name: string; gender: string; address: string }) => {
+    // Database check-in executor reading straight from fresh refs
+    const executeCheckIn = async () => {
         setSubmitting(true);
         setErrorMsg(null);
 
-        const cleanPhone = submissionData.phone.trim();
+        const targetMode = currentModeRef.current;
+        const cleanPhone = phoneRef.current.trim();
 
-        if (submissionData.mode === 'returning') {
+        if (targetMode === 'returning') {
             if (!cleanPhone) {
                 setErrorMsg('Please enter your phone number.');
                 setSubmitting(false);
@@ -147,11 +156,11 @@ function GuestContent() {
                 setVisitCount(newCount);
                 setIsCheckedIn(true);
             } else {
-                setErrorMsg('No visitor record found with this phone number. Please register as a First-Time Visitor.');
+                setErrorMsg('No visitor record found with this phone number. Please click "First-Time Visitor" above to register.');
             }
         } else {
             // New Visitor Mode
-            const cleanName = submissionData.name.trim();
+            const cleanName = nameRef.current.trim();
             if (!cleanPhone || !cleanName) {
                 setErrorMsg('Please fill in your phone number and full name.');
                 setSubmitting(false);
@@ -187,8 +196,8 @@ function GuestContent() {
                     {
                         full_name: cleanName,
                         phone_number: cleanPhone,
-                        gender: submissionData.gender,
-                        home_address: submissionData.address.trim() || null,
+                        gender: genderRef.current,
+                        home_address: addressRef.current.trim() || null,
                         attendance_count: 1,
                         last_attended_at: new Date().toISOString(),
                     },
@@ -210,48 +219,35 @@ function GuestContent() {
         setSubmitting(false);
     };
 
-    // Form Submits
     const handleReturningCheckIn = async (e: React.FormEvent) => {
         e.preventDefault();
-        const currentActiveDate = localStorage.getItem('didache_qr_date');
+        const activeDate = rawDateParam || (typeof window !== 'undefined' ? localStorage.getItem('didache_qr_date') : null);
 
-        const payload = { mode: 'returning' as const, phone: phoneNumber, name: '', gender: 'Male', address: '' };
-
-        if (!currentActiveDate) {
-            pendingSubmissionRef.current = payload;
+        if (!activeDate) {
             setShowScannerModal(true);
             return;
         }
 
-        await processSubmission(payload);
+        await executeCheckIn();
     };
 
     const handleNewVisitorSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const currentActiveDate = localStorage.getItem('didache_qr_date');
+        const activeDate = rawDateParam || (typeof window !== 'undefined' ? localStorage.getItem('didache_qr_date') : null);
 
-        const payload = { mode: 'new' as const, phone: phoneNumber, name: fullName, gender, address: homeAddress };
-
-        if (!currentActiveDate) {
-            pendingSubmissionRef.current = payload;
+        if (!activeDate) {
             setShowScannerModal(true);
             return;
         }
 
-        await processSubmission(payload);
+        await executeCheckIn();
     };
 
-    // ⚡ INSTANT EXECUTION ON SCAN SUCCESS
+    // Executed the split second a valid QR code is scanned in the modal
     const handleScanSuccess = async (scannedDate: string) => {
         setShowScannerModal(false);
         localStorage.setItem('didache_qr_date', scannedDate);
-
-        const pending = pendingSubmissionRef.current;
-        pendingSubmissionRef.current = null;
-
-        if (pending) {
-            await processSubmission(pending);
-        }
+        await executeCheckIn();
     };
 
     return (
@@ -456,10 +452,7 @@ function GuestContent() {
 
             <GuestQrScanner
                 isOpen={showScannerModal}
-                onClose={() => {
-                    setShowScannerModal(false);
-                    pendingSubmissionRef.current = null;
-                }}
+                onClose={() => setShowScannerModal(false)}
                 onSuccess={handleScanSuccess}
             />
 

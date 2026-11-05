@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, X, CheckCircle2, QrCode } from 'lucide-react';
+import { Camera, X, CheckCircle2 } from 'lucide-react';
 
 interface GuestQrScannerProps {
     isOpen: boolean;
@@ -22,6 +22,7 @@ export default function GuestQrScanner({ isOpen, onClose, onSuccess }: GuestQrSc
     useEffect(() => {
         if (isOpen) {
             setIsSuccessState(false);
+            processingScanRef.current = false;
             startCamera();
         } else {
             stopCamera();
@@ -35,9 +36,7 @@ export default function GuestQrScanner({ isOpen, onClose, onSuccess }: GuestQrSc
         setScannerStatus('Starting camera...');
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: { exact: 'environment' }
-                }
+                video: { facingMode: { exact: 'environment' } }
             }).catch(() => {
                 return navigator.mediaDevices.getUserMedia({ video: true });
             });
@@ -52,7 +51,6 @@ export default function GuestQrScanner({ isOpen, onClose, onSuccess }: GuestQrSc
 
             setScannerStatus('Camera active! Point at Sunday QR code.');
 
-            // Initialize Native BarcodeDetector if available
             if ('BarcodeDetector' in window) {
                 //@ts-ignore
                 const barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
@@ -63,22 +61,24 @@ export default function GuestQrScanner({ isOpen, onClose, onSuccess }: GuestQrSc
                         const barcodes = await barcodeDetector.detect(videoRef.current);
                         if (barcodes.length > 0) {
                             const rawValue = barcodes[0].rawValue;
+                            let dateParam: string | null = null;
+
                             try {
                                 const urlObj = new URL(rawValue);
-                                const dateParam = urlObj.searchParams.get('date');
-                                if (dateParam) {
-                                    stopCamera();
-                                    await processScannedDate(dateParam);
-                                }
+                                dateParam = urlObj.searchParams.get('date');
                             } catch {
                                 if (rawValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                                    stopCamera();
-                                    await processScannedDate(rawValue.trim());
+                                    dateParam = rawValue.trim();
                                 }
+                            }
+
+                            if (dateParam) {
+                                stopCamera();
+                                await processScannedDate(dateParam);
                             }
                         }
                     } catch {
-                        // Suppress scanning frame errors
+                        // Suppress frame scan noise
                     }
                 }, 500);
             } else {
@@ -105,17 +105,18 @@ export default function GuestQrScanner({ isOpen, onClose, onSuccess }: GuestQrSc
         if (processingScanRef.current) return;
         processingScanRef.current = true;
 
-        // Save date context specifically for visitor verification flow
         localStorage.setItem('didache_qr_date', scannedDateStr);
 
         setSuccessMessage(`QR Code verified for ${scannedDateStr}!`);
         setIsSuccessState(true);
 
+        // Notify parent FIRST to trigger instant database check-in
+        onSuccess(scannedDateStr);
+
         setTimeout(() => {
             onClose();
-            onSuccess(scannedDateStr);
             processingScanRef.current = false;
-        }, 1000);
+        }, 800);
     };
 
     if (!isOpen) return null;
