@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Heart, Sparkles, Phone, MapPin, User, ArrowLeft, CheckCircle2, UserPlus, LogIn, AlertCircle } from 'lucide-react';
@@ -23,6 +23,9 @@ function GuestContent() {
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [showScannerModal, setShowScannerModal] = useState(false);
 
+    // Direct memory holders for pending submission data when scanner opens
+    const pendingSubmissionRef = useRef<{ mode: 'returning' | 'new'; phone: string; name: string; gender: string; address: string } | null>(null);
+
     const supabase = createClient();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -30,7 +33,6 @@ function GuestContent() {
     const rawDateParam = searchParams.get('date');
     const activeDate = rawDateParam || (typeof window !== 'undefined' ? localStorage.getItem('didache_qr_date') : null);
 
-    // Restore saved visitor inputs on mount & persist on changes
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const savedPhone = localStorage.getItem('didache_guest_draft_phone');
@@ -88,8 +90,8 @@ function GuestContent() {
             localStorage.removeItem('didache_guest_draft_name');
             localStorage.removeItem('didache_guest_draft_gender');
             localStorage.removeItem('didache_guest_draft_address');
-            sessionStorage.removeItem('didache_pending_action');
         }
+        pendingSubmissionRef.current = null;
         setIsCheckedIn(false);
         setPhoneNumber('');
         setFullName('');
@@ -98,160 +100,157 @@ function GuestContent() {
         router.push('/');
     };
 
-    // 1. Returning Visitor Execution
-    const executeReturningCheckIn = async (overridePhone?: string) => {
-        const cleanPhone = (overridePhone || phoneNumber).trim();
-        if (!cleanPhone) {
-            setErrorMsg('Please enter your phone number.');
-            setSubmitting(false);
-            return;
-        }
-
+    // Core Database Execution Function
+    const processSubmission = async (submissionData: { mode: 'returning' | 'new'; phone: string; name: string; gender: string; address: string }) => {
         setSubmitting(true);
         setErrorMsg(null);
 
-        const { data: existingGuest, error } = await supabase
-            .from('guest_profiles')
-            .select('*')
-            .eq('phone_number', cleanPhone)
-            .maybeSingle();
+        const cleanPhone = submissionData.phone.trim();
 
-        if (error) {
-            setErrorMsg('Could not verify visitor record. Please try again.');
-            setSubmitting(false);
-            return;
-        }
-
-        if (existingGuest) {
-            const newCount = (existingGuest.attendance_count || 0) + 1;
-
-            const { error: updateError } = await supabase
-                .from('guest_profiles')
-                .update({
-                    attendance_count: newCount,
-                    last_attended_at: new Date().toISOString(),
-                })
-                .eq('id', existingGuest.id);
-
-            if (updateError) {
-                setErrorMsg('Error recording attendance. Please try again.');
+        if (submissionData.mode === 'returning') {
+            if (!cleanPhone) {
+                setErrorMsg('Please enter your phone number.');
                 setSubmitting(false);
                 return;
             }
 
-            setGuestNameConfirmed(existingGuest.full_name);
-            setVisitCount(newCount);
-            setIsCheckedIn(true);
-        } else {
-            setErrorMsg('No visitor record found with this phone number. Please click "First-Time Visitor" above to register.');
-        }
-
-        setSubmitting(false);
-    };
-
-    // 2. First-Time Visitor Execution
-    const executeNewVisitorRegistration = async (overridePhone?: string, overrideName?: string) => {
-        const cleanPhone = (overridePhone || phoneNumber).trim();
-        const cleanName = (overrideName || fullName).trim();
-
-        if (!cleanPhone || !cleanName) {
-            setErrorMsg('Please fill in your phone number and full name.');
-            setSubmitting(false);
-            return;
-        }
-
-        setSubmitting(true);
-        setErrorMsg(null);
-
-        const { data: existingGuest } = await supabase
-            .from('guest_profiles')
-            .select('id, full_name, attendance_count')
-            .eq('phone_number', cleanPhone)
-            .maybeSingle();
-
-        if (existingGuest) {
-            const newCount = (existingGuest.attendance_count || 0) + 1;
-            await supabase
+            const { data: existingGuest, error } = await supabase
                 .from('guest_profiles')
-                .update({
-                    attendance_count: newCount,
-                    last_attended_at: new Date().toISOString()
-                })
-                .eq('id', existingGuest.id);
+                .select('*')
+                .eq('phone_number', cleanPhone)
+                .maybeSingle();
 
-            setGuestNameConfirmed(existingGuest.full_name);
-            setVisitCount(newCount);
+            if (error) {
+                setErrorMsg('Could not verify visitor record. Please try again.');
+                setSubmitting(false);
+                return;
+            }
+
+            if (existingGuest) {
+                const newCount = (existingGuest.attendance_count || 0) + 1;
+
+                const { error: updateError } = await supabase
+                    .from('guest_profiles')
+                    .update({
+                        attendance_count: newCount,
+                        last_attended_at: new Date().toISOString(),
+                    })
+                    .eq('id', existingGuest.id);
+
+                if (updateError) {
+                    setErrorMsg('Error recording attendance. Please try again.');
+                    setSubmitting(false);
+                    return;
+                }
+
+                setGuestNameConfirmed(existingGuest.full_name);
+                setVisitCount(newCount);
+                setIsCheckedIn(true);
+            } else {
+                setErrorMsg('No visitor record found with this phone number. Please register as a First-Time Visitor.');
+            }
+        } else {
+            // New Visitor Mode
+            const cleanName = submissionData.name.trim();
+            if (!cleanPhone || !cleanName) {
+                setErrorMsg('Please fill in your phone number and full name.');
+                setSubmitting(false);
+                return;
+            }
+
+            const { data: existingGuest } = await supabase
+                .from('guest_profiles')
+                .select('id, full_name, attendance_count')
+                .eq('phone_number', cleanPhone)
+                .maybeSingle();
+
+            if (existingGuest) {
+                const newCount = (existingGuest.attendance_count || 0) + 1;
+                await supabase
+                    .from('guest_profiles')
+                    .update({
+                        attendance_count: newCount,
+                        last_attended_at: new Date().toISOString()
+                    })
+                    .eq('id', existingGuest.id);
+
+                setGuestNameConfirmed(existingGuest.full_name);
+                setVisitCount(newCount);
+                setIsCheckedIn(true);
+                setSubmitting(false);
+                return;
+            }
+
+            const { data: newGuest, error: insertError } = await supabase
+                .from('guest_profiles')
+                .insert([
+                    {
+                        full_name: cleanName,
+                        phone_number: cleanPhone,
+                        gender: submissionData.gender,
+                        home_address: submissionData.address.trim() || null,
+                        attendance_count: 1,
+                        last_attended_at: new Date().toISOString(),
+                    },
+                ])
+                .select()
+                .single();
+
+            if (insertError || !newGuest) {
+                setErrorMsg(`Could not register visitor: ${insertError?.message || 'Server error'}`);
+                setSubmitting(false);
+                return;
+            }
+
+            setGuestNameConfirmed(newGuest.full_name);
+            setVisitCount(1);
             setIsCheckedIn(true);
-            setSubmitting(false);
-            return;
         }
 
-        const { data: newGuest, error: insertError } = await supabase
-            .from('guest_profiles')
-            .insert([
-                {
-                    full_name: cleanName,
-                    phone_number: cleanPhone,
-                    gender: gender,
-                    home_address: homeAddress.trim() || null,
-                    attendance_count: 1,
-                    last_attended_at: new Date().toISOString(),
-                },
-            ])
-            .select()
-            .single();
-
-        if (insertError || !newGuest) {
-            setErrorMsg(`Could not register visitor: ${insertError?.message || 'Server error'}`);
-            setSubmitting(false);
-            return;
-        }
-
-        setGuestNameConfirmed(newGuest.full_name);
-        setVisitCount(1);
-        setIsCheckedIn(true);
         setSubmitting(false);
     };
 
-    // Form Submit Handlers
+    // Form Submits
     const handleReturningCheckIn = async (e: React.FormEvent) => {
         e.preventDefault();
         const currentActiveDate = localStorage.getItem('didache_qr_date');
 
+        const payload = { mode: 'returning' as const, phone: phoneNumber, name: '', gender: 'Male', address: '' };
+
         if (!currentActiveDate) {
-            sessionStorage.setItem('didache_pending_action', 'returning');
+            pendingSubmissionRef.current = payload;
             setShowScannerModal(true);
             return;
         }
 
-        await executeReturningCheckIn();
+        await processSubmission(payload);
     };
 
     const handleNewVisitorSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const currentActiveDate = localStorage.getItem('didache_qr_date');
 
+        const payload = { mode: 'new' as const, phone: phoneNumber, name: fullName, gender, address: homeAddress };
+
         if (!currentActiveDate) {
-            sessionStorage.setItem('didache_pending_action', 'new');
+            pendingSubmissionRef.current = payload;
             setShowScannerModal(true);
             return;
         }
 
-        await executeNewVisitorRegistration();
+        await processSubmission(payload);
     };
 
-    // INSTANT AUTO-CHECK-IN with sessionStorage fallback
+    // ⚡ INSTANT EXECUTION ON SCAN SUCCESS
     const handleScanSuccess = async (scannedDate: string) => {
         setShowScannerModal(false);
         localStorage.setItem('didache_qr_date', scannedDate);
 
-        const pendingAction = sessionStorage.getItem('didache_pending_action');
-        sessionStorage.removeItem('didache_pending_action');
+        const pending = pendingSubmissionRef.current;
+        pendingSubmissionRef.current = null;
 
-        if (pendingAction === 'returning') {
-            await executeReturningCheckIn();
-        } else if (pendingAction === 'new') {
-            await executeNewVisitorRegistration();
+        if (pending) {
+            await processSubmission(pending);
         }
     };
 
@@ -459,7 +458,7 @@ function GuestContent() {
                 isOpen={showScannerModal}
                 onClose={() => {
                     setShowScannerModal(false);
-                    sessionStorage.removeItem('didache_pending_action');
+                    pendingSubmissionRef.current = null;
                 }}
                 onSuccess={handleScanSuccess}
             />
