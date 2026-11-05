@@ -12,6 +12,22 @@ interface Member {
     gender?: string;
 }
 
+interface ParsedDOB {
+    monthIndex: number;
+    day: number;
+    year: number | null;
+}
+
+interface ProcessedMember extends Member {
+    dobDay: number;
+    dobYear: number | null;
+}
+
+interface CountdownResult {
+    label: string;
+    color: string;
+}
+
 interface BirthdayDirectoryProps {
     members: Member[];
 }
@@ -38,12 +54,12 @@ const MONTH_THEMES: Record<string, { bg: string; border: string; text: string; b
 
 export default function BirthdayDirectory({ members }: BirthdayDirectoryProps) {
     const today = new Date();
-    const currentMonthIndex = today.getMonth(); // 0-indexed (Nov = 10)
+    const currentMonthIndex = today.getMonth(); // 0-indexed
     const currentDay = today.getDate();
     const currentMonthName = MONTH_NAMES[currentMonthIndex];
 
     // Helper: Parse DOB string safely handling YYYY-MM-DD or MM-DD or 1900-MM-DD
-    const parseDOB = (dobStr?: string | null) => {
+    const parseDOB = (dobStr?: string | null): ParsedDOB | null => {
         if (!dobStr) return null;
         if (dobStr.includes('-')) {
             const parts = dobStr.split('-');
@@ -62,7 +78,7 @@ export default function BirthdayDirectory({ members }: BirthdayDirectoryProps) {
         return null;
     };
 
-    const getCountdownText = (day: number) => {
+    const getCountdownText = (day: number): CountdownResult => {
         const diff = day - currentDay;
         if (diff === 0) return { label: '🎉 Today!', color: 'bg-emerald-500 text-slate-950 font-black animate-pulse' };
         if (diff === 1) return { label: '⏳ Tomorrow!', color: 'bg-amber-500/20 text-amber-300 border border-amber-500/40' };
@@ -71,7 +87,7 @@ export default function BirthdayDirectory({ members }: BirthdayDirectoryProps) {
     };
 
     const monthlyBirthdays = useMemo(() => {
-        const groups: Record<string, any[]> = {};
+        const groups: Record<string, ProcessedMember[]> = {};
         MONTH_NAMES.forEach((m) => { groups[m] = []; });
 
         members.forEach((m) => {
@@ -128,7 +144,7 @@ export default function BirthdayDirectory({ members }: BirthdayDirectoryProps) {
                                     {activeMonthMembers.length} Celebrants
                                 </span>
                             </h3>
-                            <p className="text-[11px] text-slate-400">Tap to toggle view of this active month's countdowns</p>
+                            <p className="text-[11px] text-slate-400">Tap to toggle view of this active month&apos;s countdowns</p>
                         </div>
                     </div>
 
@@ -186,7 +202,6 @@ export default function BirthdayDirectory({ members }: BirthdayDirectoryProps) {
                     All Months Breakdown (Jan – Dec)
                 </h3>
 
-                {/* items-start prevents neighboring month card from stretching vertically when expanded */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
                     {MONTH_NAMES.map((month) => {
                         const theme = MONTH_THEMES[month] || MONTH_THEMES['January'];

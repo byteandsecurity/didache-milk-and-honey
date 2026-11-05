@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Camera, X, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -12,99 +12,28 @@ interface QrScannerProps {
 
 export default function QrScanner({ isOpen, onClose, onSuccess }: QrScannerProps) {
     const [scannerStatus, setScannerStatus] = useState<string | null>(null);
-    const [isSuccessState, setIsSuccessState] = useState(false);
-    const [successMessage, setSuccessMessage] = useState('');
+    const [isSuccessState, setIsSuccessState] = useState<boolean>(false);
+    const [successMessage, setSuccessMessage] = useState<string>('');
 
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const mediaStreamRef = useRef<MediaStream | null>(null);
-    const scanIntervalRef = useRef<any>(null);
-    const processingScanRef = useRef(false);
+    const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const processingScanRef = useRef<boolean>(false);
 
     const supabase = createClient();
 
-    useEffect(() => {
-        if (isOpen) {
-            setIsSuccessState(false);
-            startCamera();
-        } else {
-            stopCamera();
-        }
-        return () => {
-            stopCamera();
-        };
-    }, [isOpen]);
-
-    const startCamera = async () => {
-        setScannerStatus('Starting camera...');
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: { exact: 'environment' }
-                }
-            }).catch(() => {
-                return navigator.mediaDevices.getUserMedia({ video: true });
-            });
-
-            mediaStreamRef.current = stream;
-
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-                videoRef.current.setAttribute('playsinline', 'true');
-                await videoRef.current.play();
-            }
-
-            setScannerStatus('Camera active! Point at Sunday QR code.');
-
-            // Initialize Native BarcodeDetector if available
-            if ('BarcodeDetector' in window) {
-                //@ts-ignore
-                const barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
-
-                scanIntervalRef.current = setInterval(async () => {
-                    if (!videoRef.current || videoRef.current.readyState !== videoRef.current.HAVE_ENOUGH_DATA) return;
-                    try {
-                        const barcodes = await barcodeDetector.detect(videoRef.current);
-                        if (barcodes.length > 0) {
-                            const rawValue = barcodes[0].rawValue;
-                            try {
-                                const urlObj = new URL(rawValue);
-                                const dateParam = urlObj.searchParams.get('date');
-                                if (dateParam) {
-                                    stopCamera();
-                                    await processScannedDate(dateParam);
-                                }
-                            } catch {
-                                if (rawValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                                    stopCamera();
-                                    await processScannedDate(rawValue);
-                                }
-                            }
-                        }
-                    } catch {
-                        // Suppress scanning frame errors
-                    }
-                }, 500);
-            } else {
-                setScannerStatus('Live camera scanning requires Chrome Mobile or supported browser.');
-            }
-        } catch (err) {
-            console.error('Camera error:', err);
-            setScannerStatus('Camera access blocked. Please check permissions.');
-        }
-    };
-
-    const stopCamera = () => {
+    const stopCamera = useCallback(() => {
         if (scanIntervalRef.current) {
             clearInterval(scanIntervalRef.current);
             scanIntervalRef.current = null;
         }
         if (mediaStreamRef.current) {
-            mediaStreamRef.current.getTracks().forEach(track => track.stop());
+            mediaStreamRef.current.getTracks().forEach((track: MediaStreamTrack) => track.stop());
             mediaStreamRef.current = null;
         }
-    };
+    }, []);
 
-    const processScannedDate = async (scannedDateStr: string) => {
+    const processScannedDate = useCallback(async (scannedDateStr: string) => {
         if (processingScanRef.current) return;
         processingScanRef.current = true;
 
@@ -152,12 +81,12 @@ export default function QrScanner({ isOpen, onClose, onSuccess }: QrScannerProps
             setTimeout(() => {
                 onClose();
                 onSuccess();
-            }, 1200); // Wait 1.2s to show success modal before reloading
+            }, 1200);
         }
 
         setIsSuccessState(true);
         processingScanRef.current = false;
-    };
+    }, [supabase, onClose, onSuccess]);
 
     /* =========================================================================
        // SIMULATION FALLBACK (Commented out for physical testing backup)
@@ -167,6 +96,80 @@ export default function QrScanner({ isOpen, onClose, onSuccess }: QrScannerProps
            await processScannedDate(activeDate);
        };
     */
+
+    const startCamera = useCallback(async () => {
+        setScannerStatus('Starting camera...');
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: { exact: 'environment' }
+                }
+            }).catch(() => {
+                return navigator.mediaDevices.getUserMedia({ video: true });
+            });
+
+            mediaStreamRef.current = stream;
+
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+                videoRef.current.setAttribute('playsInline', 'true');
+                await videoRef.current.play();
+            }
+
+            setScannerStatus('Camera active! Point at Sunday QR code.');
+
+            // Initialize Native BarcodeDetector if available
+            if ('BarcodeDetector' in window) {
+                // @ts-expect-error - BarcodeDetector is supported in modern mobile/Chrome browsers
+                const barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
+
+                scanIntervalRef.current = setInterval(() => {
+                    void (async () => {
+                        if (!videoRef.current || videoRef.current.readyState !== videoRef.current.HAVE_ENOUGH_DATA) return;
+                        try {
+                            const barcodes = await barcodeDetector.detect(videoRef.current);
+                            if (barcodes.length > 0) {
+                                const rawValue = barcodes[0].rawValue;
+                                try {
+                                    const urlObj = new URL(rawValue);
+                                    const dateParam = urlObj.searchParams.get('date');
+                                    if (dateParam) {
+                                        stopCamera();
+                                        await processScannedDate(dateParam);
+                                    }
+                                } catch {
+                                    if (rawValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                                        stopCamera();
+                                        await processScannedDate(rawValue);
+                                    }
+                                }
+                            }
+                        } catch {
+                            // Suppress scanning frame errors
+                        }
+                    })();
+                }, 500);
+            } else {
+                setScannerStatus('Live camera scanning requires Chrome Mobile or supported browser.');
+            }
+        } catch (err) {
+            console.error('Camera error:', err);
+            setScannerStatus('Camera access blocked. Please check permissions.');
+        }
+    }, [stopCamera, processScannedDate]);
+
+    useEffect(() => {
+        if (isOpen) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setIsSuccessState(false);
+            void startCamera();
+        } else {
+            stopCamera();
+        }
+        return () => {
+            stopCamera();
+        };
+    }, [isOpen, startCamera, stopCamera]);
 
     if (!isOpen) return null;
 
@@ -201,7 +204,7 @@ export default function QrScanner({ isOpen, onClose, onSuccess }: QrScannerProps
                         {/* Uncomment below button if you need backup simulation during physical tests */}
                         {/*
                         <button
-                            onClick={simulatePhysicalScan}
+                            onClick={() => void simulatePhysicalScan()}
                             className="w-full rounded-xl bg-slate-800 hover:bg-slate-700 py-2.5 text-[11px] font-semibold text-slate-300 transition"
                         >
                             ⚡ Backup Simulate Scan

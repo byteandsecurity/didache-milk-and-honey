@@ -6,29 +6,43 @@ import { createClient } from '@/lib/supabase/client';
 
 const MAX_ADMINS = 5;
 
-export default function StaffDirectory({ adminList, adminProfile, onRefresh }: any) {
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [selectedAdmin, setSelectedAdmin] = useState<any | null>(null);
-    const [isEditing, setIsEditing] = useState(false);
+interface AdminProfile {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    role: 'admin' | 'super_admin' | string;
+}
+
+interface StaffDirectoryProps {
+    adminList: AdminProfile[];
+    adminProfile: AdminProfile | null;
+    onRefresh: () => void;
+}
+
+export default function StaffDirectory({ adminList, adminProfile, onRefresh }: StaffDirectoryProps) {
+    const [showAddModal, setShowAddModal] = useState<boolean>(false);
+    const [selectedAdmin, setSelectedAdmin] = useState<AdminProfile | null>(null);
+    const [isEditing, setIsEditing] = useState<boolean>(false);
 
     // Custom Delete Confirmation Modal State
-    const [adminToDelete, setAdminToDelete] = useState<any | null>(null);
+    const [adminToDelete, setAdminToDelete] = useState<AdminProfile | null>(null);
 
     // Form States for Adding / Editing
-    const [firstName, setFirstName] = useState('');
-    const [lastName, setLastName] = useState('');
-    const [email, setEmail] = useState('');
+    const [firstName, setFirstName] = useState<string>('');
+    const [lastName, setLastName] = useState<string>('');
+    const [email, setEmail] = useState<string>('');
     const [role, setRole] = useState<'admin' | 'super_admin'>('admin');
 
     const [formMsg, setFormMsg] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState<boolean>(false);
 
     const supabase = createClient();
 
     const isSuperAdmin = adminProfile?.role?.toLowerCase() === 'super_admin' || adminProfile?.role?.toLowerCase() === 'superadmin';
 
     // Handle Registering a New Admin
-    const handleAddAdmin = async (e: React.FormEvent) => {
+    const handleAddAdmin = async (e: React.SyntheticEvent) => {
         e.preventDefault();
         setLoading(true);
         setFormMsg(null);
@@ -43,7 +57,7 @@ export default function StaffDirectory({ adminList, adminProfile, onRefresh }: a
             return;
         }
 
-        const existingAdmin = adminList.find((a: any) => a.email?.toLowerCase() === email.toLowerCase());
+        const existingAdmin = adminList.find((a: AdminProfile) => a.email?.toLowerCase() === email.toLowerCase());
         if (existingAdmin) {
             setFormMsg({
                 type: 'error',
@@ -89,13 +103,13 @@ export default function StaffDirectory({ adminList, adminProfile, onRefresh }: a
     };
 
     // Handle Saving Admin Edits
-    const handleSaveEdit = async (e: React.FormEvent) => {
+    const handleSaveEdit = async (e: React.SyntheticEvent) => {
         e.preventDefault();
         if (!selectedAdmin) return;
         setLoading(true);
         setFormMsg(null);
 
-        const updatePayload: any = {
+        const updatePayload: Record<string, unknown> = {
             first_name: firstName,
             last_name: lastName,
             email: email,
@@ -145,7 +159,7 @@ export default function StaffDirectory({ adminList, adminProfile, onRefresh }: a
             setAdminToDelete(null);
             if (onRefresh) onRefresh();
         } else {
-            alert(`Failed to delete admin: ${error.message}`);
+            window.alert(`Failed to delete admin: ${error.message}`);
             setAdminToDelete(null);
         }
     };
@@ -186,7 +200,7 @@ export default function StaffDirectory({ adminList, adminProfile, onRefresh }: a
 
             {/* Staff Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {adminList.map((st: any) => {
+                {adminList.map((st: AdminProfile) => {
                     const canEditThisAdmin = isSuperAdmin || adminProfile?.email?.toLowerCase() === st.email?.toLowerCase();
                     const canDeleteThisAdmin = isSuperAdmin && adminProfile?.email?.toLowerCase() !== st.email?.toLowerCase();
 
@@ -209,7 +223,7 @@ export default function StaffDirectory({ adminList, adminProfile, onRefresh }: a
                                             setFirstName(st.first_name);
                                             setLastName(st.last_name);
                                             setEmail(st.email);
-                                            setRole(st.role);
+                                            setRole(st.role === 'super_admin' ? 'super_admin' : 'admin');
                                             setIsEditing(true);
                                             setFormMsg(null);
                                         }}
@@ -254,7 +268,7 @@ export default function StaffDirectory({ adminList, adminProfile, onRefresh }: a
                                 Cancel
                             </button>
                             <button
-                                onClick={confirmDeleteAdmin}
+                                onClick={() => void confirmDeleteAdmin()}
                                 className="flex-1 rounded-xl bg-red-600 hover:bg-red-500 py-2.5 text-xs font-semibold text-white shadow transition"
                             >
                                 Yes, Remove
@@ -284,7 +298,7 @@ export default function StaffDirectory({ adminList, adminProfile, onRefresh }: a
                             </div>
                         )}
 
-                        <form onSubmit={handleAddAdmin} className="space-y-3 text-xs">
+                        <form onSubmit={(e) => void handleAddAdmin(e)} className="space-y-3 text-xs">
                             <div className="grid grid-cols-2 gap-2">
                                 <input type="text" placeholder="First Name *" value={firstName} onChange={(e) => setFirstName(e.target.value)} required disabled={loading || formMsg?.type === 'success'} className="rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-white" />
                                 <input type="text" placeholder="Last Name *" value={lastName} onChange={(e) => setLastName(e.target.value)} required disabled={loading || formMsg?.type === 'success'} className="rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-white" />
@@ -295,7 +309,7 @@ export default function StaffDirectory({ adminList, adminProfile, onRefresh }: a
                             </div>
                             <div>
                                 <label className="block text-[11px] font-medium text-slate-400 mb-1">Administrative Role *</label>
-                                <select value={role} onChange={(e) => setRole(e.target.value as any)} disabled={loading || formMsg?.type === 'success'} className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-white">
+                                <select value={role} onChange={(e) => setRole(e.target.value as 'admin' | 'super_admin')} disabled={loading || formMsg?.type === 'success'} className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-white">
                                     <option value="admin">Standard Admin</option>
                                     <option value="super_admin">Super Admin</option>
                                 </select>
@@ -328,7 +342,7 @@ export default function StaffDirectory({ adminList, adminProfile, onRefresh }: a
                             </div>
                         )}
 
-                        <form onSubmit={handleSaveEdit} className="space-y-3 text-xs">
+                        <form onSubmit={(e) => void handleSaveEdit(e)} className="space-y-3 text-xs">
                             <div className="grid grid-cols-2 gap-2">
                                 <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required disabled={loading || formMsg?.type === 'success'} className="rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-white" />
                                 <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required disabled={loading || formMsg?.type === 'success'} className="rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-white" />
@@ -340,7 +354,7 @@ export default function StaffDirectory({ adminList, adminProfile, onRefresh }: a
                             {isSuperAdmin && (
                                 <div>
                                     <label className="block text-[11px] font-medium text-slate-400 mb-1">Administrative Role *</label>
-                                    <select value={role} onChange={(e) => setRole(e.target.value as any)} disabled={loading || formMsg?.type === 'success'} className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-white">
+                                    <select value={role} onChange={(e) => setRole(e.target.value as 'admin' | 'super_admin')} disabled={loading || formMsg?.type === 'success'} className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-white">
                                         <option value="admin">Standard Admin</option>
                                         <option value="super_admin">Super Admin</option>
                                     </select>

@@ -8,6 +8,14 @@ import LoadingSpinner from '@/Components/LoadingSpinner';
 import Footer from '@/Components/Footer';
 import QrScanner from '@/Components/member/QrScanner';
 
+interface MemberProfile {
+    id: string;
+    first_name: string;
+    last_name: string;
+    phone_number?: string;
+    role?: string;
+}
+
 function CheckInContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -15,11 +23,11 @@ function CheckInContent() {
     const dateParam = rawDateParam || new Date().toISOString().split('T')[0];
     const supabase = createClient();
 
-    const [checking, setChecking] = useState(true);
-    const [memberProfile, setMemberProfile] = useState<any>(null);
+    const [checking, setChecking] = useState<boolean>(true);
+    const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(null);
     const [memberChoice, setMemberChoice] = useState<'selection' | 'member_branch'>('selection');
-    const [alreadyCheckedIn, setAlreadyCheckedIn] = useState(false);
-    const [showScannerModal, setShowScannerModal] = useState(false);
+    const [alreadyCheckedIn, setAlreadyCheckedIn] = useState<boolean>(false);
+    const [showScannerModal, setShowScannerModal] = useState<boolean>(false);
 
     useEffect(() => {
         const processCheckIn = async () => {
@@ -37,7 +45,7 @@ function CheckInContent() {
                     .maybeSingle();
 
                 if (profile) {
-                    setMemberProfile(profile);
+                    setMemberProfile(profile as MemberProfile);
 
                     // 1. Auto-Upsert Session for target date
                     const { data: sessionMatch } = await supabase

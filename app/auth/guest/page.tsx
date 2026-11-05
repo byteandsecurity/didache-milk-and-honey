@@ -49,6 +49,7 @@ function GuestContent() {
             const savedGender = localStorage.getItem('didache_guest_draft_gender');
             const savedAddress = localStorage.getItem('didache_guest_draft_address');
 
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             if (savedPhone) setPhoneNumber(savedPhone);
             if (savedName) setFullName(savedName);
             if (savedGender) setGender(savedGender);
@@ -115,6 +116,8 @@ function GuestContent() {
 
         const targetMode = currentModeRef.current;
         const cleanPhone = phoneRef.current.trim();
+        const activeDate = rawDateParam || (typeof window !== 'undefined' ? localStorage.getItem('didache_qr_date') : null);
+        const todayDateStr = activeDate || new Date().toISOString().split('T')[0];
 
         if (targetMode === 'returning') {
             if (!cleanPhone) {
@@ -152,6 +155,15 @@ function GuestContent() {
                     return;
                 }
 
+                // Record permanent log in guest_attendance table
+                await supabase.from('guest_attendance').insert([
+                    {
+                        guest_id: existingGuest.id,
+                        guest_name: existingGuest.full_name,
+                        session_date: todayDateStr,
+                    }
+                ]);
+
                 setGuestNameConfirmed(existingGuest.full_name);
                 setVisitCount(newCount);
                 setIsCheckedIn(true);
@@ -183,6 +195,15 @@ function GuestContent() {
                     })
                     .eq('id', existingGuest.id);
 
+                // Record permanent log for existing phone match
+                await supabase.from('guest_attendance').insert([
+                    {
+                        guest_id: existingGuest.id,
+                        guest_name: existingGuest.full_name,
+                        session_date: todayDateStr,
+                    }
+                ]);
+
                 setGuestNameConfirmed(existingGuest.full_name);
                 setVisitCount(newCount);
                 setIsCheckedIn(true);
@@ -190,6 +211,7 @@ function GuestContent() {
                 return;
             }
 
+            // Insert completely new guest profile
             const { data: newGuest, error: insertError } = await supabase
                 .from('guest_profiles')
                 .insert([
@@ -211,6 +233,15 @@ function GuestContent() {
                 return;
             }
 
+            // Record permanent log for brand-new guest
+            await supabase.from('guest_attendance').insert([
+                {
+                    guest_id: newGuest.id,
+                    guest_name: newGuest.full_name,
+                    session_date: todayDateStr,
+                }
+            ]);
+
             setGuestNameConfirmed(newGuest.full_name);
             setVisitCount(1);
             setIsCheckedIn(true);
@@ -219,7 +250,7 @@ function GuestContent() {
         setSubmitting(false);
     };
 
-    const handleReturningCheckIn = async (e: React.FormEvent) => {
+    const handleReturningCheckIn = async (e: React.SyntheticEvent) => {
         e.preventDefault();
         const activeDate = rawDateParam || (typeof window !== 'undefined' ? localStorage.getItem('didache_qr_date') : null);
 
@@ -231,7 +262,7 @@ function GuestContent() {
         await executeCheckIn();
     };
 
-    const handleNewVisitorSubmit = async (e: React.FormEvent) => {
+    const handleNewVisitorSubmit = async (e: React.SyntheticEvent) => {
         e.preventDefault();
         const activeDate = rawDateParam || (typeof window !== 'undefined' ? localStorage.getItem('didache_qr_date') : null);
 
@@ -333,7 +364,7 @@ function GuestContent() {
                         )}
 
                         {mode === 'returning' ? (
-                            <form onSubmit={handleReturningCheckIn} className="space-y-4">
+                            <form onSubmit={(e) => void handleReturningCheckIn(e)} className="space-y-4">
                                 <div className="space-y-1">
                                     <h1 className="text-lg font-bold text-white">Returning Visitor Check-In</h1>
                                     <p className="text-xs text-slate-400">
@@ -353,7 +384,7 @@ function GuestContent() {
                                             onChange={(e) => handlePhoneChange(e.target.value)}
                                             placeholder="08012345678"
                                             required
-                                            className="w-full rounded-xl border border-slate-800 bg-slate-950 pl-9 pr-3 py-2.5 text-xs text-slate-100 focus:border-amber-500 focus:outline-none"
+                                            className="w-full rounded-xl border border-slate-800 bg-slate-950 pl-9 pr-3 py-2.5 text-xs text-slate-100 focus:outline-none"
                                         />
                                     </div>
                                 </div>
@@ -367,7 +398,7 @@ function GuestContent() {
                                 </button>
                             </form>
                         ) : (
-                            <form onSubmit={handleNewVisitorSubmit} className="space-y-4">
+                            <form onSubmit={(e) => void handleNewVisitorSubmit(e)} className="space-y-4">
                                 <div className="space-y-1">
                                     <h1 className="text-lg font-bold text-white">First-Time Visitor Registration</h1>
                                     <p className="text-xs text-slate-400">
@@ -387,7 +418,7 @@ function GuestContent() {
                                             onChange={(e) => handlePhoneChange(e.target.value)}
                                             placeholder="08012345678"
                                             required
-                                            className="w-full rounded-xl border border-slate-800 bg-slate-950 pl-9 pr-3 py-2.5 text-xs text-slate-100 focus:border-amber-500 focus:outline-none"
+                                            className="w-full rounded-xl border border-slate-800 bg-slate-950 pl-9 pr-3 py-2.5 text-xs text-slate-100 focus:outline-none"
                                         />
                                     </div>
                                 </div>
@@ -404,7 +435,7 @@ function GuestContent() {
                                             onChange={(e) => handleNameChange(e.target.value)}
                                             placeholder="e.g. Samuel Adebayo"
                                             required
-                                            className="w-full rounded-xl border border-slate-800 bg-slate-950 pl-9 pr-3 py-2.5 text-xs text-slate-100 focus:border-amber-500 focus:outline-none"
+                                            className="w-full rounded-xl border border-slate-800 bg-slate-950 pl-9 pr-3 py-2.5 text-xs text-slate-100 focus:outline-none"
                                         />
                                     </div>
                                 </div>
@@ -414,7 +445,7 @@ function GuestContent() {
                                     <select
                                         value={gender}
                                         onChange={(e) => handleGenderChange(e.target.value)}
-                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs text-slate-100 focus:border-amber-500 focus:outline-none"
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs text-slate-100 focus:outline-none"
                                     >
                                         <option value="Male">Male</option>
                                         <option value="Female">Female</option>
@@ -432,7 +463,7 @@ function GuestContent() {
                                             value={homeAddress}
                                             onChange={(e) => handleAddressChange(e.target.value)}
                                             placeholder="e.g. 12 Ikeja Way, Lagos"
-                                            className="w-full rounded-xl border border-slate-800 bg-slate-950 pl-9 pr-3 py-2.5 text-xs text-slate-100 focus:border-amber-500 focus:outline-none"
+                                            className="w-full rounded-xl border border-slate-800 bg-slate-950 pl-9 pr-3 py-2.5 text-xs text-slate-100 focus:outline-none"
                                         />
                                     </div>
                                 </div>
@@ -453,7 +484,7 @@ function GuestContent() {
             <GuestQrScanner
                 isOpen={showScannerModal}
                 onClose={() => setShowScannerModal(false)}
-                onSuccess={handleScanSuccess}
+                onSuccess={(dateStr) => void handleScanSuccess(dateStr)}
             />
 
             <Footer />
