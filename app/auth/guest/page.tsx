@@ -11,6 +11,7 @@ import GuestQrScanner from '@/Components/guest/GuestQrScanner';
 function GuestContent() {
     const [mode, setMode] = useState<'returning' | 'new'>('returning');
 
+    // Local Storage Persisted Inputs
     const [phoneNumber, setPhoneNumber] = useState('');
     const [fullName, setFullName] = useState('');
     const [gender, setGender] = useState('Male');
@@ -23,7 +24,7 @@ function GuestContent() {
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [showScannerModal, setShowScannerModal] = useState(false);
 
-    // Track which submission was pending when scanner was triggered
+    // Track pending action for auto-execution upon scan
     const pendingActionRef = useRef<'returning' | 'new' | null>(null);
 
     const supabase = createClient();
@@ -33,11 +34,47 @@ function GuestContent() {
     const rawDateParam = searchParams.get('date');
     const activeDate = rawDateParam || (typeof window !== 'undefined' ? localStorage.getItem('didache_qr_date') : null);
 
+    // Restore saved visitor inputs on mount & persist on changes
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const savedPhone = localStorage.getItem('didache_guest_draft_phone');
+            const savedName = localStorage.getItem('didache_guest_draft_name');
+            const savedGender = localStorage.getItem('didache_guest_draft_gender');
+            const savedAddress = localStorage.getItem('didache_guest_draft_address');
+
+            if (savedPhone) setPhoneNumber(savedPhone);
+            if (savedName) setFullName(savedName);
+            if (savedGender) setGender(savedGender);
+            if (savedAddress) setHomeAddress(savedAddress);
+        }
+    }, []);
+
     useEffect(() => {
         if (rawDateParam) {
             localStorage.setItem('didache_qr_date', rawDateParam);
         }
     }, [rawDateParam]);
+
+    // Input Change Handlers with Auto-Save
+    const handlePhoneChange = (val: string) => {
+        setPhoneNumber(val);
+        localStorage.setItem('didache_guest_draft_phone', val);
+    };
+
+    const handleNameChange = (val: string) => {
+        setFullName(val);
+        localStorage.setItem('didache_guest_draft_name', val);
+    };
+
+    const handleGenderChange = (val: string) => {
+        setGender(val);
+        localStorage.setItem('didache_guest_draft_gender', val);
+    };
+
+    const handleAddressChange = (val: string) => {
+        setHomeAddress(val);
+        localStorage.setItem('didache_guest_draft_address', val);
+    };
 
     const handleBack = () => {
         if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -52,6 +89,10 @@ function GuestContent() {
             localStorage.removeItem('didache_guest_session');
             localStorage.removeItem('didache_guest_checked_date');
             localStorage.removeItem('didache_qr_date');
+            localStorage.removeItem('didache_guest_draft_phone');
+            localStorage.removeItem('didache_guest_draft_name');
+            localStorage.removeItem('didache_guest_draft_gender');
+            localStorage.removeItem('didache_guest_draft_address');
         }
         setIsCheckedIn(false);
         setPhoneNumber('');
@@ -61,9 +102,9 @@ function GuestContent() {
         router.push('/');
     };
 
-    // Core Returning Check-In Logic
-    const executeReturningCheckIn = async () => {
-        const cleanPhone = phoneNumber.trim();
+    // 1. Returning Visitor Execution
+    const executeReturningCheckIn = async (overridePhone?: string) => {
+        const cleanPhone = (overridePhone || phoneNumber).trim();
         if (!cleanPhone) {
             setErrorMsg('Please enter your phone number.');
             setSubmitting(false);
@@ -112,10 +153,10 @@ function GuestContent() {
         setSubmitting(false);
     };
 
-    // Core New Visitor Registration Logic
-    const executeNewVisitorRegistration = async () => {
-        const cleanPhone = phoneNumber.trim();
-        const cleanName = fullName.trim();
+    // 2. First-Time Visitor Execution
+    const executeNewVisitorRegistration = async (overridePhone?: string, overrideName?: string) => {
+        const cleanPhone = (overridePhone || phoneNumber).trim();
+        const cleanName = (overrideName || fullName).trim();
 
         if (!cleanPhone || !cleanName) {
             setErrorMsg('Please fill in your phone number and full name.');
@@ -203,12 +244,12 @@ function GuestContent() {
         await executeNewVisitorRegistration();
     };
 
-    // Triggered automatically when the QR scanner successfully reads a code
+    // ⚡ INSTANT AUTO-CHECK-IN: Executed immediately when QR Scanner reads code
     const handleScanSuccess = async (scannedDate: string) => {
         setShowScannerModal(false);
         localStorage.setItem('didache_qr_date', scannedDate);
 
-        // Resume whatever submission the user was trying to make!
+        // Auto-run the pending check-in directly without making them click again!
         if (pendingActionRef.current === 'returning') {
             pendingActionRef.current = null;
             await executeReturningCheckIn();
@@ -318,7 +359,7 @@ function GuestContent() {
                                         <input
                                             type="tel"
                                             value={phoneNumber}
-                                            onChange={(e) => setPhoneNumber(e.target.value)}
+                                            onChange={(e) => handlePhoneChange(e.target.value)}
                                             placeholder="08012345678"
                                             required
                                             className="w-full rounded-xl border border-slate-800 bg-slate-950 pl-9 pr-3 py-2.5 text-xs text-slate-100 focus:border-amber-500 focus:outline-none"
@@ -352,7 +393,7 @@ function GuestContent() {
                                         <input
                                             type="tel"
                                             value={phoneNumber}
-                                            onChange={(e) => setPhoneNumber(e.target.value)}
+                                            onChange={(e) => handlePhoneChange(e.target.value)}
                                             placeholder="08012345678"
                                             required
                                             className="w-full rounded-xl border border-slate-800 bg-slate-950 pl-9 pr-3 py-2.5 text-xs text-slate-100 focus:border-amber-500 focus:outline-none"
@@ -369,7 +410,7 @@ function GuestContent() {
                                         <input
                                             type="text"
                                             value={fullName}
-                                            onChange={(e) => setFullName(e.target.value)}
+                                            onChange={(e) => handleNameChange(e.target.value)}
                                             placeholder="e.g. Samuel Adebayo"
                                             required
                                             className="w-full rounded-xl border border-slate-800 bg-slate-950 pl-9 pr-3 py-2.5 text-xs text-slate-100 focus:border-amber-500 focus:outline-none"
@@ -381,7 +422,7 @@ function GuestContent() {
                                     <label className="block text-[11px] font-medium text-slate-400 mb-1">Gender *</label>
                                     <select
                                         value={gender}
-                                        onChange={(e) => setGender(e.target.value)}
+                                        onChange={(e) => handleGenderChange(e.target.value)}
                                         className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs text-slate-100 focus:border-amber-500 focus:outline-none"
                                     >
                                         <option value="Male">Male</option>
@@ -398,7 +439,7 @@ function GuestContent() {
                                         <input
                                             type="text"
                                             value={homeAddress}
-                                            onChange={(e) => setHomeAddress(e.target.value)}
+                                            onChange={(e) => handleAddressChange(e.target.value)}
                                             placeholder="e.g. 12 Ikeja Way, Lagos"
                                             className="w-full rounded-xl border border-slate-800 bg-slate-950 pl-9 pr-3 py-2.5 text-xs text-slate-100 focus:border-amber-500 focus:outline-none"
                                         />
