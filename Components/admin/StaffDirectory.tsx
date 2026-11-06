@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Shield, UserPlus, X, AlertCircle, CheckCircle2, Edit2, Trash2, AlertTriangle } from 'lucide-react';
+import { Shield, UserPlus, X, AlertCircle, CheckCircle2, Edit2, Trash2, AlertTriangle, Lock, Eye, EyeOff } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 const MAX_ADMINS = 5;
@@ -32,6 +32,8 @@ export default function StaffDirectory({ adminList, adminProfile, onRefresh }: S
     const [firstName, setFirstName] = useState<string>('');
     const [lastName, setLastName] = useState<string>('');
     const [email, setEmail] = useState<string>('');
+    const [password, setPassword] = useState<string>('');
+    const [showPassword, setShowPassword] = useState<boolean>(false); // Eye toggle state
     const [role, setRole] = useState<'admin' | 'super_admin'>('admin');
 
     const [formMsg, setFormMsg] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
@@ -41,7 +43,7 @@ export default function StaffDirectory({ adminList, adminProfile, onRefresh }: S
 
     const isSuperAdmin = adminProfile?.role?.toLowerCase() === 'super_admin' || adminProfile?.role?.toLowerCase() === 'superadmin';
 
-    // Handle Registering a New Admin
+    // Handle Registering a New Admin with Direct Password Creation
     const handleAddAdmin = async (e: React.SyntheticEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -67,19 +69,49 @@ export default function StaffDirectory({ adminList, adminProfile, onRefresh }: S
             return;
         }
 
-        const newAdminId = crypto.randomUUID();
-        const { error } = await supabase.from('admin_profiles').upsert([
+        if (!password || password.length < 6) {
+            setFormMsg({
+                type: 'error',
+                text: 'Password must be at least 6 characters long.'
+            });
+            setLoading(false);
+            return;
+        }
+
+        // 1. Create Supabase Auth User & Profile entry securely
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+            email: email.trim(),
+            password: password,
+            options: {
+                data: {
+                    first_name: firstName.trim(),
+                    last_name: lastName.trim(),
+                    role: role,
+                }
+            }
+        });
+
+        if (authError) {
+            setFormMsg({ type: 'error', text: authError.message });
+            setLoading(false);
+            return;
+        }
+
+        const newAdminId = authData.user?.id || crypto.randomUUID();
+
+        // 2. Ensure admin_profiles table entry is properly synchronized
+        const { error: profileError } = await supabase.from('admin_profiles').upsert([
             {
                 id: newAdminId,
-                first_name: firstName,
-                last_name: lastName,
-                email: email,
+                first_name: firstName.trim(),
+                last_name: lastName.trim(),
+                email: email.trim(),
                 role: role,
             },
         ], { onConflict: 'email' });
 
-        if (error) {
-            setFormMsg({ type: 'error', text: `${error.message}` });
+        if (profileError) {
+            setFormMsg({ type: 'error', text: `Profile record creation failed: ${profileError.message}` });
             setLoading(false);
             return;
         }
@@ -87,12 +119,14 @@ export default function StaffDirectory({ adminList, adminProfile, onRefresh }: S
         setLoading(false);
         setFormMsg({
             type: 'success',
-            text: `Successfully registered ${firstName} ${lastName} as ${role === 'super_admin' ? 'Super Admin' : 'Standard Admin'}!`
+            text: `Successfully created admin account for ${firstName} ${lastName}!`
         });
 
         setFirstName('');
         setLastName('');
         setEmail('');
+        setPassword('');
+        setShowPassword(false);
         setRole('admin');
 
         setTimeout(() => {
@@ -182,6 +216,8 @@ export default function StaffDirectory({ adminList, adminProfile, onRefresh }: S
                             setFirstName('');
                             setLastName('');
                             setEmail('');
+                            setPassword('');
+                            setShowPassword(false);
                             setRole('admin');
                             setShowAddModal(true);
                             setFormMsg(null);
@@ -278,7 +314,7 @@ export default function StaffDirectory({ adminList, adminProfile, onRefresh }: S
                 </div>
             )}
 
-            {/* Add Admin Modal (Super Admin Only) */}
+            {/* Add Admin Modal (Super Admin Only with Direct Password Creation & Eye Toggle) */}
             {showAddModal && isSuperAdmin && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
                     <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-2xl space-y-4">
@@ -308,6 +344,31 @@ export default function StaffDirectory({ adminList, adminProfile, onRefresh }: S
                                 <input type="email" placeholder="admin@rccg.org" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={loading || formMsg?.type === 'success'} className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-white" />
                             </div>
                             <div>
+                                <label className="block text-[11px] font-medium text-slate-400 mb-1 flex items-center gap-1">
+                                    <Lock className="w-3 h-3 text-emerald-400" /> Initial Password *
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        placeholder="Min. 6 characters"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                        minLength={6}
+                                        disabled={loading || formMsg?.type === 'success'}
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 pr-10 text-white"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition"
+                                        tabIndex={-1}
+                                    >
+                                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
                                 <label className="block text-[11px] font-medium text-slate-400 mb-1">Administrative Role *</label>
                                 <select value={role} onChange={(e) => setRole(e.target.value as 'admin' | 'super_admin')} disabled={loading || formMsg?.type === 'success'} className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-white">
                                     <option value="admin">Standard Admin</option>
@@ -315,7 +376,7 @@ export default function StaffDirectory({ adminList, adminProfile, onRefresh }: S
                                 </select>
                             </div>
                             <button type="submit" disabled={loading || formMsg?.type === 'success'} className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-2.5 font-semibold text-white transition">
-                                {loading ? 'Saving...' : formMsg?.type === 'success' ? 'Success!' : 'Register Administrator'}
+                                {loading ? 'Creating Admin...' : formMsg?.type === 'success' ? 'Success!' : 'Create Admin Account'}
                             </button>
                         </form>
                     </div>

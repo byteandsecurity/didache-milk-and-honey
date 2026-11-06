@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
     ShieldCheck, QrCode, Users, LogOut, Calendar, UserPlus,
-    UserCheck, Shield, X, Cake
+    UserCheck, Shield, X, Cake, RefreshCw
 } from 'lucide-react';
-import LoadingSpinner from '@/Components/LoadingSpinner'
+import LoadingSpinner from '@/Components/LoadingSpinner';
 import Footer from '@/Components/Footer';
 
 // Import Modular Admin Components
@@ -19,7 +19,20 @@ import StaffDirectory from '@/Components/admin/StaffDirectory';
 import BirthdayDirectory from '@/Components/admin/BirthdayDirectory';
 
 export default function AdminDashboard() {
-    const [activeTab, setActiveTab] = useState<'overview' | 'roster' | 'guests' | 'sessions' | 'staff' | 'birthdays'>('overview');
+    // 1. Initialize Active Tab from localStorage so refresh stays on current page
+    const [activeTab, setActiveTab] = useState<'overview' | 'roster' | 'guests' | 'sessions' | 'birthdays' | 'staff'>('overview');
+
+    useEffect(() => {
+        const savedTab = localStorage.getItem('didache_admin_active_tab') as any;
+        if (savedTab) {
+            setActiveTab(savedTab);
+        }
+    }, []);
+
+    const handleTabChange = (tabId: 'overview' | 'roster' | 'guests' | 'sessions' | 'birthdays' | 'staff') => {
+        setActiveTab(tabId);
+        localStorage.setItem('didache_admin_active_tab', tabId);
+    };
 
     // Shared Data States
     const [adminProfile, setAdminProfile] = useState<any>(null);
@@ -125,14 +138,15 @@ export default function AdminDashboard() {
     const handleLogout = async () => {
         await supabase.auth.signOut();
         localStorage.removeItem('didache_admin_name');
+        localStorage.removeItem('didache_admin_active_tab');
         router.push('/auth/admin/login');
     };
 
     if (loading) {
-        return <LoadingSpinner text='Loading Admin Console.'  icon={ShieldCheck} />;
+        return <LoadingSpinner text='Loading Admin Console.' icon={ShieldCheck} />;
     }
 
-    const upgradeEligibleGuests = guests.filter((g) => !g.is_converted_to_member && g.attendance_count >= 3);
+    const upgradeEligibleGuests = guests.filter((g) => !g.is_converted_to_member && (g.attendance_count >= 3 || g.total_visits >= 3));
 
     return (
         <div className="min-h-screen flex flex-col justify-between p-3 sm:p-6 lg:p-12 max-w-7xl mx-auto overflow-x-hidden">
@@ -156,6 +170,16 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                    {/* Refresh Data Button */}
+                    <button
+                        onClick={() => void fetchDashboardData()}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-emerald-400 hover:border-slate-700 transition"
+                        title="Refresh Data"
+                    >
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Refresh Data</span>
+                    </button>
+
                     <button
                         onClick={() => { setAddType('member'); setShowAddModal(true); }}
                         className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3.5 py-2 text-xs font-semibold text-white shadow-lg transition"
@@ -175,33 +199,39 @@ export default function AdminDashboard() {
                 </div>
             </header>
 
-            {/* Navigation Tabs - Fully scrollable on mobile */}
-            <nav className="my-6 flex items-center gap-2 border-b border-slate-800/80 pb-3 overflow-x-auto no-scrollbar scroll-smooth">
-                {[
-                    { id: 'overview', label: 'Overview Analytics', icon: Calendar },
-                    { id: 'roster', label: `Member Roster (${members.length})`, icon: Users },
-                    { id: 'guests', label: `Guest Management (${guests.length})`, icon: UserCheck, badge: upgradeEligibleGuests.length },
-                    { id: 'sessions', label: 'Sunday QR Generator', icon: QrCode },
-                    { id: 'staff', label: `Staff Directory (${adminList.length})`, icon: Shield },
-                    { id: 'birthdays', label: 'Birthdays', icon: Cake }
-                ].map((tab) => {
-                    const Icon = tab.icon;
-                    const isActive = activeTab === tab.id;
-                    return (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            className={`shrink-0 inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition ${
-                                isActive ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' : 'bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-slate-200'
-                            }`}
-                        >
-                            <Icon className="w-4 h-4" />
-                            <span>{tab.label}</span>
-                            {tab.badge ? <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-slate-950">{tab.badge}</span> : null}
-                        </button>
-                    );
-                })}
-            </nav>
+            {/* Navigation Tabs - With horizontal scroll indicator & clean inline text badge */}
+            <div className="relative my-6 border-b border-slate-800/80 pb-3">
+                <nav className="flex items-center gap-2 overflow-x-auto scroll-smooth pb-1 text-xs font-semibold scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+                    {[
+                        { id: 'overview', label: 'Overview Analytics', icon: Calendar },
+                        { id: 'roster', label: `Member Roster (${members.length})`, icon: Users },
+                        { id: 'guests', label: `Guest Management (${guests.length})`, icon: UserCheck, badge: upgradeEligibleGuests.length },
+                        { id: 'sessions', label: 'Sunday QR Generator', icon: QrCode },
+                        { id: 'birthdays', label: 'Birthdays', icon: Cake },
+                        { id: 'staff', label: `Staff Directory (${adminList.length})`, icon: Shield }
+                    ].map((tab) => {
+                        const Icon = tab.icon;
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => handleTabChange(tab.id as any)}
+                                className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition whitespace-nowrap ${
+                                    isActive ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' : 'bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-slate-200'
+                                }`}
+                            >
+                                <Icon className="w-4 h-4 shrink-0" />
+                                <span>{tab.label}</span>
+                                {Boolean(tab.badge) && (
+                                    <span className="font-extrabold text-amber-400 text-xs ml-0.5">
+                                        ({tab.badge})
+                                    </span>
+                                )}
+                            </button>
+                        );
+                    })}
+                </nav>
+            </div>
 
             <main className="flex-1 mb-8">
                 {activeTab === 'overview' && (
@@ -216,11 +246,11 @@ export default function AdminDashboard() {
                 {activeTab === 'sessions' && (
                     <QrGenerator />
                 )}
-                {activeTab === 'staff' && (
-                    <StaffDirectory adminList={adminList} adminProfile={adminProfile} onRefresh={fetchDashboardData} />
-                )}
                 {activeTab === 'birthdays' && (
                     <BirthdayDirectory members={members} />
+                )}
+                {activeTab === 'staff' && (
+                    <StaffDirectory adminList={adminList} adminProfile={adminProfile} onRefresh={fetchDashboardData} />
                 )}
             </main>
 

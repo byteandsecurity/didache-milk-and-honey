@@ -127,6 +127,12 @@ function MemberLoginForm() {
                 setIsCheckedIn(true);
                 setLoading(false);
                 return;
+            } else {
+                // Direct login without QR code scan
+                setMemberProfile(profile as MemberProfile);
+                setIsDirectLoginSuccess(true);
+                setLoading(false);
+                return;
             }
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : 'Login failed.';

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Calendar, CheckCircle2, XCircle, Award, Clock, AlertCircle } from 'lucide-react';
+import { Calendar, CheckCircle2, XCircle, Award, Clock, AlertCircle, MinusCircle } from 'lucide-react';
 
 interface AttendanceRecord {
     id: string;
@@ -51,18 +51,27 @@ export default function MemberAnalytics({ attendanceHistory, profileCreatedAt }:
         return new Set(attendanceHistory.map((att) => att.session_date));
     }, [attendanceHistory]);
 
-    // Check if selected month is before profile creation or before app launch
-    const isBeforeMembership = useMemo(() => {
+    // Check if selected month is entirely before profile creation
+    const isMonthBeforeMembership = useMemo(() => {
         if (!profileCreatedAt) return false;
         const profileDate = new Date(profileCreatedAt);
         const selectedMonthFirstDay = new Date(selectedYear, selectedMonth, 1);
-        return selectedMonthFirstDay < new Date(profileDate.getFullYear(), profileDate.getMonth(), 1);
+        const selectedMonthLastDay = new Date(selectedYear, selectedMonth + 1, 0);
+        return selectedMonthLastDay < new Date(profileDate.getFullYear(), profileDate.getMonth(), profileDate.getDate());
     }, [profileCreatedAt, selectedYear, selectedMonth]);
 
     const attendedCountInMonth = useMemo(() => {
-        if (isBeforeMembership) return 0;
-        return sundayDatesInMonth.filter((sDate) => attendedDatesSet.has(sDate)).length;
-    }, [sundayDatesInMonth, attendedDatesSet, isBeforeMembership]);
+        if (isMonthBeforeMembership) return 0;
+        return sundayDatesInMonth.filter((sDate) => {
+            if (profileCreatedAt) {
+                const sObj = new Date(sDate);
+                const pObj = new Date(profileCreatedAt);
+                const pDateOnly = new Date(pObj.getFullYear(), pObj.getMonth(), pObj.getDate());
+                if (sObj < pDateOnly) return false;
+            }
+            return attendedDatesSet.has(sDate);
+        }).length;
+    }, [sundayDatesInMonth, attendedDatesSet, isMonthBeforeMembership, profileCreatedAt]);
 
     return (
         <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 shadow-xl space-y-6">
@@ -103,7 +112,7 @@ export default function MemberAnalytics({ attendanceHistory, profileCreatedAt }:
                 <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 text-center">
                     <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Attendance Rate</span>
                     <p className="text-2xl font-extrabold text-emerald-400 mt-1">
-                        {isBeforeMembership ? 'N/A' : `${attendedCountInMonth} / ${sundayDatesInMonth.length}`}
+                        {isMonthBeforeMembership ? 'N/A' : `${attendedCountInMonth} / ${sundayDatesInMonth.length}`}
                     </p>
                     <span className="text-[10px] text-slate-400">Sundays Attended</span>
                 </div>
@@ -123,7 +132,7 @@ export default function MemberAnalytics({ attendanceHistory, profileCreatedAt }:
                     Services Breakdown for {monthNames[selectedMonth]} {selectedYear}
                 </span>
 
-                {isBeforeMembership ? (
+                {isMonthBeforeMembership ? (
                     <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-8 text-center space-y-2">
                         <AlertCircle className="w-6 h-6 text-slate-500 mx-auto" />
                         <p className="text-xs text-slate-400">No records available prior to your account creation date.</p>
@@ -131,19 +140,26 @@ export default function MemberAnalytics({ attendanceHistory, profileCreatedAt }:
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                         {sundayDatesInMonth.map((sundayDate) => {
-                            const isAttended = attendedDatesSet.has(sundayDate);
                             const sundayObj = new Date(sundayDate);
+                            const profileDateObj = profileCreatedAt ? new Date(profileCreatedAt) : null;
+                            const profileDateOnly = profileDateObj ? new Date(profileDateObj.getFullYear(), profileDateObj.getMonth(), profileDateObj.getDate()) : null;
+
+                            const isBeforeAccountCreation = profileDateOnly && sundayObj < profileDateOnly;
+                            const isAttended = attendedDatesSet.has(sundayDate);
                             const isFuture = sundayObj > todayDateOnly;
                             const isToday = sundayObj.getTime() === todayDateOnly.getTime();
 
                             let cardStyle = 'border-slate-800 bg-slate-950 text-slate-400';
-                            let statusBadge = (
-                                <span className="flex items-center gap-1 text-slate-500">
-                                    <Clock className="w-4 h-4" /> Upcoming
-                                </span>
-                            );
+                            let statusBadge = null;
 
-                            if (isAttended) {
+                            if (isBeforeAccountCreation) {
+                                cardStyle = 'border-slate-800/40 bg-slate-950/40 text-slate-600';
+                                statusBadge = (
+                                    <span className="flex items-center gap-1 text-slate-600 font-bold">
+                                        <MinusCircle className="w-4 h-4" /> -
+                                    </span>
+                                );
+                            } else if (isAttended) {
                                 cardStyle = 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300';
                                 statusBadge = (
                                     <span className="flex items-center gap-1 font-bold text-emerald-400">

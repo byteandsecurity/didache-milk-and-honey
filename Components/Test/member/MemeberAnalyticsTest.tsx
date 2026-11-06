@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import {Calendar, CheckCircle2, XCircle, Award, Clock, Beaker, PlusCircle, AlertCircle} from 'lucide-react';
+import { Calendar, CheckCircle2, XCircle, Award, Clock, Beaker, PlusCircle, AlertCircle, MinusCircle } from 'lucide-react';
 
 interface AttendanceRecord {
     id: string;
@@ -63,17 +63,26 @@ export default function MemberAnalyticsTestable({ attendanceHistory, profileCrea
         return new Set(localAttendance.map((att) => att.session_date));
     }, [localAttendance]);
 
-    const isBeforeMembership = useMemo(() => {
+    // Check if selected month is entirely before profile creation
+    const isMonthBeforeMembership = useMemo(() => {
         if (!profileCreatedAt) return false;
         const profileDate = new Date(profileCreatedAt);
-        const selectedMonthFirstDay = new Date(selectedYear, selectedMonth, 1);
-        return selectedMonthFirstDay < new Date(profileDate.getFullYear(), profileDate.getMonth(), 1);
+        const selectedMonthLastDay = new Date(selectedYear, selectedMonth + 1, 0);
+        return selectedMonthLastDay < new Date(profileDate.getFullYear(), profileDate.getMonth(), profileDate.getDate());
     }, [profileCreatedAt, selectedYear, selectedMonth]);
 
     const attendedCountInMonth = useMemo(() => {
-        if (isBeforeMembership) return 0;
-        return daysInMonthList.filter((dDate) => attendedDatesSet.has(dDate)).length;
-    }, [daysInMonthList, attendedDatesSet, isBeforeMembership]);
+        if (isMonthBeforeMembership) return 0;
+        return daysInMonthList.filter((dDate) => {
+            if (profileCreatedAt) {
+                const dObj = new Date(dDate);
+                const pObj = new Date(profileCreatedAt);
+                const pDateOnly = new Date(pObj.getFullYear(), pObj.getMonth(), pObj.getDate());
+                if (dObj < pDateOnly) return false;
+            }
+            return attendedDatesSet.has(dDate);
+        }).length;
+    }, [daysInMonthList, attendedDatesSet, isMonthBeforeMembership, profileCreatedAt]);
 
     // Handler to simulate checking in for the simulated today date
     const handleSimulateCheckIn = () => {
@@ -103,13 +112,13 @@ export default function MemberAnalyticsTestable({ attendanceHistory, profileCrea
                             type="date"
                             value={simulatedToday}
                             onChange={(e) => setSimulatedToday(e.target.value)}
-                            className="rounded-lg border border-amber-500/30 bg-slate-950 px-2 py-1 text-xs text-white focus:outline-none"
+                            className="rounded-lg border border-amber-500/30 bg-slate-950 px-2 py-1 text-xs text-white focus:outline-none [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
                         />
                     </div>
 
                     <button
                         onClick={handleSimulateCheckIn}
-                        className="inline-flex items-center gap-1 rounded-lg bg-amber-600 hover:bg-amber-500 px-3 py-1 text-xs font-semibold text-slate-950 transition"
+                        className="inline-flex items-center gap-1 rounded-lg bg-amber-600 hover:bg-amber-500 px-3 py-1 text-xs font-semibold text-slate-950 transition cursor-pointer"
                     >
                         <PlusCircle className="w-3.5 h-3.5" />
                         <span>Check In Today</span>
@@ -154,7 +163,7 @@ export default function MemberAnalyticsTestable({ attendanceHistory, profileCrea
                     <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 text-center">
                         <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Attendance Count</span>
                         <p className="text-2xl font-extrabold text-emerald-400 mt-1">
-                            {isBeforeMembership ? 'N/A' : `${attendedCountInMonth} Days`}
+                            {isMonthBeforeMembership ? 'N/A' : `${attendedCountInMonth} Days`}
                         </p>
                         <span className="text-[10px] text-slate-400">Checked-In Days</span>
                     </div>
@@ -173,7 +182,7 @@ export default function MemberAnalyticsTestable({ attendanceHistory, profileCrea
                         Full Daily Breakdown for {monthNames[selectedMonth]} {selectedYear}
                     </span>
 
-                    {isBeforeMembership ? (
+                    {isMonthBeforeMembership ? (
                         <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-8 text-center space-y-2">
                             <AlertCircle className="w-6 h-6 text-slate-500 mx-auto" />
                             <p className="text-xs text-slate-400">No records available prior to your account creation date.</p>
@@ -181,19 +190,26 @@ export default function MemberAnalyticsTestable({ attendanceHistory, profileCrea
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-2 max-h-96 overflow-y-auto pr-1">
                             {daysInMonthList.map((dayDateStr) => {
-                                const isAttended = attendedDatesSet.has(dayDateStr);
                                 const dayObj = new Date(dayDateStr);
+                                const profileDateObj = profileCreatedAt ? new Date(profileCreatedAt) : null;
+                                const profileDateOnly = profileDateObj ? new Date(profileDateObj.getFullYear(), profileDateObj.getMonth(), profileDateObj.getDate()) : null;
+
+                                const isBeforeAccountCreation = profileDateOnly && dayObj < profileDateOnly;
+                                const isAttended = attendedDatesSet.has(dayDateStr);
                                 const isFuture = dayObj > todayDateOnly;
                                 const isToday = dayObj.toDateString() === todayDateOnly.toDateString();
 
                                 let cardStyle = 'border-slate-800 bg-slate-950 text-slate-400';
-                                let statusBadge = (
-                                    <span className="flex items-center gap-1 text-slate-500 text-[11px]">
-                                        <Clock className="w-3.5 h-3.5" /> Upcoming
-                                    </span>
-                                );
+                                let statusBadge = null;
 
-                                if (isAttended) {
+                                if (isBeforeAccountCreation) {
+                                    cardStyle = 'border-slate-800/40 bg-slate-950/40 text-slate-600';
+                                    statusBadge = (
+                                        <span className="flex items-center gap-1 font-bold text-slate-600 text-[11px]">
+                                            <MinusCircle className="w-3.5 h-3.5" /> -
+                                        </span>
+                                    );
+                                } else if (isAttended) {
                                     cardStyle = 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300';
                                     statusBadge = (
                                         <span className="flex items-center gap-1 font-bold text-emerald-400 text-[11px]">

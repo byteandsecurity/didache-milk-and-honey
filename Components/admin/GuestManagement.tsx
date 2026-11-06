@@ -272,12 +272,12 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
                     </div>
 
                     <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 w-full sm:w-auto">
-                        <Calendar className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <Calendar className="w-3.5 h-3.5 text-emerald-400 shrink-0 " />
                         <input
                             type="date"
                             value={selectedDate}
                             onChange={(e) => { setSelectedDate(e.target.value); setCurrentPage(1); }}
-                            className="bg-transparent text-xs text-emerald-300 font-semibold focus:outline-none w-full"
+                            className="bg-transparent text-xs text-emerald-300 font-semibold focus:outline-none w-full flex-1 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
                         />
                         {selectedDate && (
                             <button onClick={() => setSelectedDate('')} className="text-slate-500 hover:text-white text-[10px] ml-1 font-bold">Clear</button>

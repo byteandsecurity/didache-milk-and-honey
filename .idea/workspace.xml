@@ -4,9 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="Test: Member QrScanner">
+    <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="Fixed count error in member login">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/Test/member/MemeberAnalyticsTest.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/Test/member/MemeberAnalyticsTest.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/admin/GuestManagement.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/GuestManagement.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/admin/MemberRoster.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/MemberRoster.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/admin/OverviewAnalytics.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/OverviewAnalytics.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Components/admin/QrGenerator.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/QrGenerator.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/admin/StaffDirectory.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/StaffDirectory.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/member/MemberAnalytics.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/member/MemberAnalytics.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/admin/dashboard/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/dashboard/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/auth/member/login/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/auth/member/login/page.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -30,23 +38,23 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.0000000002656046" />
-      <entry key="MS500" value="1.0121575808836785" />
-      <entry key="S2" value="1.3320639245642145" />
-      <entry key="S5" value="1.65274089812343" />
-      <entry key="S10" value="1.9320303355083297" />
-      <entry key="S30" value="3.365629738755398" />
-      <entry key="S60" value="5.100547331763641" />
-      <entry key="M2" value="6.854557585051513" />
-      <entry key="M5" value="8.499892632449066" />
-      <entry key="M10" value="9.326688597244258" />
-      <entry key="M15" value="10.268140756968915" />
-      <entry key="M30" value="14.971975240357676" />
-      <entry key="H1" value="23.398077736862295" />
-      <entry key="H2" value="33.943082251890004" />
-      <entry key="H4" value="52.644839452836905" />
-      <entry key="D1" value="257.3631545066526" />
-      <entry key="W1" value="449.2619697544354" />
+      <entry key="MS100" value="1.0" />
+      <entry key="MS500" value="1.0" />
+      <entry key="S2" value="1.0" />
+      <entry key="S5" value="1.0" />
+      <entry key="S10" value="1.0" />
+      <entry key="S30" value="1.0000028529815739" />
+      <entry key="S60" value="1.0060240405758663" />
+      <entry key="M2" value="1.2864084169105676" />
+      <entry key="M5" value="4.348288945187946" />
+      <entry key="M10" value="9.407025508545674" />
+      <entry key="M15" value="12.918068795581293" />
+      <entry key="M30" value="20.557685800960478" />
+      <entry key="H1" value="31.071172200935735" />
+      <entry key="H2" value="43.48475050752534" />
+      <entry key="H4" value="63.32267922379216" />
+      <entry key="D1" value="268.8643991189495" />
+      <entry key="W1" value="462.64372396894095" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
@@ -54,37 +62,37 @@
       <entry key="S2" value="0.0" />
       <entry key="S5" value="0.0" />
       <entry key="S10" value="0.0" />
-      <entry key="S30" value="1.9896355987545776E-171" />
-      <entry key="S60" value="4.460533150593749E-86" />
-      <entry key="M2" value="2.1119974314836983E-43" />
-      <entry key="M5" value="8.508977088728933E-18" />
-      <entry key="M10" value="2.917015100367676E-9" />
-      <entry key="M15" value="2.0415472672235336E-6" />
-      <entry key="M30" value="0.0014309527634843722" />
-      <entry key="H1" value="0.040579828334101176" />
-      <entry key="H2" value="0.3071819409189325" />
-      <entry key="H4" value="1.7217358641757385" />
-      <entry key="D1" value="35.48894865976862" />
-      <entry key="W1" value="70.25011170919782" />
+      <entry key="S30" value="2.7245312358935573E-183" />
+      <entry key="S60" value="5.219704240561488E-92" />
+      <entry key="M2" value="2.2846672056475698E-46" />
+      <entry key="M5" value="5.540247661905422E-19" />
+      <entry key="M10" value="7.44328399733067E-10" />
+      <entry key="M15" value="8.213155543635872E-7" />
+      <entry key="M30" value="9.076127786103074E-4" />
+      <entry key="H1" value="0.032318251594395005" />
+      <entry key="H2" value="0.2741350118957953" />
+      <entry key="H4" value="1.6264882830269816" />
+      <entry key="D1" value="35.15392884280394" />
+      <entry key="W1" value="70.15498769989611" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.7022224380542238" />
-      <entry key="MS500" value="0.9430524462764883" />
-      <entry key="S2" value="1.3086101676765491" />
-      <entry key="S5" value="1.6392459210528032" />
-      <entry key="S10" value="1.9121527307251442" />
-      <entry key="S30" value="3.263342674885623" />
-      <entry key="S60" value="4.877083619424522" />
-      <entry key="M2" value="6.5898401088940854" />
-      <entry key="M5" value="8.316400203289332" />
-      <entry key="M10" value="9.215909570356075" />
-      <entry key="M15" value="10.189311209989071" />
-      <entry key="M30" value="14.930923133701029" />
-      <entry key="H1" value="23.41622216479357" />
-      <entry key="H2" value="34.23839294453374" />
-      <entry key="H4" value="54.35998397512318" />
-      <entry key="D1" value="292.8487445210781" />
-      <entry key="W1" value="519.5112478389905" />
+      <entry key="MS100" value="0.0017602548097867773" />
+      <entry key="MS500" value="0.2812646211722023" />
+      <entry key="S2" value="0.7282471219882084" />
+      <entry key="S5" value="0.8808693741269792" />
+      <entry key="S10" value="0.9385464155421293" />
+      <entry key="S30" value="0.9790837492175466" />
+      <entry key="S60" value="0.9954950308344769" />
+      <entry key="M2" value="1.2805828885438892" />
+      <entry key="M5" value="4.333270969166422" />
+      <entry key="M10" value="9.376706186606029" />
+      <entry key="M15" value="12.88480434510559" />
+      <entry key="M30" value="20.530755091098264" />
+      <entry key="H1" value="31.085141362208045" />
+      <entry key="H2" value="43.74804116820669" />
+      <entry key="H4" value="64.94281318246139" />
+      <entry key="D1" value="304.0149793941962" />
+      <entry key="W1" value="532.7978760743359" />
     </decayedShown>
   </component>
   <component name="ProblemsViewState">
@@ -164,7 +172,7 @@
       <workItem from="1793620859945" duration="20057000" />
       <workItem from="1793648539032" duration="551000" />
       <workItem from="1793745466064" duration="12484000" />
-      <workItem from="1793829403933" duration="34371000" />
+      <workItem from="1793829403933" duration="42987000" />
     </task>
     <task id="LOCAL-00001" summary="Friction-free member onboarding, auth, and responsive UI:&#10;- Responsive landing page with emerald/indigo ambient lighting and mobile-first design.&#10;- Frictionless member registration &amp; login using phone numbers (no passwords required for church members).&#10;- Added localStorage form draft persistence to prevent data loss on mobile browser reloads.&#10;- Created dedicated admin login route with role verification.&#10;- Wrapped search params in Suspense and configured Supabase RLS policies for smooth database inserts.&#10;- Included Vercel Analytics and Speed Insights in root layout.">
       <option name="closed" value="true" />
@@ -438,7 +446,15 @@
       <option name="project" value="LOCAL" />
       <updated>1793911309196</updated>
     </task>
-    <option name="localTasksCounter" value="35" />
+    <task id="LOCAL-00035" summary="Fixed count error in member login">
+      <option name="closed" value="true" />
+      <created>1793914677083</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1793914677103</updated>
+    </task>
+    <option name="localTasksCounter" value="36" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -467,6 +483,7 @@
     <MESSAGE value="Pre-scan check update for Visitor" />
     <MESSAGE value="Test: Member Page now reflecting sig in as soon as it goes through. Optimized login and register page of member" />
     <MESSAGE value="Test: Member QrScanner" />
-    <option name="LAST_COMMIT_MESSAGE" value="Test: Member QrScanner" />
+    <MESSAGE value="Fixed count error in member login" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixed count error in member login" />
   </component>
 </project>
