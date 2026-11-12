@@ -2,10 +2,13 @@
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Sparkles, BookOpen, ArrowRight, User, KeyRound, Heart, QrCode, Clock, MapPin } from 'lucide-react';
+
 import { createClient } from '@/lib/supabase/client';
-import { Sparkles, BookOpen, ArrowRight, User, KeyRound, Heart, QrCode } from 'lucide-react';
+import { verifyUserLocation } from '@/lib/geofence';
+
 import LoadingSpinner from '@/Components/LoadingSpinner';
-import {DidacheGeometricIcon} from "@/Components/DidacheIcon";
+import { DidacheGeometricIcon } from "@/Components/DidacheIcon";
 import QrScanner from '@/Components/member/QrScanner';
 import Footer from '@/Components/Footer';
 
@@ -30,6 +33,11 @@ function CheckInContent() {
     const [alreadyCheckedIn, setAlreadyCheckedIn] = useState<boolean>(false);
     const [showScannerModal, setShowScannerModal] = useState<boolean>(false);
 
+    // Modal States
+    const [showExpiredModal, setShowExpiredModal] = useState<boolean>(false);
+    const [showGeofenceError, setShowGeofenceError] = useState<boolean>(false);
+    const [locationMessage, setLocationMessage] = useState<string>('');
+
     useEffect(() => {
         const processCheckIn = async () => {
             if (rawDateParam) {
@@ -39,6 +47,28 @@ function CheckInContent() {
             const memberId = localStorage.getItem('didache_member_id');
 
             if (memberId) {
+                // 1. Run Geofence Verification via Helper
+                const geoCheck = await verifyUserLocation();
+                if (!geoCheck.allowed) {
+                    setLocationMessage(geoCheck.message || "You must be within 100m of the venue to check in.");
+                    setShowGeofenceError(true);
+                    setChecking(false);
+                    return;
+                }
+
+                // 2. Fetch session and check active status
+                const { data: sessionMatch } = await supabase
+                    .from('sessions')
+                    .select('id, is_active')
+                    .eq('session_date', dateParam)
+                    .maybeSingle();
+
+                if (sessionMatch && sessionMatch.is_active === false) {
+                    setShowExpiredModal(true);
+                    setChecking(false);
+                    return;
+                }
+
                 const { data: profile } = await supabase
                     .from('profiles')
                     .select('*')
@@ -48,8 +78,7 @@ function CheckInContent() {
                 if (profile) {
                     setMemberProfile(profile as MemberProfile);
 
-                    // 1. Auto-Upsert Session for target date
-                    const { data: sessionMatch } = await supabase
+                    const { data: activeSession } = await supabase
                         .from('sessions')
                         .upsert([
                             {
@@ -58,16 +87,21 @@ function CheckInContent() {
                                 is_active: true
                             }
                         ], { onConflict: 'session_date' })
-                        .select('id')
+                        .select('id, is_active')
                         .single();
 
-                    if (sessionMatch) {
-                        // 2. Check for duplicate attendance
+                    if (activeSession) {
+                        if (activeSession.is_active === false) {
+                            setShowExpiredModal(true);
+                            setChecking(false);
+                            return;
+                        }
+
                         const { data: existingAtt } = await supabase
                             .from('attendance')
                             .select('id')
                             .eq('user_id', profile.id)
-                            .eq('session_id', sessionMatch.id)
+                            .eq('session_id', activeSession.id)
                             .maybeSingle();
 
                         if (existingAtt) {
@@ -76,7 +110,7 @@ function CheckInContent() {
                             await supabase.from('attendance').insert([
                                 {
                                     user_id: profile.id,
-                                    session_id: sessionMatch.id,
+                                    session_id: activeSession.id,
                                     checked_in_at: new Date().toISOString(),
                                 },
                             ]);
@@ -100,21 +134,21 @@ function CheckInContent() {
     };
 
     if (checking) {
-        return <LoadingSpinner text="Verifying Sunday check-in session..." icon={DidacheGeometricIcon} />;
+        return <LoadingSpinner text="Verifying session and location..." icon={DidacheGeometricIcon} />;
     }
 
-    if (memberProfile) {
-        return (
-            <div className="min-h-screen flex flex-col justify-between p-4 sm:p-6 lg:p-12 max-w-xl mx-auto">
-                <header className="pb-6 border-b border-slate-800/80 text-center">
-                    <span className="text-[10px] uppercase font-semibold text-emerald-400 tracking-wider">
-                        Sunday Service Check-In
-                    </span>
-                    <p className="text-xs text-slate-400">RCCG Milk & Honey</p>
-                </header>
+    return (
+        <div className="min-h-screen flex flex-col justify-between p-4 sm:p-6 lg:p-12 max-w-xl mx-auto">
+            <header className="pb-6 border-b border-slate-800/80 text-center">
+                <span className="text-[10px] uppercase font-semibold text-emerald-400 tracking-wider">
+                    Service Check-In Portal
+                </span>
+                <p className="text-xs text-slate-400">Didache Universal Platform</p>
+            </header>
 
-                <main className="my-8">
-                    <div className="rounded-3xl border border-emerald-500/30 bg-slate-900/80 p-8 text-center space-y-6 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in duration-300">
+            <main className="my-8">
+                {memberProfile ? (
+                    <div className="rounded-3xl border border-emerald-500/30 bg-slate-900/80 p-8 text-center space-y-6 shadow-2xl backdrop-blur-xl">
                         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
                             <Sparkles className="h-8 w-8" />
                         </div>
@@ -126,178 +160,188 @@ function CheckInContent() {
                             <h2 className="text-2xl font-bold text-white">Welcome back, {memberProfile.first_name}!</h2>
                             <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
                                 {alreadyCheckedIn
-                                    ? `You are already recorded for Sunday School on ${dateParam}.`
-                                    : `You are checked into Sunday School for ${dateParam}. God bless you as you worship with us today!`}
+                                    ? `You are already recorded for service on ${dateParam}.`
+                                    : `You are successfully checked in for ${dateParam}. Have a wonderful service!`}
                             </p>
                         </div>
 
                         <button
                             onClick={() => router.push('/member/dashboard')}
-                            className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-semibold text-white shadow-lg shadow-emerald-600/20 transition"
+                            className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-semibold text-white shadow-lg transition cursor-pointer"
                         >
                             Go to Member Dashboard
                         </button>
                     </div>
-                </main>
+                ) : memberChoice === 'member_branch' ? (
+                    <div className="space-y-6">
+                        <button
+                            onClick={() => setMemberChoice('selection')}
+                            className="w-full text-left text-xs text-slate-500 hover:text-slate-300 pt-2"
+                        >
+                            ← Back to main options
+                        </button>
 
-                <Footer />
-            </div>
-        );
-    }
-
-    if (memberChoice === 'member_branch') {
-        return (
-            <div className="min-h-screen flex flex-col justify-between p-4 sm:p-6 lg:p-12 max-w-xl mx-auto">
-                <header className="pb-6 border-b border-slate-800/80 text-center">
-                    <span className="text-[10px] uppercase font-semibold text-emerald-400 tracking-wider">
-                        Member Portal Gateway
-                    </span>
-                    <p className="text-xs text-slate-400">RCCG Milk & Honey</p>
-                </header>
-
-                <main className="my-8 space-y-6">
-                    <button
-                        onClick={() => setMemberChoice('selection')}
-                        className="w-full text-left text-xs text-slate-500 hover:text-slate-300 pt-2"
-                    >
-                        ← Back to main options
-                    </button>
-
-                    <div className="text-center space-y-2">
-                        <h1 className="text-2xl font-extrabold text-white">Member Check-In</h1>
-                        <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                            Do you already have an existing profile with Milk & Honey Sunday School?
-                        </p>
-                    </div>
-
-                    {!rawDateParam && (
-                        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-center space-y-2">
-                            <p className="text-xs text-amber-300">
-                                No active Sunday QR scan context detected. Scan the hall QR code to log attendance automatically.
+                        <div className="text-center space-y-2">
+                            <h1 className="text-2xl font-extrabold text-white">Member Check-In</h1>
+                            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                                Do you already have an existing profile registered?
                             </p>
+                        </div>
+
+                        {!rawDateParam && (
+                            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-center space-y-2">
+                                <p className="text-xs text-amber-300">
+                                    No active scan context detected. Scan the hall QR code to log attendance automatically.
+                                </p>
+                                <button
+                                    onClick={() => setShowScannerModal(true)}
+                                    className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-500 transition"
+                                >
+                                    <QrCode className="w-3.5 h-3.5" />
+                                    <span>Scan Hall QR Code</span>
+                                </button>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-1 gap-4">
                             <button
-                                onClick={() => setShowScannerModal(true)}
-                                className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-500 transition"
+                                onClick={() => navigateWithDate('/auth/member/login')}
+                                className="rounded-3xl border border-emerald-500/30 bg-slate-900/80 p-6 text-left hover:border-emerald-500/60 transition group space-y-2 shadow-xl cursor-pointer"
                             >
-                                <QrCode className="w-3.5 h-3.5" />
-                                <span>Scan Hall QR Code</span>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                        <KeyRound className="w-5 h-5" />
+                                    </div>
+                                    <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition" />
+                                </div>
+                                <div>
+                                    <h2 className="text-base font-bold text-white group-hover:text-emerald-400 transition">
+                                        Yes, I already have a profile
+                                    </h2>
+                                    <p className="text-xs text-slate-400">Sign in with your phone number.</p>
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={() => navigateWithDate('/auth/member/register')}
+                                className="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 text-left hover:border-slate-700 transition group space-y-2 shadow-xl cursor-pointer"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-800 text-slate-300 border border-slate-700">
+                                        <User className="w-5 h-5" />
+                                    </div>
+                                    <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition" />
+                                </div>
+                                <div>
+                                    <h2 className="text-base font-bold text-white group-hover:text-slate-200 transition">
+                                        No, create a new profile for me
+                                    </h2>
+                                    <p className="text-xs text-slate-400">Quickly register your details.</p>
+                                </div>
                             </button>
                         </div>
-                    )}
+                    </div>
+                ) : (
+                    <div className="space-y-6">
+                        <div className="text-center space-y-2">
+                            <h1 className="text-2xl font-extrabold text-white">Welcome!</h1>
+                            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                                Please choose how you would like to check in for today&#39;s service.
+                            </p>
+                        </div>
 
-                    <div className="grid grid-cols-1 gap-4">
-                        <button
-                            onClick={() => navigateWithDate('/auth/member/login')}
-                            className="rounded-3xl border border-emerald-500/30 bg-slate-900/80 p-6 text-left hover:border-emerald-500/60 transition group space-y-2 backdrop-blur-xl shadow-xl"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                    <KeyRound className="w-5 h-5" />
+                        <div className="grid grid-cols-1 gap-4">
+                            <button
+                                onClick={() => setMemberChoice('member_branch')}
+                                className="rounded-3xl border border-emerald-500/30 bg-slate-900/80 p-6 text-left hover:border-emerald-500/60 transition group space-y-2 shadow-xl cursor-pointer"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                        <BookOpen className="w-5 h-5" />
+                                    </div>
+                                    <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition" />
                                 </div>
-                                <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition" />
-                            </div>
-                            <div>
-                                <h2 className="text-base font-bold text-white group-hover:text-emerald-400 transition">
-                                    Yes, I already have a profile
-                                </h2>
-                                <p className="text-xs text-slate-400">
-                                    Enter your phone number to sign in and record today&#39;s attendance.
-                                </p>
-                            </div>
-                        </button>
+                                <div>
+                                    <h2 className="text-base font-bold text-white group-hover:text-emerald-400 transition">
+                                        I am a Member / Regular Attendee
+                                    </h2>
+                                    <p className="text-xs text-slate-400">Sign in or register your member profile.</p>
+                                </div>
+                            </button>
 
-                        <button
-                            onClick={() => navigateWithDate('/auth/member/register')}
-                            className="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 text-left hover:border-slate-700 transition group space-y-2 backdrop-blur-xl shadow-xl"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-800 text-slate-300 border border-slate-700">
-                                    <User className="w-5 h-5" />
+                            <button
+                                onClick={() => navigateWithDate('/auth/guest')}
+                                className="rounded-3xl border border-amber-500/30 bg-slate-900/80 p-6 text-left hover:border-amber-500/60 transition group space-y-2 shadow-xl cursor-pointer"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                        <Heart className="w-5 h-5" />
+                                    </div>
+                                    <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition" />
                                 </div>
-                                <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition" />
-                            </div>
-                            <div>
-                                <h2 className="text-base font-bold text-white group-hover:text-slate-200 transition">
-                                    No, create a new profile for me
-                                </h2>
-                                <p className="text-xs text-slate-400">
-                                    Fill in your details once so your phone remembers you for future services.
-                                </p>
-                            </div>
+                                <div>
+                                    <h2 className="text-base font-bold text-white group-hover:text-amber-400 transition">
+                                        I am a Visitor / Guest
+                                    </h2>
+                                    <p className="text-xs text-slate-400">Quick 10-second check-in for guests.</p>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </main>
+
+            {/* EXPIRED OR CLOSED SESSION MODAL */}
+            {showExpiredModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in">
+                    <div className="w-full max-w-sm rounded-3xl border border-amber-500/30 bg-slate-900 p-6 shadow-2xl text-center space-y-4">
+                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                            <Clock className="h-6 w-6" />
+                        </div>
+                        <div className="space-y-1">
+                            <h3 className="text-base font-bold text-white">Session Closed or QR Expired</h3>
+                            <p className="text-xs text-slate-400 leading-relaxed">
+                                This check-in code is no longer active. Please ask the coordinator for today&#39;s active session code.
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setShowExpiredModal(false)}
+                            className="w-full rounded-xl bg-amber-500 hover:bg-amber-400 py-2.5 text-xs font-semibold text-slate-950 transition cursor-pointer"
+                        >
+                            Understood
                         </button>
                     </div>
-                </main>
-
-                <QrScanner
-                    isOpen={showScannerModal}
-                    onClose={() => setShowScannerModal(false)}
-                    onSuccess={() => window.location.reload()}
-                />
-
-                <Footer />
-            </div>
-        );
-    }
-
-    return (
-        <div className="min-h-screen flex flex-col justify-between p-4 sm:p-6 lg:p-12 max-w-xl mx-auto">
-            <header className="pb-6 border-b border-slate-800/80 text-center">
-                <span className="text-[10px] uppercase font-semibold text-amber-400 tracking-wider">
-                    Sunday School Check-In Portal
-                </span>
-                <p className="text-xs text-slate-400">RCCG Milk & Honey</p>
-            </header>
-
-            <main className="my-8 space-y-6">
-                <div className="text-center space-y-2">
-                    <h1 className="text-2xl font-extrabold text-white">Welcome to Milk & Honey!</h1>
-                    <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                        Please choose how you would like to check in for today&#39;s Sunday service.
-                    </p>
                 </div>
+            )}
 
-                <div className="grid grid-cols-1 gap-4">
-                    <button
-                        onClick={() => setMemberChoice('member_branch')}
-                        className="rounded-3xl border border-emerald-500/30 bg-slate-900/80 p-6 text-left hover:border-emerald-500/60 transition group space-y-2 backdrop-blur-xl shadow-xl"
-                    >
-                        <div className="flex items-center justify-between">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                <BookOpen className="w-5 h-5" />
-                            </div>
-                            <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition" />
+            {/* GEOFENCE RADIUS ERROR MODAL */}
+            {showGeofenceError && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in">
+                    <div className="w-full max-w-sm rounded-3xl border border-rose-500/30 bg-slate-900 p-6 shadow-2xl text-center space-y-4">
+                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
+                            <MapPin className="h-6 w-6" />
                         </div>
-                        <div>
-                            <h2 className="text-base font-bold text-white group-hover:text-emerald-400 transition">
-                                I am a Member / Regular Attendee
-                            </h2>
-                            <p className="text-xs text-slate-400">
-                                Sign in or register your profile to track your Sunday School attendance metrics.
+                        <div className="space-y-1">
+                            <h3 className="text-base font-bold text-white">Outside Check-In Radius</h3>
+                            <p className="text-xs text-slate-400 leading-relaxed">
+                                {locationMessage}
                             </p>
                         </div>
-                    </button>
-
-                    <button
-                        onClick={() => navigateWithDate('/auth/guest')}
-                        className="rounded-3xl border border-amber-500/30 bg-slate-900/80 p-6 text-left hover:border-amber-500/60 transition group space-y-2 backdrop-blur-xl shadow-xl"
-                    >
-                        <div className="flex items-center justify-between">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                                <Heart className="w-5 h-5" />
-                            </div>
-                            <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition" />
-                        </div>
-                        <div>
-                            <h2 className="text-base font-bold text-white group-hover:text-amber-400 transition">
-                                I am a Visitor / Guest
-                            </h2>
-                            <p className="text-xs text-slate-400">
-                                Quick 10-second check-in for guests. No password needed!
-                            </p>
-                        </div>
-                    </button>
+                        <button
+                            onClick={() => setShowGeofenceError(false)}
+                            className="w-full rounded-xl bg-rose-600 hover:bg-rose-500 py-2.5 text-xs font-semibold text-white transition cursor-pointer"
+                        >
+                            Close
+                        </button>
+                    </div>
                 </div>
-            </main>
+            )}
+
+            <QrScanner
+                isOpen={showScannerModal}
+                onClose={() => setShowScannerModal(false)}
+                onSuccess={() => window.location.reload()}
+            />
 
             <Footer />
         </div>
