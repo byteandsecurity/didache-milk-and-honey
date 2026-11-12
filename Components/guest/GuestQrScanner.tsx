@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Camera, X, CheckCircle2 } from 'lucide-react';
+import { Camera, X, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { verifyUserLocation } from '@/lib/geofence';
 
 interface GuestQrScannerProps {
@@ -12,8 +12,8 @@ interface GuestQrScannerProps {
 
 export default function GuestQrScanner({ isOpen, onClose, onSuccess }: GuestQrScannerProps) {
     const [scannerStatus, setScannerStatus] = useState<string | null>(null);
-    const [isSuccessState, setIsSuccessState] = useState<boolean>(false);
-    const [successMessage, setSuccessMessage] = useState<string>('');
+    const [resultState, setResultState] = useState<'none' | 'success' | 'warning'>('none');
+    const [resultMessage, setResultMessage] = useState<string>('');
 
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -57,16 +57,16 @@ export default function GuestQrScanner({ isOpen, onClose, onSuccess }: GuestQrSc
         }
 
         if (!scannedDateStr) {
-            setSuccessMessage('Error: Invalid QR code format.');
-            setIsSuccessState(true);
+            setResultMessage('Error: Invalid QR code format.');
+            setResultState('warning');
             processingScanRef.current = false;
             return;
         }
 
         // 2. CHECK EXPIRATION TIMESTAMP
-        if (expiryTimestamp && Date.now() > expiryTimestamp) {
-            setSuccessMessage('⏳ QR Code Expired! Please scan an active session code.');
-            setIsSuccessState(true);
+        if (expiryTimestamp && !isNaN(expiryTimestamp) && Date.now() > expiryTimestamp) {
+            setResultMessage('⏳ This QR code has expired. Please ask the teacher to generate a new QR code so you can check in.');
+            setResultState('warning');
             processingScanRef.current = false;
             return;
         }
@@ -75,16 +75,16 @@ export default function GuestQrScanner({ isOpen, onClose, onSuccess }: GuestQrSc
         setScannerStatus('Verifying location...');
         const geoCheck = await verifyUserLocation();
         if (!geoCheck.allowed) {
-            setSuccessMessage(`❌ ${geoCheck.message || "You are outside the check-in radius."}`);
-            setIsSuccessState(true);
+            setResultMessage(`❌ ${geoCheck.message || "You are outside the check-in radius."}`);
+            setResultState('warning');
             processingScanRef.current = false;
             return;
         }
 
         localStorage.setItem('didache_qr_date', scannedDateStr);
 
-        setSuccessMessage(`QR Code verified for ${scannedDateStr}!`);
-        setIsSuccessState(true);
+        setResultMessage(`QR Code verified for ${scannedDateStr}!`);
+        setResultState('success');
 
         // Notify parent FIRST to trigger instant database check-in
         onSuccess(scannedDateStr);
@@ -92,7 +92,7 @@ export default function GuestQrScanner({ isOpen, onClose, onSuccess }: GuestQrSc
         setTimeout(() => {
             onClose();
             processingScanRef.current = false;
-        }, 800);
+        }, 900);
     }, [onClose, onSuccess]);
 
     const startCamera = useCallback(async () => {
@@ -144,8 +144,7 @@ export default function GuestQrScanner({ isOpen, onClose, onSuccess }: GuestQrSc
 
     useEffect(() => {
         if (isOpen) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setIsSuccessState(false);
+            setResultState('none');
             processingScanRef.current = false;
             void startCamera();
         } else {
@@ -173,10 +172,20 @@ export default function GuestQrScanner({ isOpen, onClose, onSuccess }: GuestQrSc
                     </button>
                 </div>
 
-                {isSuccessState ? (
-                    <div className="py-10 space-y-3 flex flex-col items-center justify-center">
-                        <CheckCircle2 className="w-16 h-16 text-amber-400 animate-bounce" />
-                        <p className="text-sm font-bold text-white">{successMessage}</p>
+                {resultState !== 'none' ? (
+                    <div className="py-8 space-y-4 flex flex-col items-center justify-center">
+                        {resultState === 'success' ? (
+                            <CheckCircle2 className="w-16 h-16 text-amber-400 animate-bounce" />
+                        ) : (
+                            <AlertTriangle className="w-14 h-14 text-amber-400" />
+                        )}
+                        <p className="text-sm font-bold text-white px-4 leading-relaxed">{resultMessage}</p>
+                        <button
+                            onClick={onClose}
+                            className="mt-2 rounded-xl bg-slate-800 hover:bg-slate-700 px-6 py-2.5 text-xs font-semibold text-slate-200 transition"
+                        >
+                            Close Scanner
+                        </button>
                     </div>
                 ) : (
                     <>

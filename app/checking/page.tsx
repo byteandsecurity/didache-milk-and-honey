@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Sparkles, ArrowRight, User, KeyRound, Heart, QrCode, Clock, MapPin, ShieldAlert } from 'lucide-react';
+import { Sparkles, ArrowRight, User, KeyRound, Heart, QrCode, Clock, ShieldAlert } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
 import { verifyUserLocation } from '@/lib/geofence';
@@ -32,47 +32,85 @@ function CheckInContent() {
     const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(null);
     const [memberChoice, setMemberChoice] = useState<'selection' | 'member_branch'>('selection');
     const [alreadyCheckedIn, setAlreadyCheckedIn] = useState<boolean>(false);
+    const [qrExpiredNotice, setQrExpiredNotice] = useState<boolean>(false);
     const [showScannerModal, setShowScannerModal] = useState<boolean>(false);
 
-    // Security & Modal States
+    // Unified Security Lock State
     const [blockReason, setBlockReason] = useState<'expired' | 'geofence' | null>(null);
-    const [showExpiredModal, setShowExpiredModal] = useState<boolean>(false);
-    const [showGeofenceError, setShowGeofenceError] = useState<boolean>(false);
     const [locationMessage, setLocationMessage] = useState<string>('');
+    const [hasMemberSession, setHasMemberSession] = useState<boolean>(false);
 
     useEffect(() => {
         const processCheckIn = async () => {
-            // 1. INSTANT QR URL EXPIRATION CHECK (Applies to ALL users: Members, New Users, Guests)
-            if (rawExpiresParam) {
-                const expiryTime = parseInt(rawExpiresParam, 10);
-                if (!isNaN(expiryTime) && Date.now() > expiryTime) {
-                    setBlockReason('expired');
-                    setShowExpiredModal(true);
-                    setChecking(false);
-                    return;
-                }
-            }
+            const expiryTime = rawExpiresParam ? parseInt(rawExpiresParam, 10) : null;
+            const isUrlExpired = Boolean(expiryTime && !isNaN(expiryTime) && Date.now() > expiryTime);
 
-            // 2. GEOFENCE CHECK (Applies to ALL users scanning in)
-            const geoCheck = await verifyUserLocation();
-            if (!geoCheck.allowed) {
-                setLocationMessage(geoCheck.message || "You must be within 100m of the venue to check in.");
-                setBlockReason('geofence');
-                setShowGeofenceError(true);
-                setChecking(false);
-                return;
-            }
-
-            // 3. DATABASE SESSION ACTIVE CHECK (Applies to ALL users)
+            // Fetch session status early so we can check existing attendance even if QR/session is expired
             const { data: sessionMatch } = await supabase
                 .from('sessions')
                 .select('id, is_active')
                 .eq('session_date', dateParam)
                 .maybeSingle();
 
-            if (sessionMatch && sessionMatch.is_active === false) {
+            const isSessionClosed = Boolean(sessionMatch && sessionMatch.is_active === false);
+            const isExpiredOrClosed = isUrlExpired || isSessionClosed;
+
+            const memberId = localStorage.getItem('didache_member_id');
+            setHasMemberSession(Boolean(memberId));
+
+            // 1. IF EXPIRED/CLOSED: Check if returning member is ALREADY checked in before locking them out
+            if (isExpiredOrClosed) {
+                if (memberId) {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', memberId)
+                        .maybeSingle();
+
+                    if (profile) {
+                        let existingAtt = null;
+
+                        if (sessionMatch?.id) {
+                            const { data: bySessionId } = await supabase
+                                .from('attendance')
+                                .select('id')
+                                .eq('user_id', profile.id)
+                                .eq('session_id', sessionMatch.id)
+                                .maybeSingle();
+                            existingAtt = bySessionId;
+                        }
+
+                        if (!existingAtt) {
+                            const { data: byDate } = await supabase
+                                .from('attendance')
+                                .select('id')
+                                .eq('user_id', profile.id)
+                                .eq('session_date', dateParam)
+                                .maybeSingle();
+                            existingAtt = byDate;
+                        }
+
+                        if (existingAtt) {
+                            setMemberProfile(profile as MemberProfile);
+                            setAlreadyCheckedIn(true);
+                            setQrExpiredNotice(true);
+                            setChecking(false);
+                            return;
+                        }
+                    }
+                }
+
+                // Not checked in yet (or guest/new user) -> Lock screen
                 setBlockReason('expired');
-                setShowExpiredModal(true);
+                setChecking(false);
+                return;
+            }
+
+            // 2. GEOFENCE CHECK (Applies to ALL users attempting a new check-in)
+            const geoCheck = await verifyUserLocation();
+            if (!geoCheck.allowed) {
+                setLocationMessage(geoCheck.message || "You must be within 100m of the venue to check in.");
+                setBlockReason('geofence');
                 setChecking(false);
                 return;
             }
@@ -82,9 +120,7 @@ function CheckInContent() {
                 localStorage.setItem('didache_qr_date', rawDateParam);
             }
 
-            // 4. RETURNING MEMBER AUTO CHECK-IN
-            const memberId = localStorage.getItem('didache_member_id');
-
+            // 3. RETURNING MEMBER AUTO CHECK-IN
             if (memberId) {
                 const { data: profile } = await supabase
                     .from('profiles')
@@ -110,7 +146,6 @@ function CheckInContent() {
                     if (activeSession) {
                         if (activeSession.is_active === false) {
                             setBlockReason('expired');
-                            setShowExpiredModal(true);
                             setChecking(false);
                             return;
                         }
@@ -168,7 +203,7 @@ function CheckInContent() {
             </header>
 
             <main className="my-8">
-                {/* LOCKED SCREEN STATE IF EXPIRED OR OUT OF BOUNDS */}
+                {/* UNIFIED LOCKED SCREEN STATE (EXPIRED OR OUT OF BOUNDS) */}
                 {blockReason ? (
                     <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-8 text-center space-y-5 shadow-2xl backdrop-blur-xl">
                         <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border ${
@@ -185,18 +220,57 @@ function CheckInContent() {
                             </h2>
                             <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
                                 {blockReason === 'expired'
-                                    ? 'This QR code is no longer valid for check-in. Please scan the active code displayed at the venue.'
+                                    ? 'This QR code has expired. Please ask the coordinator for a new active QR code, or continue below to scan it.'
                                     : locationMessage}
                             </p>
                         </div>
 
-                        <button
-                            onClick={() => setShowScannerModal(true)}
-                            className="inline-flex items-center justify-center gap-2 w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-semibold text-white shadow-lg transition cursor-pointer"
-                        >
-                            <QrCode className="w-4 h-4" />
-                            <span>Scan Active Session QR</span>
-                        </button>
+                        <div className="space-y-2.5 pt-1">
+                            {hasMemberSession ? (
+                                <>
+                                    <button
+                                        onClick={() => setShowScannerModal(true)}
+                                        className="inline-flex items-center justify-center gap-2 w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-semibold text-white shadow-lg transition cursor-pointer"
+                                    >
+                                        <QrCode className="w-4 h-4" />
+                                        <span>Scan Active Session QR</span>
+                                    </button>
+
+                                    <button
+                                        onClick={() => router.push('/member/dashboard')}
+                                        className="w-full rounded-xl bg-slate-800 hover:bg-slate-700 py-3 text-xs font-semibold text-slate-300 transition cursor-pointer"
+                                    >
+                                        Go to Member Dashboard
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={() => router.push('/auth/guest')}
+                                        className="inline-flex items-center justify-center gap-2 w-full rounded-xl bg-amber-600 hover:bg-amber-500 py-3 text-xs font-semibold text-white shadow-lg transition cursor-pointer"
+                                    >
+                                        <Heart className="w-4 h-4" />
+                                        <span>Visitor / Guest Check-In</span>
+                                    </button>
+
+                                    <button
+                                        onClick={() => router.push('/auth/member/login')}
+                                        className="inline-flex items-center justify-center gap-2 w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-semibold text-white shadow-lg transition cursor-pointer"
+                                    >
+                                        <KeyRound className="w-4 h-4" />
+                                        <span>Member Sign In</span>
+                                    </button>
+
+                                    <button
+                                        onClick={() => router.push('/auth/member/register')}
+                                        className="inline-flex items-center justify-center gap-2 w-full rounded-xl bg-slate-800 hover:bg-slate-700 py-3 text-xs font-semibold text-slate-300 transition cursor-pointer"
+                                    >
+                                        <User className="w-4 h-4" />
+                                        <span>Create New Member Account</span>
+                                    </button>
+                                </>
+                            )}
+                        </div>
                     </div>
                 ) : memberProfile ? (
                     <div className="rounded-3xl border border-emerald-500/30 bg-slate-900/80 p-8 text-center space-y-6 shadow-2xl backdrop-blur-xl">
@@ -210,9 +284,11 @@ function CheckInContent() {
                             </span>
                             <h2 className="text-2xl font-bold text-white">Welcome back, {memberProfile.first_name}!</h2>
                             <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
-                                {alreadyCheckedIn
-                                    ? `You are already recorded for service on ${dateParam}.`
-                                    : `You are successfully checked in for ${dateParam}. Have a wonderful service!`}
+                                {qrExpiredNotice
+                                    ? `This QR code has expired—but good news, you are already checked in for service on ${dateParam}!`
+                                    : alreadyCheckedIn
+                                        ? `You are already recorded for service on ${dateParam}.`
+                                        : `You are successfully checked in for ${dateParam}. Have a wonderful service!`}
                             </p>
                         </div>
 
@@ -341,52 +417,6 @@ function CheckInContent() {
                     </div>
                 )}
             </main>
-
-            {/* EXPIRED OR CLOSED SESSION MODAL */}
-            {showExpiredModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in">
-                    <div className="w-full max-w-sm rounded-3xl border border-amber-500/30 bg-slate-900 p-6 shadow-2xl text-center space-y-4">
-                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
-                            <Clock className="h-6 w-6" />
-                        </div>
-                        <div className="space-y-1">
-                            <h3 className="text-base font-bold text-white">Session Closed or QR Expired</h3>
-                            <p className="text-xs text-slate-400 leading-relaxed">
-                                This check-in code is no longer active. Please ask the coordinator for today&#39;s active session code.
-                            </p>
-                        </div>
-                        <button
-                            onClick={() => setShowExpiredModal(false)}
-                            className="w-full rounded-xl bg-amber-500 hover:bg-amber-400 py-2.5 text-xs font-semibold text-slate-950 transition cursor-pointer"
-                        >
-                            Understood
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* GEOFENCE RADIUS ERROR MODAL */}
-            {showGeofenceError && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in">
-                    <div className="w-full max-w-sm rounded-3xl border border-rose-500/30 bg-slate-900 p-6 shadow-2xl text-center space-y-4">
-                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
-                            <MapPin className="h-6 w-6" />
-                        </div>
-                        <div className="space-y-1">
-                            <h3 className="text-base font-bold text-white">Outside Check-In Radius</h3>
-                            <p className="text-xs text-slate-400 leading-relaxed">
-                                {locationMessage}
-                            </p>
-                        </div>
-                        <button
-                            onClick={() => setShowGeofenceError(false)}
-                            className="w-full rounded-xl bg-rose-600 hover:bg-rose-500 py-2.5 text-xs font-semibold text-white transition cursor-pointer"
-                        >
-                            Close
-                        </button>
-                    </div>
-                </div>
-            )}
 
             <QrScanner
                 isOpen={showScannerModal}

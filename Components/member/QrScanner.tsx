@@ -75,27 +75,10 @@ export default function QrScanner({ isOpen, onClose, onSuccess }: QrScannerProps
             return;
         }
 
-        // 2. CHECK EXPIRATION TIMESTAMP
-        if (expiryTimestamp && Date.now() > expiryTimestamp) {
-            setSuccessMessage('⏳ QR Code Expired! Please scan an active session code.');
-            setIsSuccessState(true);
-            processingScanRef.current = false;
-            return;
-        }
-
-        // 3. VERIFY GEOFENCE LOCATION
-        setScannerStatus('Verifying location...');
-        const geoCheck = await verifyUserLocation();
-        if (!geoCheck.allowed) {
-            setSuccessMessage(`❌ ${geoCheck.message || "You are outside the check-in radius."}`);
-            setIsSuccessState(true);
-            processingScanRef.current = false;
-            return;
-        }
-
-        setScannerStatus(`QR Code detected for ${scannedDateStr}! Recording attendance...`);
+        const isExpired = Boolean(expiryTimestamp && !isNaN(expiryTimestamp) && Date.now() > expiryTimestamp);
 
         try {
+            // 2. CHECK IF ALREADY LOGGED IN FOR THIS SESSION FIRST
             const { data: existingAttendance } = await supabase
                 .from('attendance')
                 .select('id')
@@ -104,11 +87,35 @@ export default function QrScanner({ isOpen, onClose, onSuccess }: QrScannerProps
                 .maybeSingle();
 
             if (existingAttendance) {
-                setSuccessMessage('ℹ️ You have already checked in for this session!');
+                if (isExpired) {
+                    setSuccessMessage("ℹ️ This QR code has expired—but good news, you're already checked in for today's service!");
+                } else {
+                    setSuccessMessage('ℹ️ You have already checked in for this session!');
+                }
                 setIsSuccessState(true);
                 processingScanRef.current = false;
                 return;
             }
+
+            // 3. CHECK EXPIRATION TIMESTAMP (If not checked in yet)
+            if (isExpired) {
+                setSuccessMessage('⏳ This QR code has expired. Please ask the teacher to generate a new QR code so you can check in.');
+                setIsSuccessState(true);
+                processingScanRef.current = false;
+                return;
+            }
+
+            // 4. VERIFY GEOFENCE LOCATION
+            setScannerStatus('Verifying location...');
+            const geoCheck = await verifyUserLocation();
+            if (!geoCheck.allowed) {
+                setSuccessMessage(`❌ ${geoCheck.message || "You are outside the check-in radius."}`);
+                setIsSuccessState(true);
+                processingScanRef.current = false;
+                return;
+            }
+
+            setScannerStatus(`QR Code detected for ${scannedDateStr}! Recording attendance...`);
 
             const { data: existingSession } = await supabase
                 .from('sessions')
@@ -188,25 +195,9 @@ export default function QrScanner({ isOpen, onClose, onSuccess }: QrScannerProps
                             const barcodes = await barcodeDetector.detect(videoRef.current);
                             if (barcodes.length > 0) {
                                 const rawValue = barcodes[0].rawValue;
-                                let detectedDate: string | null = null;
-
-                                try {
-                                    const urlObj = new URL(rawValue);
-                                    detectedDate = urlObj.searchParams.get('date');
-                                } catch {
-                                    try {
-                                        const parsedJson = JSON.parse(rawValue);
-                                        detectedDate = parsedJson.date || null;
-                                    } catch {
-                                        if (rawValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                                            detectedDate = rawValue;
-                                        }
-                                    }
-                                }
-
-                                if (detectedDate) {
+                                if (rawValue) {
                                     stopCamera();
-                                    await processScannedDate(detectedDate);
+                                    await processScannedDate(rawValue);
                                 }
                             }
                         } catch {
@@ -225,6 +216,7 @@ export default function QrScanner({ isOpen, onClose, onSuccess }: QrScannerProps
 
     useEffect(() => {
         if (isOpen) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIsSuccessState(false);
             processingScanRef.current = false;
             void startCamera();

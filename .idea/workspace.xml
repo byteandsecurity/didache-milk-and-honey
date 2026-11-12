@@ -4,23 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="App Icon &amp; Geo Location">
-      <change afterPath="$PROJECT_DIR$/app/icon.svg" afterDir="false" />
+    <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="Secure check-in flow with URL expiration timestamps, multi-location geofencing, and static PWA icons.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Components/admin/QrGenerator.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/QrGenerator.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Components/guest/GuestQrScanner.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/guest/GuestQrScanner.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Components/member/QrScanner.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/member/QrScanner.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/apple-icon.tsx" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/app/checking/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/checking/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/favicon.ico" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/icon.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/public/file.svg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/public/globe.svg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/public/icon.svg" beforeDir="false" afterPath="$PROJECT_DIR$/public/icon.svg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/public/manifest.json" beforeDir="false" afterPath="$PROJECT_DIR$/public/manifest.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/public/next.svg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/public/vercel.svg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/public/window.svg" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -44,61 +32,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.0" />
-      <entry key="MS500" value="1.000088497731499" />
-      <entry key="S2" value="1.096991356784357" />
-      <entry key="S5" value="1.3932721693613277" />
-      <entry key="S10" value="1.627114159751897" />
-      <entry key="S30" value="1.8559509316538905" />
-      <entry key="S60" value="1.9251761843090895" />
-      <entry key="M2" value="1.9622217740514247" />
-      <entry key="M5" value="2.1075019543846" />
-      <entry key="M10" value="2.8574282263405957" />
-      <entry key="M15" value="3.7234203061308833" />
-      <entry key="M30" value="6.565994812791407" />
-      <entry key="H1" value="13.470238564506651" />
-      <entry key="H2" value="27.67174192712178" />
-      <entry key="H4" value="53.03370198524417" />
-      <entry key="D1" value="267.03017343663" />
-      <entry key="W1" value="493.36058109038066" />
+      <entry key="MS100" value="1.0000000000000009" />
+      <entry key="MS500" value="1.0009943214841452" />
+      <entry key="S2" value="1.1775749519432464" />
+      <entry key="S5" value="1.5009019037883116" />
+      <entry key="S10" value="1.7077442361392365" />
+      <entry key="S30" value="1.8911663533827612" />
+      <entry key="S60" value="1.94406791490486" />
+      <entry key="M2" value="1.9817870617712172" />
+      <entry key="M5" value="2.2454677836207804" />
+      <entry key="M10" value="2.991941027625792" />
+      <entry key="M15" value="3.8424044782021487" />
+      <entry key="M30" value="6.621607788157056" />
+      <entry key="H1" value="13.302507712666682" />
+      <entry key="H2" value="27.348162085375012" />
+      <entry key="H4" value="52.75852465201711" />
+      <entry key="D1" value="267.08599820753756" />
+      <entry key="W1" value="494.84583094566057" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
-      <entry key="MS500" value="1.0740331682241586E-69" />
-      <entry key="S2" value="5.724722286586695E-18" />
-      <entry key="S5" value="1.2679489527859515E-7" />
-      <entry key="S10" value="3.560827084802001E-4" />
-      <entry key="S30" value="0.07087889879682668" />
-      <entry key="S60" value="0.26623091254928805" />
-      <entry key="M2" value="0.5159756898820798" />
-      <entry key="M5" value="0.767452850969745" />
-      <entry key="M10" value="0.8764004236867651" />
-      <entry key="M15" value="0.9264752577556856" />
-      <entry key="M30" value="1.2983470875810839" />
-      <entry key="H1" value="2.9083184664871284" />
-      <entry key="H2" value="5.627248020109625" />
-      <entry key="H4" value="8.702589044672028" />
-      <entry key="D1" value="40.96441460067329" />
-      <entry key="W1" value="80.38386859605485" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="4.605490152804315E-155" />
+      <entry key="S5" value="1.8420878719228948E-62" />
+      <entry key="S10" value="1.3572353782313865E-31" />
+      <entry key="S30" value="5.1390761992911906E-11" />
+      <entry key="S60" value="7.168735034363585E-6" />
+      <entry key="M2" value="0.002677449352343306" />
+      <entry key="M5" value="0.09355963381206436" />
+      <entry key="M10" value="0.30599968796826416" />
+      <entry key="M15" value="0.4593877697556244" />
+      <entry key="M30" value="0.914247138417089" />
+      <entry key="H1" value="2.440497469444899" />
+      <entry key="H2" value="5.154828932752623" />
+      <entry key="H4" value="8.329282189126838" />
+      <entry key="D1" value="40.666169798490785" />
+      <entry key="W1" value="80.30000062980977" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="4.13796499885678E-15" />
-      <entry key="MS500" value="0.001363688747621172" />
-      <entry key="S2" value="0.2679412575850553" />
-      <entry key="S5" value="0.8742651271335231" />
-      <entry key="S10" value="1.3172374052463036" />
-      <entry key="S30" value="1.8054526718128092" />
-      <entry key="S60" value="2.1233777046054185" />
-      <entry key="M2" value="2.4402170954535634" />
-      <entry key="M5" value="2.8582305574464457" />
-      <entry key="M10" value="3.7251110603617263" />
-      <entry key="M15" value="4.643928194276028" />
-      <entry key="M30" value="7.860494720519397" />
-      <entry key="H1" value="16.3744653360067" />
-      <entry key="H2" value="33.29414176764433" />
-      <entry key="H4" value="61.73156260940579" />
-      <entry key="D1" value="307.9912104358259" />
-      <entry key="W1" value="573.743551606946" />
+      <entry key="MS100" value="0.9201876506248757" />
+      <entry key="MS500" value="0.984399449889021" />
+      <entry key="S2" value="1.168928441710086" />
+      <entry key="S5" value="1.4941274592724434" />
+      <entry key="S10" value="1.7032918748697092" />
+      <entry key="S30" value="1.8893667514372643" />
+      <entry key="S60" value="1.9431279549566498" />
+      <entry key="M2" value="1.9837829000942204" />
+      <entry key="M5" value="2.3367918476033576" />
+      <entry key="M10" value="3.2947980683314446" />
+      <entry key="M15" value="4.2987673459284" />
+      <entry key="M30" value="7.5331128254169935" />
+      <entry key="H1" value="15.739555116809957" />
+      <entry key="H2" value="32.498541577412226" />
+      <entry key="H4" value="61.083277112515994" />
+      <entry key="D1" value="307.748814305543" />
+      <entry key="W1" value="575.144934334424" />
     </decayedShown>
   </component>
   <component name="ProblemsViewState">
@@ -203,7 +191,7 @@
       <workItem from="1794482512795" duration="54000" />
       <workItem from="1794484322331" duration="777000" />
       <workItem from="1794486623714" duration="54000" />
-      <workItem from="1794486712193" duration="4054000" />
+      <workItem from="1794486712193" duration="6999000" />
     </task>
     <task id="LOCAL-00001" summary="Friction-free member onboarding, auth, and responsive UI:&#10;- Responsive landing page with emerald/indigo ambient lighting and mobile-first design.&#10;- Frictionless member registration &amp; login using phone numbers (no passwords required for church members).&#10;- Added localStorage form draft persistence to prevent data loss on mobile browser reloads.&#10;- Created dedicated admin login route with role verification.&#10;- Wrapped search params in Suspense and configured Supabase RLS policies for smooth database inserts.&#10;- Included Vercel Analytics and Speed Insights in root layout.">
       <option name="closed" value="true" />
@@ -509,14 +497,21 @@
       <option name="project" value="LOCAL" />
       <updated>1794486906282</updated>
     </task>
-    <option name="localTasksCounter" value="39" />
+    <task id="LOCAL-00039" summary="Secure check-in flow with URL expiration timestamps, multi-location geofencing, and static PWA icons.">
+      <option name="closed" value="true" />
+      <created>1794494872653</created>
+      <option name="number" value="00039" />
+      <option name="presentableId" value="LOCAL-00039" />
+      <option name="project" value="LOCAL" />
+      <updated>1794494872653</updated>
+    </task>
+    <option name="localTasksCounter" value="40" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Complete member portal, dynamic analytics &amp; offline sync:&#10; - Fully responsive member dashboard (`app/member/dashboard/page.tsx`) with real-time profile management and editing.&#10;  - Integrated dedicated Sunday School Department Support and Byte &amp; Security technical support cards.&#10;  - Implemented dynamic monthly attendance analytics grid and stats toggle that automatically adjusts for months with 4 or 5 Sundays.&#10;  - Built robust offline-first attendance queuing (`localStorage` fallback) with automatic background syncing via `OfflineSyncProvider` and `navigator.onLine` listeners.&#10;  - Resolved TypeScript promise handling (`void` prefixes) and linter warnings across auth, layout, and sync utilities." />
     <MESSAGE value="Fix(security): resolve admin RLS recursion error and add isolated admin_profiles schema:&#10; - Admin login page set.&#10; - Super Admin created initialized in Supabase.&#10; - Fix async and hydration errors in login and register for members." />
     <MESSAGE value="- Admin Dashboard" />
     <MESSAGE value="Add gender/email fields, guest edit/delete, dynamic attendance states, and persistent QR state" />
@@ -541,6 +536,7 @@
     <MESSAGE value="Finalize admin overview analytics, persistent tabs, and simulation engine gateway." />
     <MESSAGE value="App Icon" />
     <MESSAGE value="App Icon &amp; Geo Location" />
-    <option name="LAST_COMMIT_MESSAGE" value="App Icon &amp; Geo Location" />
+    <MESSAGE value="Secure check-in flow with URL expiration timestamps, multi-location geofencing, and static PWA icons." />
+    <option name="LAST_COMMIT_MESSAGE" value="Secure check-in flow with URL expiration timestamps, multi-location geofencing, and static PWA icons." />
   </component>
 </project>
