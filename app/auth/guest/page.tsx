@@ -3,14 +3,15 @@
 import React, { useState, useEffect, Suspense, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Heart, Sparkles, Phone, MapPin, User, ArrowLeft, CheckCircle2, UserPlus, LogIn, AlertCircle } from 'lucide-react';
+import { Sparkles, Phone, MapPin, User, ArrowLeft, CheckCircle2, UserPlus, LogIn, AlertCircle } from 'lucide-react';
+import {DidacheGeometricIcon} from "@/Components/DidacheIcon";
 import LoadingSpinner from '@/Components/LoadingSpinner';
-import Footer from '@/Components/Footer';
 import GuestQrScanner from '@/Components/guest/GuestQrScanner';
+import Footer from '@/Components/Footer';
 
 export default function GuestCheckInPage() {
     return (
-        <Suspense fallback={<LoadingSpinner text="Loading Visitor Gateway..." icon={Heart} />}>
+        <Suspense fallback={<LoadingSpinner text="Loading Visitor Gateway..." icon={DidacheGeometricIcon} />}>
             <GuestContent />
         </Suspense>
     );
@@ -355,7 +356,7 @@ function GuestContent() {
                 {submitting ? (
                     <LoadingSpinner
                         text={mode === 'returning' ? 'Verifying visitor record...' : 'Checking visitor status...'}
-                        icon={Heart}
+                        icon={DidacheGeometricIcon}
                     />
                 ) : isCheckedIn ? (
                     <div className="rounded-3xl border border-emerald-500/30 bg-slate-900/80 p-8 text-center space-y-6 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in duration-300">

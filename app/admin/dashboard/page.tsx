@@ -8,6 +8,7 @@ import {
     UserCheck, Shield, X, Cake, RefreshCw
 } from 'lucide-react';
 import LoadingSpinner from '@/Components/LoadingSpinner';
+import {DidacheGeometricIcon} from "@/Components/DidacheIcon";
 import Footer from '@/Components/Footer';
 
 // Import Modular Admin Components
@@ -25,6 +26,7 @@ export default function AdminDashboard() {
     useEffect(() => {
         const savedTab = localStorage.getItem('didache_admin_active_tab') as any;
         if (savedTab) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setActiveTab(savedTab);
         }
     }, []);
@@ -154,7 +156,7 @@ export default function AdminDashboard() {
             <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-800/80">
                 <div className="flex items-center gap-3">
                     <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0">
-                        <ShieldCheck className="h-6 w-6" />
+                        <DidacheGeometricIcon className="w-9 h-9" />
                     </div>
                     <div>
                         <div className="flex items-center gap-2 flex-wrap">

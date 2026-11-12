@@ -3,11 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { User, QrCode, Edit3, Save, LifeBuoy, ArrowRight, BookOpen, LogOut, MessageCircle, X, Maximize2 } from 'lucide-react';
+import { User, QrCode, Edit3, Save, LifeBuoy, ArrowRight, LogOut, MessageCircle, X, Maximize2 } from 'lucide-react';
 import LoadingSpinner from '@/Components/LoadingSpinner';
-import Footer from '@/Components/Footer';
+import {DidacheGeometricIcon} from "@/Components/DidacheIcon";
 import QrScanner from '@/Components/member/QrScanner';
 import MemberAnalyticsTestable from "@/Components/Test/member/MemeberAnalyticsTest";
+import Footer from '@/Components/Footer';
 
 interface MemberProfile {
     id: string;
@@ -156,7 +157,7 @@ export default function MemberDashboard() {
     };
 
     if (loading) {
-        return <LoadingSpinner text="Loading your Didache profile..." icon={BookOpen} />;
+        return <LoadingSpinner text="Loading your Didache profile..." icon={DidacheGeometricIcon} />;
     }
 
     return (
@@ -164,7 +165,7 @@ export default function MemberDashboard() {
             <header className="flex items-center justify-between pb-6 border-b border-slate-800/80">
                 <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                        <BookOpen className="h-5 w-5" />
+                        <DidacheGeometricIcon className="w-9 h-9" />
                     </div>
                     <div>
                         <h1 className="text-base sm:text-lg font-bold text-white">
@@ -516,7 +517,7 @@ export default function MemberDashboard() {
 
                             <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
                                 <span className="text-[10px] uppercase font-bold text-slate-500">Residential Address</span>
-                                <p className="font-semibold text-slate-200 mt-0.5 break-words">{profile?.home_address || 'Not provided'}</p>
+                                <p className="font-semibold text-slate-200 mt-0.5 wrap-break-word">{profile?.home_address || 'Not provided'}</p>
                             </div>
                         </div>
 

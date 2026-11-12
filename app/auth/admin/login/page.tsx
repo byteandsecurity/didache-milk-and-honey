@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { ShieldCheck, Lock, Mail, ArrowRight, ArrowLeft, CheckCircle2, EyeOff, Eye } from 'lucide-react';
 import LoadingSpinner from '@/Components/LoadingSpinner';
+import {DidacheGeometricIcon} from "@/Components/DidacheIcon";
 import Footer from '@/Components/Footer';
 
 export default function AdminPortalPage() {
@@ -123,7 +124,7 @@ export default function AdminPortalPage() {
                     {loading ? (
                         <LoadingSpinner
                             text="Verifying admin authorization..."
-                            icon={ShieldCheck}
+                            icon={DidacheGeometricIcon}
                         />
                     ) : (
                         <div className="relative rounded-3xl border border-slate-800 bg-slate-900/70 p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6">

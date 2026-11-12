@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { BookOpen, QrCode, ShieldCheck, UserCheck, Sparkles, ArrowRight, CheckCircle2, Zap, UserPlus } from 'lucide-react';
+import { QrCode, ShieldCheck, UserCheck, Sparkles, ArrowRight, CheckCircle2, Zap, UserPlus } from 'lucide-react';
+import { DidacheGeometricIcon } from '@/Components/DidacheIcon';
 import Footer from "@/Components/Footer";
 
 export default function LandingPage() {
@@ -12,7 +13,7 @@ export default function LandingPage() {
         <header className="flex items-center justify-between pt-2 pb-8">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 shadow-lg shadow-indigo-500/10 backdrop-blur-md">
-              <BookOpen className="h-6 w-6 text-emerald-400" />
+              <DidacheGeometricIcon className="w-9 h-9" />
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white">Didache:</h1>

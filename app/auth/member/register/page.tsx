@@ -3,9 +3,10 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { User, Phone, MessageSquare, Briefcase, MapPin, CheckCircle, ArrowLeft, Mail, Users, Sparkles, Heart } from 'lucide-react';
+import { User, Phone, MessageSquare, Briefcase, MapPin, CheckCircle, ArrowLeft, Mail, Users, Sparkles } from 'lucide-react';
 import Footer from '@/Components/Footer';
 import LoadingSpinner from '@/Components/LoadingSpinner';
+import {DidacheGeometricIcon} from "@/Components/DidacheIcon";
 
 function RegisterForm() {
     const [firstName, setFirstName] = useState('');
@@ -153,7 +154,7 @@ function RegisterForm() {
     };
 
     if (redirecting) {
-        return <LoadingSpinner text="Setting up your dashboard..." icon={Heart} />;
+        return <LoadingSpinner text="Setting up your dashboard..." icon={DidacheGeometricIcon} />;
     }
 
     if (isRegisteredAndCheckedIn) {
@@ -490,7 +491,7 @@ export default function MemberRegisterPage() {
                         </p>
                     </div>
 
-                    <Suspense fallback={<LoadingSpinner text="Preparing registration..." icon={Heart} />}>
+                    <Suspense fallback={<LoadingSpinner text="Preparing registration..." icon={DidacheGeometricIcon} />}>
                         <RegisterForm />
                     </Suspense>
                 </div>

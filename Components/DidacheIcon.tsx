@@ -1,0 +1,24 @@
+export function DidacheGeometricIcon({ className = "w-10 h-10" }: { className?: string }) {
+    return (
+        <svg className={className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Rounded square base */}
+            <rect width="100" height="100" rx="28" fill="#090d16" stroke="#1e293b" strokeWidth="3" />
+            <rect x="4" y="4" width="92" height="92" rx="24" stroke="url(#paint0_linear)" strokeWidth="2" opacity="0.4" />
+
+            {/* Stylized letter D */}
+            <path d="M35 28 H52 C64 28 72 36 72 50 C72 64 64 72 52 72 H35 V28 Z" fill="url(#paint1_linear)" />
+            <path d="M45 40 H50 C56 40 60 44 60 50 C60 56 56 60 50 60 H45 V40 Z" fill="#090d16" />
+
+            <defs>
+                <linearGradient id="paint0_linear" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#10b981" />
+                    <stop offset="1" stopColor="#3b82f6" />
+                </linearGradient>
+                <linearGradient id="paint1_linear" x1="35" y1="28" x2="72" y2="72" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#10b981" />
+                    <stop offset="1" stopColor="#34d399" />
+                </linearGradient>
+            </defs>
+        </svg>
+    );
+}

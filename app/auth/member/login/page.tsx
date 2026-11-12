@@ -4,7 +4,8 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { BookOpen, Phone, ArrowRight, ArrowLeft, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Phone, ArrowRight, ArrowLeft, Sparkles, CheckCircle2 } from 'lucide-react';
+import { DidacheGeometricIcon } from '@/Components/DidacheIcon';
 import LoadingSpinner from '@/Components/LoadingSpinner';
 import Footer from '@/Components/Footer';
 
@@ -142,7 +143,7 @@ function MemberLoginForm() {
     };
 
     if (navigating) {
-        return <LoadingSpinner text="Opening your dashboard..." icon={BookOpen} />;
+        return <LoadingSpinner text="Opening your dashboard..." icon={DidacheGeometricIcon} />;
     }
 
     // 1. QR Check-In Confirmation View
@@ -317,7 +318,7 @@ export default function MemberLoginPage() {
                 <div className="space-y-6">
                     <div className="text-center space-y-2">
                         <div className="inline-flex items-center justify-center h-12 w-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-xl mb-1 backdrop-blur-md">
-                            <BookOpen className="h-6 w-6" />
+                            <DidacheGeometricIcon className="w-9 h-9" />
                         </div>
                         <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
                             Member Check-In
@@ -327,7 +328,7 @@ export default function MemberLoginPage() {
                         </p>
                     </div>
 
-                    <Suspense fallback={<LoadingSpinner text="Preparing member login..." icon={BookOpen} />}>
+                    <Suspense fallback={<LoadingSpinner text="Preparing member login..." icon={DidacheGeometricIcon} />}>
                         <MemberLoginForm />
                     </Suspense>
                 </div>

@@ -1,14 +1,14 @@
 'use client';
 
 import React from 'react';
-import { BookOpen } from 'lucide-react';
+import {DidacheGeometricIcon} from "@/Components/DidacheIcon";
 
 interface LoadingSpinnerProps {
     text?: string;
     icon?: React.ElementType;
 }
 
-export default function LoadingSpinner({ text = 'Loading...', icon: Icon = BookOpen }: LoadingSpinnerProps) {
+export default function LoadingSpinner({ text = 'Loading...', icon: Icon = DidacheGeometricIcon }: LoadingSpinnerProps) {
     return (
         <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center space-y-4 bg-slate-950/40 rounded-3xl border border-slate-900 my-auto">
             <div className="relative flex items-center justify-center">

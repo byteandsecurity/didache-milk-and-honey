@@ -5,8 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Sparkles, BookOpen, ArrowRight, User, KeyRound, Heart, QrCode } from 'lucide-react';
 import LoadingSpinner from '@/Components/LoadingSpinner';
-import Footer from '@/Components/Footer';
+import {DidacheGeometricIcon} from "@/Components/DidacheIcon";
 import QrScanner from '@/Components/member/QrScanner';
+import Footer from '@/Components/Footer';
 
 interface MemberProfile {
     id: string;
@@ -99,7 +100,7 @@ function CheckInContent() {
     };
 
     if (checking) {
-        return <LoadingSpinner text="Verifying Sunday check-in session..." icon={BookOpen} />;
+        return <LoadingSpinner text="Verifying Sunday check-in session..." icon={DidacheGeometricIcon} />;
     }
 
     if (memberProfile) {
@@ -305,7 +306,7 @@ function CheckInContent() {
 
 export default function CheckInPage() {
     return (
-        <Suspense fallback={<LoadingSpinner text="Loading Check-In Gateway..." icon={BookOpen} />}>
+        <Suspense fallback={<LoadingSpinner text="Loading Check-In Gateway..." icon={DidacheGeometricIcon} />}>
             <CheckInContent />
         </Suspense>
     );
