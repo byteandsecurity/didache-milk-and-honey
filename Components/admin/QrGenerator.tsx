@@ -68,8 +68,10 @@ export default function QrGenerator() {
             return;
         }
 
-        const qrUrl = `https://didache-milk-and-honey.vercel.app/checking?date=${dateStr}`;
-        const expiryTimestamp = Date.now() + (60 * 60 * 1000); // 1 Hour Expiry
+        const expiryTimestamp = Date.now() + (60 * 1000); // 1-Minute Expiry for testing (Change to 60 * 60 * 1000 for 1 hour)
+
+        // Encode both date and expiration timestamp into the QR url
+        const qrUrl = `https://didache-milk-and-honey.vercel.app/checking?date=${dateStr}&expires=${expiryTimestamp}`;
         const newCount = qrGenCount + 1;
 
         setActiveQrCode(qrUrl);

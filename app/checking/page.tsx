@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Sparkles, BookOpen, ArrowRight, User, KeyRound, Heart, QrCode, Clock, MapPin } from 'lucide-react';
+import { Sparkles, ArrowRight, User, KeyRound, Heart, QrCode, Clock, MapPin, ShieldAlert } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
 import { verifyUserLocation } from '@/lib/geofence';
@@ -24,6 +24,7 @@ function CheckInContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const rawDateParam = searchParams.get('date');
+    const rawExpiresParam = searchParams.get('expires');
     const dateParam = rawDateParam || new Date().toISOString().split('T')[0];
     const supabase = createClient();
 
@@ -33,42 +34,58 @@ function CheckInContent() {
     const [alreadyCheckedIn, setAlreadyCheckedIn] = useState<boolean>(false);
     const [showScannerModal, setShowScannerModal] = useState<boolean>(false);
 
-    // Modal States
+    // Security & Modal States
+    const [blockReason, setBlockReason] = useState<'expired' | 'geofence' | null>(null);
     const [showExpiredModal, setShowExpiredModal] = useState<boolean>(false);
     const [showGeofenceError, setShowGeofenceError] = useState<boolean>(false);
     const [locationMessage, setLocationMessage] = useState<string>('');
 
     useEffect(() => {
         const processCheckIn = async () => {
-            if (rawDateParam) {
-                localStorage.setItem('didache_qr_date', rawDateParam);
-            }
-
-            const memberId = localStorage.getItem('didache_member_id');
-
-            if (memberId) {
-                // 1. Run Geofence Verification via Helper
-                const geoCheck = await verifyUserLocation();
-                if (!geoCheck.allowed) {
-                    setLocationMessage(geoCheck.message || "You must be within 100m of the venue to check in.");
-                    setShowGeofenceError(true);
-                    setChecking(false);
-                    return;
-                }
-
-                // 2. Fetch session and check active status
-                const { data: sessionMatch } = await supabase
-                    .from('sessions')
-                    .select('id, is_active')
-                    .eq('session_date', dateParam)
-                    .maybeSingle();
-
-                if (sessionMatch && sessionMatch.is_active === false) {
+            // 1. INSTANT QR URL EXPIRATION CHECK (Applies to ALL users: Members, New Users, Guests)
+            if (rawExpiresParam) {
+                const expiryTime = parseInt(rawExpiresParam, 10);
+                if (!isNaN(expiryTime) && Date.now() > expiryTime) {
+                    setBlockReason('expired');
                     setShowExpiredModal(true);
                     setChecking(false);
                     return;
                 }
+            }
 
+            // 2. GEOFENCE CHECK (Applies to ALL users scanning in)
+            const geoCheck = await verifyUserLocation();
+            if (!geoCheck.allowed) {
+                setLocationMessage(geoCheck.message || "You must be within 100m of the venue to check in.");
+                setBlockReason('geofence');
+                setShowGeofenceError(true);
+                setChecking(false);
+                return;
+            }
+
+            // 3. DATABASE SESSION ACTIVE CHECK (Applies to ALL users)
+            const { data: sessionMatch } = await supabase
+                .from('sessions')
+                .select('id, is_active')
+                .eq('session_date', dateParam)
+                .maybeSingle();
+
+            if (sessionMatch && sessionMatch.is_active === false) {
+                setBlockReason('expired');
+                setShowExpiredModal(true);
+                setChecking(false);
+                return;
+            }
+
+            // Save valid scan context
+            if (rawDateParam) {
+                localStorage.setItem('didache_qr_date', rawDateParam);
+            }
+
+            // 4. RETURNING MEMBER AUTO CHECK-IN
+            const memberId = localStorage.getItem('didache_member_id');
+
+            if (memberId) {
                 const { data: profile } = await supabase
                     .from('profiles')
                     .select('*')
@@ -92,6 +109,7 @@ function CheckInContent() {
 
                     if (activeSession) {
                         if (activeSession.is_active === false) {
+                            setBlockReason('expired');
                             setShowExpiredModal(true);
                             setChecking(false);
                             return;
@@ -126,10 +144,13 @@ function CheckInContent() {
         };
 
         void processCheckIn();
-    }, [supabase, dateParam, rawDateParam]);
+    }, [supabase, dateParam, rawDateParam, rawExpiresParam]);
 
     const navigateWithDate = (path: string) => {
-        const query = rawDateParam ? `?date=${rawDateParam}` : '';
+        const params = new URLSearchParams();
+        if (rawDateParam) params.set('date', rawDateParam);
+        if (rawExpiresParam) params.set('expires', rawExpiresParam);
+        const query = params.toString() ? `?${params.toString()}` : '';
         router.push(`${path}${query}`);
     };
 
@@ -147,7 +168,37 @@ function CheckInContent() {
             </header>
 
             <main className="my-8">
-                {memberProfile ? (
+                {/* LOCKED SCREEN STATE IF EXPIRED OR OUT OF BOUNDS */}
+                {blockReason ? (
+                    <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-8 text-center space-y-5 shadow-2xl backdrop-blur-xl">
+                        <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border ${
+                            blockReason === 'expired'
+                                ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                                : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                        }`}>
+                            {blockReason === 'expired' ? <Clock className="h-8 w-8" /> : <ShieldAlert className="h-8 w-8" />}
+                        </div>
+
+                        <div className="space-y-2">
+                            <h2 className="text-xl font-bold text-white">
+                                {blockReason === 'expired' ? 'Check-In Code Expired' : 'Location Verification Failed'}
+                            </h2>
+                            <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+                                {blockReason === 'expired'
+                                    ? 'This QR code is no longer valid for check-in. Please scan the active code displayed at the venue.'
+                                    : locationMessage}
+                            </p>
+                        </div>
+
+                        <button
+                            onClick={() => setShowScannerModal(true)}
+                            className="inline-flex items-center justify-center gap-2 w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-semibold text-white shadow-lg transition cursor-pointer"
+                        >
+                            <QrCode className="w-4 h-4" />
+                            <span>Scan Active Session QR</span>
+                        </button>
+                    </div>
+                ) : memberProfile ? (
                     <div className="rounded-3xl border border-emerald-500/30 bg-slate-900/80 p-8 text-center space-y-6 shadow-2xl backdrop-blur-xl">
                         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
                             <Sparkles className="h-8 w-8" />
@@ -257,7 +308,7 @@ function CheckInContent() {
                             >
                                 <div className="flex items-center justify-between">
                                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                        <BookOpen className="w-5 h-5" />
+                                        <DidacheGeometricIcon className="w-9 h-9" />
                                     </div>
                                     <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition" />
                                 </div>

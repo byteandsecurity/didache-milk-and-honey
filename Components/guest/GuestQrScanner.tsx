@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Camera, X, CheckCircle2 } from 'lucide-react';
+import { verifyUserLocation } from '@/lib/geofence';
 
 interface GuestQrScannerProps {
     isOpen: boolean;
@@ -30,9 +31,55 @@ export default function GuestQrScanner({ isOpen, onClose, onSuccess }: GuestQrSc
         }
     }, []);
 
-    const processScannedDate = useCallback(async (scannedDateStr: string) => {
+    const processScannedValue = useCallback(async (rawValue: string) => {
         if (processingScanRef.current) return;
         processingScanRef.current = true;
+
+        // 1. EXTRACT DATE AND EXPIRATION FROM RAW QR DATA
+        let scannedDateStr: string | null = null;
+        let expiryTimestamp: number | null = null;
+
+        try {
+            const urlObj = new URL(rawValue);
+            scannedDateStr = urlObj.searchParams.get('date');
+            const expiresParam = urlObj.searchParams.get('expires');
+            if (expiresParam) expiryTimestamp = parseInt(expiresParam, 10);
+        } catch {
+            try {
+                const parsedJson = JSON.parse(rawValue);
+                scannedDateStr = parsedJson.date || null;
+                if (parsedJson.expires) expiryTimestamp = parseInt(parsedJson.expires, 10);
+            } catch {
+                if (rawValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    scannedDateStr = rawValue.trim();
+                }
+            }
+        }
+
+        if (!scannedDateStr) {
+            setSuccessMessage('Error: Invalid QR code format.');
+            setIsSuccessState(true);
+            processingScanRef.current = false;
+            return;
+        }
+
+        // 2. CHECK EXPIRATION TIMESTAMP
+        if (expiryTimestamp && Date.now() > expiryTimestamp) {
+            setSuccessMessage('⏳ QR Code Expired! Please scan an active session code.');
+            setIsSuccessState(true);
+            processingScanRef.current = false;
+            return;
+        }
+
+        // 3. VERIFY GEOFENCE LOCATION
+        setScannerStatus('Verifying location...');
+        const geoCheck = await verifyUserLocation();
+        if (!geoCheck.allowed) {
+            setSuccessMessage(`❌ ${geoCheck.message || "You are outside the check-in radius."}`);
+            setIsSuccessState(true);
+            processingScanRef.current = false;
+            return;
+        }
 
         localStorage.setItem('didache_qr_date', scannedDateStr);
 
@@ -78,21 +125,8 @@ export default function GuestQrScanner({ isOpen, onClose, onSuccess }: GuestQrSc
                             const barcodes = await barcodeDetector.detect(videoRef.current);
                             if (barcodes.length > 0) {
                                 const rawValue = barcodes[0].rawValue;
-                                let dateParam: string | null = null;
-
-                                try {
-                                    const urlObj = new URL(rawValue);
-                                    dateParam = urlObj.searchParams.get('date');
-                                } catch {
-                                    if (rawValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                                        dateParam = rawValue.trim();
-                                    }
-                                }
-
-                                if (dateParam) {
-                                    stopCamera();
-                                    await processScannedDate(dateParam);
-                                }
+                                stopCamera();
+                                await processScannedValue(rawValue);
                             }
                         } catch {
                             // Suppress frame scan noise
@@ -106,7 +140,7 @@ export default function GuestQrScanner({ isOpen, onClose, onSuccess }: GuestQrSc
             console.error('Camera error:', err);
             setScannerStatus('Camera access blocked. Please check permissions.');
         }
-    }, [stopCamera, processScannedDate]);
+    }, [stopCamera, processScannedValue]);
 
     useEffect(() => {
         if (isOpen) {
