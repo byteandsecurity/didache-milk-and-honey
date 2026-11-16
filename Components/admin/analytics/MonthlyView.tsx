@@ -60,7 +60,7 @@ export default function MonthlyView({ novemberMetrics, isTestingMode }: MonthlyV
                                         <h4 className="text-xs font-bold text-white uppercase">October 2026</h4>
                                         <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold">Visitors Logged</span>
                                     </div>
-                                    <p className="text-xs text-slate-400">Visitor data recorded successfully. Transitioning to active member rollups.</p>
+                                    <p className="text-xs text-slate-400">Visitor data recorded successfully. Transitioning to active member rollup.</p>
                                 </div>
                             </div>
 

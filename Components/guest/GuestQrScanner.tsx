@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Camera, X, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { verifyUserLocation } from '@/lib/geofence';
+import { recordAttendance } from '@/lib/offlineSync';
 
 interface GuestQrScannerProps {
     isOpen: boolean;
@@ -83,10 +84,20 @@ export default function GuestQrScanner({ isOpen, onClose, onSuccess }: GuestQrSc
 
         localStorage.setItem('didache_qr_date', scannedDateStr);
 
+        // 4. OFFLINE RESILIENT GUEST ATTENDANCE HOOK
+        const guestId = localStorage.getItem('didache_guest_id');
+        if (guestId) {
+            try {
+                await recordAttendance(guestId, scannedDateStr);
+            } catch (err) {
+                console.warn('Offline guest attendance queue active:', err);
+            }
+        }
+
         setResultMessage(`QR Code verified for ${scannedDateStr}!`);
         setResultState('success');
 
-        // Notify parent FIRST to trigger instant database check-in
+        // Notify parent to trigger instant database check-in / flow progression
         onSuccess(scannedDateStr);
 
         setTimeout(() => {
@@ -144,6 +155,7 @@ export default function GuestQrScanner({ isOpen, onClose, onSuccess }: GuestQrSc
 
     useEffect(() => {
         if (isOpen) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setResultState('none');
             processingScanRef.current = false;
             void startCamera();

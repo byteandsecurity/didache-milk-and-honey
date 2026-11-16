@@ -107,6 +107,7 @@ export default function QrGenerator() {
     };
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadStoredQrState();
     }, []);
 
@@ -330,6 +331,7 @@ export default function QrGenerator() {
                     {activeQrCode && !isExpired ? (
                         <div className="space-y-3 w-full flex flex-col items-center">
                             <div className="p-4 bg-white rounded-2xl shadow-2xl space-y-2">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
                                     src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(activeQrCode)}`}
                                     alt="QR"

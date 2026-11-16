@@ -9,43 +9,67 @@ export interface PendingCheckIn {
 const QUEUE_KEY = 'didache_offline_queue';
 
 // 1. Record check-in (handles offline vs online automatically)
-export async function recordAttendance(userId: string, sessionId: string) {
-    const supabase = createClient();
-    const checkInRecord: PendingCheckIn = {
-        user_id: userId,
-        session_id: sessionId,
-        checked_in_at: new Date().toISOString(),
-    };
-
-    // Check if browser is offline
-    if (!navigator.onLine) {
-        saveToOfflineQueue(checkInRecord);
-        return { success: true, offline: true, message: 'Saved offline. Will sync automatically when online!' };
-    }
-
+export async function recordAttendance(userId: string, sessionId?: string, sessionDate?: string) {
     try {
-        const { error } = await supabase.from('attendance').insert([checkInRecord]);
+        const offlineQueue = JSON.parse(localStorage.getItem('didache_offline_attendance') || '[]');
 
-        if (error) {
-            // Queue locally if Supabase returns an error (network drop, etc.)
-            saveToOfflineQueue(checkInRecord);
-            return { success: true, offline: true, message: 'Network unstable. Saved to offline queue.' };
+        const newRecord = {
+            user_id: userId,
+            session_id: sessionId || null,
+            session_date: sessionDate || new Date().toISOString().split('T')[0],
+            checked_in_at: new Date().toISOString(),
+            synced: false
+        };
+
+        offlineQueue.push(newRecord);
+        localStorage.setItem('didache_offline_attendance', JSON.stringify(offlineQueue));
+
+        // Register background sync safely
+        if ('serviceWorker' in navigator) {
+            const registration = await navigator.serviceWorker.ready;
+            if ('sync' in registration) {
+                await (registration as ServiceWorkerRegistration & {
+                    sync: { register: (tag: string) => Promise<void> }
+                }).sync.register('sync-attendance');
+            }
         }
-
-        // Try flushing any other pending queue items while we have a good connection
-        void syncOfflineQueue();
-
-        return { success: true, offline: false, message: 'Attendance checked in successfully!' };
     } catch (err) {
-        // Fallback to offline queue on unexpected runtime/network exceptions
-        saveToOfflineQueue(checkInRecord);
-        return { success: true, offline: true, message: 'Connection error. Saved offline for sync.' };
+        console.error('Failed to record attendance offline:', err);
+    }
+}
+
+export async function recordGuestAttendance(guestId: string, sessionDate: string) {
+    try {
+        const offlineQueue = JSON.parse(localStorage.getItem('didache_offline_guest_attendance') || '[]');
+
+        const newRecord = {
+            guest_id: guestId,
+            session_date: sessionDate,
+            checked_in_at: new Date().toISOString(),
+            synced: false
+        };
+
+        offlineQueue.push(newRecord);
+        localStorage.setItem('didache_offline_guest_attendance', JSON.stringify(offlineQueue));
+
+        // Register background sync safely with type casting
+        if ('serviceWorker' in navigator) {
+            const registration = await navigator.serviceWorker.ready;
+            if ('sync' in registration) {
+                await (registration as ServiceWorkerRegistration & {
+                    sync: { register: (tag: string) => Promise<void> }
+                }).sync.register('sync-guest-attendance');
+            }
+        }
+    } catch (err) {
+        console.error('Failed to record guest attendance offline:', err);
     }
 }
 
 // 2. Save to localStorage queue
 function saveToOfflineQueue(record: PendingCheckIn) {
     try {
+        if (typeof window === 'undefined') return;
         const existing: PendingCheckIn[] = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
         // Prevent duplicate entries for the same session
         const filtered = existing.filter(item => !(item.user_id === record.user_id && item.session_id === record.session_id));
@@ -58,7 +82,7 @@ function saveToOfflineQueue(record: PendingCheckIn) {
 
 // 3. Sync queue to Supabase when back online
 export async function syncOfflineQueue() {
-    if (!navigator.onLine) return;
+    if (typeof window === 'undefined' || !navigator.onLine) return;
 
     try {
         const queue: PendingCheckIn[] = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');

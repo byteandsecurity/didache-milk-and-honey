@@ -5,24 +5,34 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="Secure check-in flow with URL expiration fix">
-      <change afterPath="$PROJECT_DIR$/Components/admin/AddUserModal.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Components/admin/ConfirmationModa.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Components/admin/analytics/DailyView.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Components/admin/analytics/MonthlyView.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Components/admin/analytics/QuaterlyView.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Components/admin/analytics/YearlyView.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/admin/analytics/page.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/analytics/admin/engine.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/types/admin.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/DidacheIcon.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/DidacheIcon.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/Test/member/QrScannerTest.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/Test/member/QrScannerTest.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/admin/AddUserModal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/AddUserModal.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Components/admin/BirthdayDirectory.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/BirthdayDirectory.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Components/admin/GuestManagement.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/GuestManagement.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/admin/ConfirmationModa.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/ConfirmationModal.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Components/admin/MemberRoster.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/MemberRoster.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Components/admin/OverviewAnalytics.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/OverviewAnalytics.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Components/admin/QrGenerator.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/QrGenerator.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Components/admin/StaffDirectory.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/StaffDirectory.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Components/admin/analytics/AttendanceTrends.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/admin/dashboard/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/dashboard/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/admin/analytics/DailyView.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/analytics/DailyView.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/admin/analytics/MonthlyView.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/analytics/MonthlyView.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/guest/GuestQrScanner.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/guest/GuestQrScanner.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/member/MemberAnalytics.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/member/MemberAnalytics.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/member/QrScanner.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/member/QrScanner.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/admin/analytics/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/analytics/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/auth/guest/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/auth/guest/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/auth/member/login/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/auth/member/login/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/auth/member/register/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/auth/member/register/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/checking/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/checking/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/icon.svg" beforeDir="false" afterPath="$PROJECT_DIR$/app/icon.svg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/member/dashboard/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/member/dashboard/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/analytics/admin/engine.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/analytics/admin/engine.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/geofence.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/geofence.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/offlineSync.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/offlineSync.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/public/icon.svg" beforeDir="false" afterPath="$PROJECT_DIR$/public/icon.svg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/public/manifest.json" beforeDir="false" afterPath="$PROJECT_DIR$/public/manifest.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -47,61 +57,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="2.3847224238574242E-225" />
-      <entry key="MS500" value="1.1898372662099267E-45" />
-      <entry key="S2" value="5.8731608042199916E-12" />
-      <entry key="S5" value="3.217723754910395E-5" />
-      <entry key="S10" value="0.005672498351617562" />
-      <entry key="S30" value="0.178343845225676" />
-      <entry key="S60" value="0.4223077612682327" />
-      <entry key="M2" value="0.6498544535455689" />
-      <entry key="M5" value="0.8552942517827903" />
-      <entry key="M10" value="1.249001654758497" />
-      <entry key="M15" value="2.0474345033879002" />
-      <entry key="M30" value="5.45258957639982" />
-      <entry key="H1" value="11.344577028590068" />
-      <entry key="H2" value="18.310043951569906" />
-      <entry key="H4" value="30.734362577493556" />
-      <entry key="D1" value="223.7097694902893" />
-      <entry key="W1" value="502.937960002209" />
+      <entry key="MS100" value="1.0133490372128902" />
+      <entry key="MS500" value="1.6813925081963816" />
+      <entry key="S2" value="2.908790831532068" />
+      <entry key="S5" value="3.5192906242740603" />
+      <entry key="S10" value="4.169393753086849" />
+      <entry key="S30" value="7.152387524563361" />
+      <entry key="S60" value="10.601006650967935" />
+      <entry key="M2" value="17.481682180006974" />
+      <entry key="M5" value="34.996943457219885" />
+      <entry key="M10" value="49.78793850163129" />
+      <entry key="M15" value="56.891439171613705" />
+      <entry key="M30" value="65.77745967453208" />
+      <entry key="H1" value="72.890182553259" />
+      <entry key="H2" value="82.21462775968013" />
+      <entry key="H4" value="97.14632749408933" />
+      <entry key="D1" value="286.8859573879799" />
+      <entry key="W1" value="580.8107470456265" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="1.0" />
-      <entry key="MS500" value="1.0" />
-      <entry key="S2" value="1.0000000000687428" />
-      <entry key="S5" value="1.0000860777563771" />
-      <entry key="S10" value="1.0092778098911985" />
-      <entry key="S30" value="1.2101269820918101" />
-      <entry key="S60" value="1.4583960973784684" />
-      <entry key="M2" value="1.677049569058148" />
-      <entry key="M5" value="1.8563242487080314" />
-      <entry key="M10" value="1.9614039384018473" />
-      <entry key="M15" value="2.1421552914793835" />
-      <entry key="M30" value="3.517162151357479" />
-      <entry key="H1" value="7.0004788095131" />
-      <entry key="H2" value="11.450156392412712" />
-      <entry key="H4" value="16.155855682191557" />
-      <entry key="D1" value="48.7209739447952" />
-      <entry key="W1" value="96.63366208957399" />
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="0.0" />
+      <entry key="S5" value="0.0" />
+      <entry key="S10" value="3.338674651919377E-166" />
+      <entry key="S30" value="8.603713670184943E-56" />
+      <entry key="S60" value="3.931454976178278E-28" />
+      <entry key="M2" value="2.7628816649321773E-14" />
+      <entry key="M5" value="5.696097177045455E-6" />
+      <entry key="M10" value="0.0033746388564848766" />
+      <entry key="M15" value="0.028511098768126537" />
+      <entry key="M30" value="0.27000615831419406" />
+      <entry key="H1" value="1.3574080417483179" />
+      <entry key="H2" value="4.710228629589988" />
+      <entry key="H4" value="10.510191398646311" />
+      <entry key="D1" value="46.08922942195345" />
+      <entry key="W1" value="97.2785619308475" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="5.78199984172973E-6" />
-      <entry key="MS500" value="0.08962220300098919" />
-      <entry key="S2" value="0.5471468506395368" />
-      <entry key="S5" value="0.7857292774445509" />
-      <entry key="S10" value="0.8969872949420913" />
-      <entry key="S30" value="1.3089983518882633" />
-      <entry key="S60" value="1.8147409381963016" />
-      <entry key="M2" value="2.281967573041245" />
-      <entry key="M5" value="2.6896139402390555" />
-      <entry key="M10" value="3.1978215159508174" />
-      <entry key="M15" value="4.179235639382112" />
-      <entry key="M30" value="8.95934861167515" />
-      <entry key="H1" value="18.33481815014913" />
-      <entry key="H2" value="29.752272392270697" />
-      <entry key="H4" value="46.88458982867647" />
-      <entry key="D1" value="272.4272822951143" />
-      <entry key="W1" value="599.5706144496597" />
+      <entry key="MS100" value="0.8280356333343598" />
+      <entry key="MS500" value="1.5162823034499968" />
+      <entry key="S2" value="2.790040219117699" />
+      <entry key="S5" value="3.4587314931179987" />
+      <entry key="S10" value="4.135458181050762" />
+      <entry key="S30" value="7.1372763666142545" />
+      <entry key="S60" value="10.591211588843958" />
+      <entry key="M2" value="17.474643762417386" />
+      <entry key="M5" value="34.99171706719564" />
+      <entry key="M10" value="49.78751353892584" />
+      <entry key="M15" value="56.91667515876087" />
+      <entry key="M30" value="66.04388048949141" />
+      <entry key="H1" value="74.24292986264791" />
+      <entry key="H2" value="86.91945012767714" />
+      <entry key="H4" value="107.65146909683227" />
+      <entry key="D1" value="332.971644569835" />
+      <entry key="W1" value="678.0882552040846" />
     </decayedShown>
   </component>
   <component name="ProblemsViewState">
@@ -210,6 +220,8 @@
       <workItem from="1794791580238" duration="92000" />
       <workItem from="1794792771670" duration="64000" />
       <workItem from="1794792973367" duration="7117000" />
+      <workItem from="1794837485980" duration="127000" />
+      <workItem from="1794838159963" duration="10606000" />
     </task>
     <task id="LOCAL-00001" summary="Friction-free member onboarding, auth, and responsive UI:&#10;- Responsive landing page with emerald/indigo ambient lighting and mobile-first design.&#10;- Frictionless member registration &amp; login using phone numbers (no passwords required for church members).&#10;- Added localStorage form draft persistence to prevent data loss on mobile browser reloads.&#10;- Created dedicated admin login route with role verification.&#10;- Wrapped search params in Suspense and configured Supabase RLS policies for smooth database inserts.&#10;- Included Vercel Analytics and Speed Insights in root layout.">
       <option name="closed" value="true" />

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Camera, X, CheckCircle2, Beaker } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { recordAttendance } from '@/lib/offlineSync';
 
 interface QrScannerProps {
     isOpen: boolean;
@@ -20,7 +21,6 @@ export default function QrScannerTestable({ isOpen, onClose, onSuccess }: QrScan
     const mediaStreamRef = useRef<MediaStream | null>(null);
     const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const processingScanRef = useRef<boolean>(false);
-
 
     const supabase = createClient();
 
@@ -71,38 +71,18 @@ export default function QrScannerTestable({ isOpen, onClose, onSuccess }: QrScan
                 .eq('session_date', scannedDateStr)
                 .maybeSingle();
 
-            const attendancePayload: {
-                user_id: string;
-                session_date: string;
-                checked_in_at: string;
-                session_id?: string;
-            } = {
-                user_id: memberId,
-                session_date: scannedDateStr,
-                checked_in_at: new Date().toISOString(),
-            };
+            // Use robust offline-resilient attendance recording utility
+            const targetSessionId = existingSession?.id || scannedDateStr;
+            const result = await recordAttendance(memberId, targetSessionId);
 
-            if (existingSession?.id) {
-                attendancePayload.session_id = existingSession.id;
-            }
-
-            const { error: attendanceError } = await supabase
-                .from('attendance')
-                .insert([attendancePayload]);
-
-            if (attendanceError) {
-                if (attendanceError.message.includes('duplicate') || attendanceError.code === '23505') {
-                    setSuccessMessage('ℹ️ You have already checked in for this session!');
-                } else {
-                    console.error('Supabase Attendance Error:', attendanceError);
-                    setSuccessMessage(`Error recording attendance: ${attendanceError.message}`);
-                }
-            } else {
-                setSuccessMessage('Attendance successfully recorded! God bless you!');
+            if (result.success) {
+                setSuccessMessage(result.offline ? '💾 Saved offline. Will sync when online!' : 'Attendance successfully recorded! God bless you!');
                 setTimeout(() => {
                     onClose();
                     onSuccess();
                 }, 1200);
+            } else {
+                setSuccessMessage('Error recording attendance.');
             }
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : 'Failed to record attendance.';
@@ -185,6 +165,7 @@ export default function QrScannerTestable({ isOpen, onClose, onSuccess }: QrScan
 
     useEffect(() => {
         if (isOpen) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIsSuccessState(false);
             processingScanRef.current = false;
             void startCamera();

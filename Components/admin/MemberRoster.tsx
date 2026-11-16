@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Search, Eye, Edit2, Trash2, X, Calendar, Filter, Users, RefreshCw, ChevronLeft, ChevronRight, UserCheck, RotateCcw, AlertTriangle, Briefcase, CheckCircle2 } from 'lucide-react';
+import { Search, Eye, Trash2, X, Calendar, Filter, Users, RefreshCw, ChevronLeft, ChevronRight, UserCheck, RotateCcw, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { MemberProfile, AttendanceRecord, SessionRecord } from '@/types/admin';
 
@@ -584,7 +584,7 @@ export default function MemberRoster({ members = [], attendance = [], sessions =
                         >
                             <ChevronLeft className="w-4 h-4" />
                         </button>
-                        <span className="font-semibold text-white">Page {currentPage} of {totalPages}</span>
+                        <span className="text-white font-medium">Page {currentPage} of {totalPages}</span>
                         <button
                             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                             disabled={currentPage === totalPages}

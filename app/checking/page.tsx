@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Sparkles, ArrowRight, User, KeyRound, Heart, QrCode, Clock, ShieldAlert } from 'lucide-react';
+import { Sparkles, ArrowRight, User, KeyRound, Heart, QrCode, Clock, ShieldAlert, WifiOff } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
+import { recordAttendance } from '@/lib/offlineSync';
 import { verifyUserLocation } from '@/lib/geofence';
 
 import LoadingSpinner from '@/Components/LoadingSpinner';
@@ -32,8 +33,8 @@ function CheckInContent() {
     const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(null);
     const [memberChoice, setMemberChoice] = useState<'selection' | 'member_branch'>('selection');
     const [alreadyCheckedIn, setAlreadyCheckedIn] = useState<boolean>(false);
-    const [qrExpiredNotice, setQrExpiredNotice] = useState<boolean>(false);
     const [showScannerModal, setShowScannerModal] = useState<boolean>(false);
+    const [isOfflineMode, setIsOfflineMode] = useState<boolean>(!navigator.onLine);
 
     // Unified Security Lock State
     const [blockReason, setBlockReason] = useState<'expired' | 'geofence' | null>(null);
@@ -41,26 +42,42 @@ function CheckInContent() {
     const [hasMemberSession, setHasMemberSession] = useState<boolean>(false);
 
     useEffect(() => {
+        const handleOnlineStatus = () => setIsOfflineMode(!navigator.onLine);
+        window.addEventListener('online', handleOnlineStatus);
+        window.addEventListener('offline', handleOnlineStatus);
+        return () => {
+            window.removeEventListener('online', handleOnlineStatus);
+            window.removeEventListener('offline', handleOnlineStatus);
+        };
+    }, []);
+
+    useEffect(() => {
         const processCheckIn = async () => {
             const expiryTime = rawExpiresParam ? parseInt(rawExpiresParam, 10) : null;
             const isUrlExpired = Boolean(expiryTime && !isNaN(expiryTime) && Date.now() > expiryTime);
 
-            // Fetch session status early so we can check existing attendance even if QR/session is expired
-            const { data: sessionMatch } = await supabase
-                .from('sessions')
-                .select('id, is_active')
-                .eq('session_date', dateParam)
-                .maybeSingle();
+            let isSessionClosed = false;
+            let activeSessionId: string | undefined;
 
-            const isSessionClosed = Boolean(sessionMatch && sessionMatch.is_active === false);
+            // Attempt online session check if online, fallback gracefully if offline
+            if (navigator.onLine) {
+                const { data: sessionMatch } = await supabase
+                    .from('sessions')
+                    .select('id, is_active')
+                    .eq('session_date', dateParam)
+                    .maybeSingle();
+
+                isSessionClosed = Boolean(sessionMatch && sessionMatch.is_active === false);
+                activeSessionId = sessionMatch?.id;
+            }
+
             const isExpiredOrClosed = isUrlExpired || isSessionClosed;
-
             const memberId = localStorage.getItem('didache_member_id');
             setHasMemberSession(Boolean(memberId));
 
             // 1. IF EXPIRED/CLOSED: Check if returning member is ALREADY checked in before locking them out
             if (isExpiredOrClosed) {
-                if (memberId) {
+                if (memberId && navigator.onLine) {
                     const { data: profile } = await supabase
                         .from('profiles')
                         .select('*')
@@ -70,12 +87,12 @@ function CheckInContent() {
                     if (profile) {
                         let existingAtt = null;
 
-                        if (sessionMatch?.id) {
+                        if (activeSessionId) {
                             const { data: bySessionId } = await supabase
                                 .from('attendance')
                                 .select('id')
                                 .eq('user_id', profile.id)
-                                .eq('session_id', sessionMatch.id)
+                                .eq('session_id', activeSessionId)
                                 .maybeSingle();
                             existingAtt = bySessionId;
                         }
@@ -93,83 +110,91 @@ function CheckInContent() {
                         if (existingAtt) {
                             setMemberProfile(profile as MemberProfile);
                             setAlreadyCheckedIn(true);
-                            setQrExpiredNotice(true);
                             setChecking(false);
                             return;
                         }
                     }
                 }
 
-                // Not checked in yet (or guest/new user) -> Lock screen
+                // If offline and member ID exists, allow bypass of strict expiration lock for returning users
+                if (!navigator.onLine && memberId) {
+                    setChecking(false);
+                    return;
+                }
+
                 setBlockReason('expired');
                 setChecking(false);
                 return;
             }
 
-            // 2. GEOFENCE CHECK (Applies to ALL users attempting a new check-in)
-            const geoCheck = await verifyUserLocation();
-            if (!geoCheck.allowed) {
-                setLocationMessage(geoCheck.message || "You must be within 100m of the venue to check in.");
-                setBlockReason('geofence');
-                setChecking(false);
-                return;
+            // 2. GEOFENCE CHECK (Bypassed if offline or testing mode)
+            if (navigator.onLine) {
+                const geoCheck = await verifyUserLocation();
+                if (!geoCheck.allowed) {
+                    setLocationMessage(geoCheck.message || "You must be within 100m of the venue to check in.");
+                    setBlockReason('geofence');
+                    setChecking(false);
+                    return;
+                }
             }
 
-            // Save valid scan context
             if (rawDateParam) {
                 localStorage.setItem('didache_qr_date', rawDateParam);
             }
 
             // 3. RETURNING MEMBER AUTO CHECK-IN
             if (memberId) {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', memberId)
-                    .maybeSingle();
+                if (navigator.onLine) {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', memberId)
+                        .maybeSingle();
 
-                if (profile) {
-                    setMemberProfile(profile as MemberProfile);
+                    if (profile) {
+                        setMemberProfile(profile as MemberProfile);
 
-                    const { data: activeSession } = await supabase
-                        .from('sessions')
-                        .upsert([
-                            {
-                                session_date: dateParam,
-                                title: `Service Session (${dateParam})`,
-                                is_active: true
-                            }
-                        ], { onConflict: 'session_date' })
-                        .select('id, is_active')
-                        .single();
-
-                    if (activeSession) {
-                        if (activeSession.is_active === false) {
-                            setBlockReason('expired');
-                            setChecking(false);
-                            return;
-                        }
-
-                        const { data: existingAtt } = await supabase
-                            .from('attendance')
-                            .select('id')
-                            .eq('user_id', profile.id)
-                            .eq('session_id', activeSession.id)
-                            .maybeSingle();
-
-                        if (existingAtt) {
-                            setAlreadyCheckedIn(true);
-                        } else {
-                            await supabase.from('attendance').insert([
+                        const { data: activeSession } = await supabase
+                            .from('sessions')
+                            .upsert([
                                 {
-                                    user_id: profile.id,
-                                    session_id: activeSession.id,
-                                    checked_in_at: new Date().toISOString(),
-                                },
-                            ]);
-                        }
-                    }
+                                    session_date: dateParam,
+                                    title: `Service Session (${dateParam})`,
+                                    is_active: true
+                                }
+                            ], { onConflict: 'session_date' })
+                            .select('id, is_active')
+                            .single();
 
+                        if (activeSession) {
+                            if (activeSession.is_active === false) {
+                                setBlockReason('expired');
+                                setChecking(false);
+                                return;
+                            }
+
+                            const { data: existingAtt } = await supabase
+                                .from('attendance')
+                                .select('id')
+                                .eq('user_id', profile.id)
+                                .eq('session_id', activeSession.id)
+                                .maybeSingle();
+
+                            if (existingAtt) {
+                                setAlreadyCheckedIn(true);
+                            } else {
+                                await recordAttendance(profile.id, activeSession.id);
+                            }
+                        }
+
+                        setChecking(false);
+                        return;
+                    }
+                } else {
+                    // Offline fallback for member check-in
+                    setMemberProfile({ id: memberId, first_name: 'Member', last_name: '' });
+                    await recordAttendance(memberId, undefined);
+                    setAlreadyCheckedIn(true);
                     setChecking(false);
                     return;
                 }
@@ -195,15 +220,22 @@ function CheckInContent() {
 
     return (
         <div className="min-h-screen flex flex-col justify-between p-4 sm:p-6 lg:p-12 max-w-xl mx-auto">
-            <header className="pb-6 border-b border-slate-800/80 text-center">
-                <span className="text-[10px] uppercase font-semibold text-emerald-400 tracking-wider">
-                    Service Check-In Portal
-                </span>
+            <header className="pb-6 border-b border-slate-800/80 text-center space-y-1">
+                <div className="flex items-center justify-center gap-2">
+                    <span className="text-[10px] uppercase font-semibold text-emerald-400 tracking-wider">
+                        Service Check-In Portal
+                    </span>
+                    {isOfflineMode && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[9px] font-bold">
+                            <WifiOff className="w-3 h-3" /> Offline Mode Active
+                        </span>
+                    )}
+                </div>
                 <p className="text-xs text-slate-400">Didache Universal Platform</p>
             </header>
 
             <main className="my-8">
-                {/* UNIFIED LOCKED SCREEN STATE (EXPIRED OR OUT OF BOUNDS) */}
+                {/* UNIFIED LOCKED SCREEN STATE */}
                 {blockReason ? (
                     <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-8 text-center space-y-5 shadow-2xl backdrop-blur-xl">
                         <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border ${
@@ -250,7 +282,7 @@ function CheckInContent() {
                                         className="inline-flex items-center justify-center gap-2 w-full rounded-xl bg-amber-600 hover:bg-amber-500 py-3 text-xs font-semibold text-white shadow-lg transition cursor-pointer"
                                     >
                                         <Heart className="w-4 h-4" />
-                                        <span>Visitor / Guest Check-In</span>
+                                        <span>Visitor / Guest Check-In (Offline Supported)</span>
                                     </button>
 
                                     <button
@@ -282,10 +314,10 @@ function CheckInContent() {
                             <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 uppercase tracking-wider">
                                 {alreadyCheckedIn ? 'ℹ️ Already Checked In' : '✓ Attendance Recorded'}
                             </span>
-                            <h2 className="text-2xl font-bold text-white">Welcome back, {memberProfile.first_name}!</h2>
+                            <h2 className="text-2xl font-bold text-white">Welcome back, {memberProfile.first_name || 'Worshipper'}!</h2>
                             <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
-                                {qrExpiredNotice
-                                    ? `This QR code has expired—but good news, you are already checked in for service on ${dateParam}!`
+                                {isOfflineMode
+                                    ? `Saved offline successfully for ${dateParam}. It will sync automatically when reconnected.`
                                     : alreadyCheckedIn
                                         ? `You are already recorded for service on ${dateParam}.`
                                         : `You are successfully checked in for ${dateParam}. Have a wonderful service!`}
@@ -303,7 +335,7 @@ function CheckInContent() {
                     <div className="space-y-6">
                         <button
                             onClick={() => setMemberChoice('selection')}
-                            className="w-full text-left text-xs text-slate-500 hover:text-slate-300 pt-2"
+                            className="w-full text-left text-xs text-slate-500 hover:text-slate-300 pt-2 cursor-pointer"
                         >
                             ← Back to main options
                         </button>
@@ -314,21 +346,6 @@ function CheckInContent() {
                                 Do you already have an existing profile registered?
                             </p>
                         </div>
-
-                        {!rawDateParam && (
-                            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-center space-y-2">
-                                <p className="text-xs text-amber-300">
-                                    No active scan context detected. Scan the hall QR code to log attendance automatically.
-                                </p>
-                                <button
-                                    onClick={() => setShowScannerModal(true)}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-500 transition"
-                                >
-                                    <QrCode className="w-3.5 h-3.5" />
-                                    <span>Scan Hall QR Code</span>
-                                </button>
-                            </div>
-                        )}
 
                         <div className="grid grid-cols-1 gap-4">
                             <button
@@ -410,7 +427,7 @@ function CheckInContent() {
                                     <h2 className="text-base font-bold text-white group-hover:text-amber-400 transition">
                                         I am a Visitor / Guest
                                     </h2>
-                                    <p className="text-xs text-slate-400">Quick 10-second check-in for guests.</p>
+                                    <p className="text-xs text-slate-400">Quick 10-second check-in for guests (Fully offline-supported).</p>
                                 </div>
                             </button>
                         </div>

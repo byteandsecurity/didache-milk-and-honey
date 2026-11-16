@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Camera, X, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { verifyUserLocation } from '@/lib/geofence';
+import { recordAttendance } from '@/lib/offlineSync';
 
 interface QrScannerProps {
     isOpen: boolean;
@@ -123,38 +124,19 @@ export default function QrScanner({ isOpen, onClose, onSuccess }: QrScannerProps
                 .eq('session_date', scannedDateStr)
                 .maybeSingle();
 
-            const attendancePayload: {
-                user_id: string;
-                session_date: string;
-                checked_in_at: string;
-                session_id?: string;
-            } = {
-                user_id: memberId,
-                session_date: scannedDateStr,
-                checked_in_at: new Date().toISOString(),
-            };
+            const targetSessionId = existingSession?.id || scannedDateStr;
 
-            if (existingSession?.id) {
-                attendancePayload.session_id = existingSession.id;
-            }
+            // Use robust offline-resilient attendance recording utility
+            const result = await recordAttendance(memberId, targetSessionId);
 
-            const { error: attendanceError } = await supabase
-                .from('attendance')
-                .insert([attendancePayload]);
-
-            if (attendanceError) {
-                if (attendanceError.message.includes('duplicate') || attendanceError.code === '23505') {
-                    setSuccessMessage('ℹ️ You have already checked in for this session!');
-                } else {
-                    console.error('Supabase Attendance Error:', attendanceError);
-                    setSuccessMessage(`Error recording attendance: ${attendanceError.message}`);
-                }
-            } else {
-                setSuccessMessage('Attendance successfully recorded! God bless you!');
+            if (result.success) {
+                setSuccessMessage(result.offline ? '💾 Saved offline. Will sync when online!' : 'Attendance successfully recorded! God bless you!');
                 setTimeout(() => {
                     onClose();
                     onSuccess();
                 }, 1200);
+            } else {
+                setSuccessMessage('Error recording attendance.');
             }
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : 'Failed to record attendance.';

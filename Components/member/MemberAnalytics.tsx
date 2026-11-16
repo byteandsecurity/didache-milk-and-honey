@@ -29,7 +29,7 @@ export default function MemberAnalytics({ attendanceHistory, profileCreatedAt }:
         'July', 'August', 'September', 'October', 'November', 'December'
     ];
 
-    // Compute all Sundays for the selected Year & Month
+    // Compute all Sundays for the selected Year & Month (Production Sunday-Only Restriction)
     const sundayDatesInMonth = useMemo(() => {
         const sundays: string[] = [];
         const date = new Date(selectedYear, selectedMonth, 1);
@@ -55,7 +55,6 @@ export default function MemberAnalytics({ attendanceHistory, profileCreatedAt }:
     const isMonthBeforeMembership = useMemo(() => {
         if (!profileCreatedAt) return false;
         const profileDate = new Date(profileCreatedAt);
-        const selectedMonthFirstDay = new Date(selectedYear, selectedMonth, 1);
         const selectedMonthLastDay = new Date(selectedYear, selectedMonth + 1, 0);
         return selectedMonthLastDay < new Date(profileDate.getFullYear(), profileDate.getMonth(), profileDate.getDate());
     }, [profileCreatedAt, selectedYear, selectedMonth]);

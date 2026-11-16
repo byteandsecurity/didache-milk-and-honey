@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { User, QrCode, Edit3, Save, LifeBuoy, ArrowRight, LogOut, MessageCircle, X, Maximize2 } from 'lucide-react';
 import LoadingSpinner from '@/Components/LoadingSpinner';
-import {DidacheGeometricIcon} from "@/Components/DidacheIcon";
+import { DidacheGeometricIcon } from "@/Components/DidacheIcon";
 import QrScanner from '@/Components/member/QrScanner';
 import MemberAnalyticsTestable from "@/Components/Test/member/MemeberAnalyticsTest";
 import Footer from '@/Components/Footer';
@@ -31,6 +31,11 @@ interface AttendanceRecord {
     session_date: string;
     checked_in_at?: string;
 }
+
+// Utility to normalize telephone strings for rigorous lookup safety
+const normalizePhoneNumber = (phone: string): string => {
+    return phone.trim().replace(/[\s\-()]/g, '');
+};
 
 export default function MemberDashboard() {
     const [profile, setProfile] = useState<MemberProfile | null>(null);
@@ -108,20 +113,22 @@ export default function MemberDashboard() {
 
         const memberId = localStorage.getItem('didache_member_id');
         const cleanEmail = email.trim() !== '' ? email.trim() : null;
+        const cleanPhone = normalizePhoneNumber(phoneNumber);
+        const cleanWhatsapp = whatsappNumber.trim() ? normalizePhoneNumber(whatsappNumber) : cleanPhone;
 
         const { error } = await supabase
             .from('profiles')
             .update({
-                first_name: firstName,
-                last_name: lastName,
+                first_name: firstName.trim(),
+                last_name: lastName.trim(),
                 gender: gender,
                 marital_status: maritalStatus,
-                whatsapp_number: whatsappNumber,
-                phone_number: phoneNumber,
+                whatsapp_number: cleanWhatsapp,
+                phone_number: cleanPhone,
                 email: cleanEmail,
-                home_address: homeAddress,
+                home_address: homeAddress.trim(),
                 occupation_type: occupationType,
-                occupation_detail: occupationDetail,
+                occupation_detail: occupationDetail.trim(),
             })
             .eq('id', memberId);
 
@@ -134,16 +141,16 @@ export default function MemberDashboard() {
 
             setProfile((prev) => prev ? {
                 ...prev,
-                first_name: firstName,
-                last_name: lastName,
+                first_name: firstName.trim(),
+                last_name: lastName.trim(),
                 gender: gender,
                 marital_status: maritalStatus,
-                whatsapp_number: whatsappNumber,
-                phone_number: phoneNumber,
+                whatsapp_number: cleanWhatsapp,
+                phone_number: cleanPhone,
                 email: cleanEmail || undefined,
-                home_address: homeAddress,
+                home_address: homeAddress.trim(),
                 occupation_type: occupationType,
-                occupation_detail: occupationDetail,
+                occupation_detail: occupationDetail.trim(),
             } : null);
         }
         setSaving(false);

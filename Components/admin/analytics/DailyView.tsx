@@ -51,7 +51,7 @@ export function DailyCardItem({ card, defaultOpen = false }: { card: DailyMetric
                     </span>
                     <button
                         onClick={() => setExpanded(!expanded)}
-                        className="text-xs text-slate-400 hover:text-white bg-slate-800 px-2.5 py-1 rounded-lg transition"
+                        className="text-xs text-slate-400 hover:text-white bg-slate-800 px-2.5 py-1 rounded-lg transition cursor-pointer"
                     >
                         {expanded ? 'Collapse ▲' : 'Expand ▼'}
                     </button>

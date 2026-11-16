@@ -4,10 +4,11 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { Phone, ArrowRight, ArrowLeft, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Phone, ArrowRight, ArrowLeft, Sparkles, CheckCircle2, WifiOff } from 'lucide-react';
 import { DidacheGeometricIcon } from '@/Components/DidacheIcon';
 import LoadingSpinner from '@/Components/LoadingSpinner';
 import Footer from '@/Components/Footer';
+import { recordAttendance } from '@/lib/offlineSync';
 
 interface MemberProfile {
     id: string;
@@ -16,6 +17,11 @@ interface MemberProfile {
     phone_number: string;
     whatsapp_number?: string;
 }
+
+// Utility to normalize telephone strings for rigorous lookup safety
+const normalizePhoneNumber = (phone: string): string => {
+    return phone.trim().replace(/[\s\-()]/g, '');
+};
 
 function MemberLoginForm() {
     const router = useRouter();
@@ -26,8 +32,9 @@ function MemberLoginForm() {
 
     const [phoneNumber, setPhoneNumber] = useState('');
     const [loading, setLoading] = useState(false);
-    const [navigating, setNavigating] = useState(false); // Smooth transition loading spinner state
+    const [navigating, setNavigating] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [isOfflineMode, setIsOfflineMode] = useState<boolean>(!navigator.onLine);
 
     const [isCheckedIn, setIsCheckedIn] = useState(false);
     const [isDirectLoginSuccess, setIsDirectLoginSuccess] = useState(false);
@@ -35,7 +42,16 @@ function MemberLoginForm() {
     const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(null);
     const [totalVisits, setTotalVisits] = useState(1);
 
-    // CRITICAL FIX: Always reset success states and input on initial mount to prevent stuck banners
+    useEffect(() => {
+        const handleOnlineStatus = () => setIsOfflineMode(!navigator.onLine);
+        window.addEventListener('online', handleOnlineStatus);
+        window.addEventListener('offline', handleOnlineStatus);
+        return () => {
+            window.removeEventListener('online', handleOnlineStatus);
+            window.removeEventListener('offline', handleOnlineStatus);
+        };
+    }, []);
+
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoading(false);
@@ -58,21 +74,48 @@ function MemberLoginForm() {
         setErrorMsg(null);
 
         try {
-            const cleanPhone = phoneNumber.trim();
+            const cleanPhone = normalizePhoneNumber(phoneNumber);
             if (!cleanPhone) {
                 setErrorMsg('Please enter your phone or WhatsApp number.');
                 setLoading(false);
                 return;
             }
 
-            const { data: profile, error } = await supabase
-                .from('profiles')
-                .select('id, first_name, last_name, phone_number, whatsapp_number')
-                .or(`phone_number.eq.${cleanPhone},whatsapp_number.eq.${cleanPhone}`)
-                .maybeSingle();
+            let profile: MemberProfile | null = null;
 
-            if (error || !profile) {
-                setErrorMsg('No profile found with this phone or WhatsApp number. Click "Register" below to create your account.');
+            if (navigator.onLine) {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('id, first_name, last_name, phone_number, whatsapp_number')
+                    .or(`phone_number.eq.${cleanPhone},whatsapp_number.eq.${cleanPhone}`)
+                    .maybeSingle();
+
+                if (error || !data) {
+                    setErrorMsg('No profile found with this phone or WhatsApp number. Click "Register" below to create your account.');
+                    setLoading(false);
+                    return;
+                }
+                profile = data as MemberProfile;
+            } else {
+                // Offline fallback lookup from cached localStorage session if available
+                const cachedId = localStorage.getItem('didache_member_id');
+                const cachedName = localStorage.getItem('didache_member_name');
+                if (cachedId) {
+                    profile = {
+                        id: cachedId,
+                        first_name: cachedName ? cachedName.split(' ')[0] : 'Member',
+                        last_name: cachedName ? cachedName.split(' ')[1] || '' : '',
+                        phone_number: cleanPhone
+                    };
+                } else {
+                    setErrorMsg('You are offline and no cached profile was found on this device. Please connect to the venue network or register.');
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            if (!profile) {
+                setErrorMsg('Unable to verify profile. Please check your number and try again.');
                 setLoading(false);
                 return;
             }
@@ -84,53 +127,59 @@ function MemberLoginForm() {
             const activeScanDate = rawDateParam || (typeof window !== 'undefined' ? localStorage.getItem('didache_qr_date') : null);
 
             if (activeScanDate) {
-                // Check if already checked in for this date
-                const { data: existingAttendance } = await supabase
-                    .from('attendance')
-                    .select('id')
-                    .eq('user_id', profile.id)
-                    .eq('session_date', activeScanDate)
-                    .maybeSingle();
+                if (navigator.onLine) {
+                    const { data: existingAttendance } = await supabase
+                        .from('attendance')
+                        .select('id')
+                        .eq('user_id', profile.id)
+                        .eq('session_date', activeScanDate)
+                        .maybeSingle();
 
-                if (existingAttendance) {
-                    // Fetch real total count from DB
-                    const { count: realCount } = await supabase
+                    if (existingAttendance) {
+                        const { count: realCount } = await supabase
+                            .from('attendance')
+                            .select('id', { count: 'exact', head: true })
+                            .eq('user_id', profile.id);
+
+                        setMemberProfile(profile);
+                        setTotalVisits(realCount || 1);
+                        setAlreadyCheckedInToday(true);
+                        setIsCheckedIn(true);
+                        setLoading(false);
+                        return;
+                    }
+
+                    await supabase.from('attendance').insert([
+                        {
+                            user_id: profile.id,
+                            session_date: activeScanDate,
+                            checked_in_at: new Date().toISOString(),
+                        }
+                    ]);
+
+                    const { count: updatedCount } = await supabase
                         .from('attendance')
                         .select('id', { count: 'exact', head: true })
                         .eq('user_id', profile.id);
 
-                    setMemberProfile(profile as MemberProfile);
-                    setTotalVisits(realCount || 1);
-                    setAlreadyCheckedInToday(true);
+                    setMemberProfile(profile);
+                    setTotalVisits(updatedCount || 1);
+                    setAlreadyCheckedInToday(false);
+                    setIsCheckedIn(true);
+                    setLoading(false);
+                    return;
+                } else {
+                    // Offline attendance queuing
+                    await recordAttendance(profile.id, undefined, activeScanDate);
+                    setMemberProfile(profile);
+                    setTotalVisits(1);
+                    setAlreadyCheckedInToday(false);
                     setIsCheckedIn(true);
                     setLoading(false);
                     return;
                 }
-
-                // Insert new check-in
-                await supabase.from('attendance').insert([
-                    {
-                        user_id: profile.id,
-                        session_date: activeScanDate,
-                        checked_in_at: new Date().toISOString(),
-                    }
-                ]);
-
-                // Query DB AFTER insert so the number is 100% accurate (No artificial +1)
-                const { count: updatedCount } = await supabase
-                    .from('attendance')
-                    .select('id', { count: 'exact', head: true })
-                    .eq('user_id', profile.id);
-
-                setMemberProfile(profile as MemberProfile);
-                setTotalVisits(updatedCount || 1);
-                setAlreadyCheckedInToday(false);
-                setIsCheckedIn(true);
-                setLoading(false);
-                return;
             } else {
-                // Direct login without QR code scan
-                setMemberProfile(profile as MemberProfile);
+                setMemberProfile(profile);
                 setIsDirectLoginSuccess(true);
                 setLoading(false);
                 return;
@@ -146,7 +195,6 @@ function MemberLoginForm() {
         return <LoadingSpinner text="Opening your dashboard..." icon={DidacheGeometricIcon} />;
     }
 
-    // 1. QR Check-In Confirmation View
     if (isCheckedIn && memberProfile) {
         return (
             <div className="rounded-3xl border border-emerald-500/30 bg-slate-900/80 p-6 sm:p-8 text-center space-y-4 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in duration-300 max-w-md mx-auto">
@@ -157,13 +205,15 @@ function MemberLoginForm() {
                 <div className="space-y-1">
                     <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 uppercase tracking-wider">
                         <Sparkles className="w-3 h-3" />
-                        {alreadyCheckedInToday ? 'Already Checked In Today' : 'Attendance Logged'}
+                        {isOfflineMode ? 'Saved Offline (Will Sync)' : alreadyCheckedInToday ? 'Already Checked In Today' : 'Attendance Logged'}
                     </span>
                     <h2 className="text-xl font-bold text-white">Welcome back, {memberProfile.first_name}!</h2>
                     <p className="text-xs text-slate-300 leading-relaxed">
-                        {alreadyCheckedInToday
-                            ? 'You have already checked into Sunday School for today’s session. God bless you!'
-                            : 'You are successfully checked in for today’s Sunday School service. God bless you!'}
+                        {isOfflineMode
+                            ? 'Your attendance has been saved securely on your device and will sync automatically when online.'
+                            : alreadyCheckedInToday
+                                ? 'You have already checked into Sunday School for today’s session. God bless you!'
+                                : 'You are successfully checked in for today’s Sunday School service. God bless you!'}
                     </p>
                 </div>
 
@@ -179,7 +229,7 @@ function MemberLoginForm() {
                             setIsCheckedIn(false);
                             setTimeout(() => router.push('/member/dashboard'), 400);
                         }}
-                        className="rounded-xl bg-emerald-600 hover:bg-emerald-500 py-2.5 text-xs font-semibold text-white shadow transition"
+                        className="rounded-xl bg-emerald-600 hover:bg-emerald-500 py-2.5 text-xs font-semibold text-white shadow transition cursor-pointer"
                     >
                         Dashboard
                     </button>
@@ -188,7 +238,7 @@ function MemberLoginForm() {
                             setIsCheckedIn(false);
                             router.push('/');
                         }}
-                        className="rounded-xl bg-slate-800 hover:bg-slate-700 py-2.5 text-xs font-semibold text-slate-200 transition"
+                        className="rounded-xl bg-slate-800 hover:bg-slate-700 py-2.5 text-xs font-semibold text-slate-200 transition cursor-pointer"
                     >
                         Home
                     </button>
@@ -197,7 +247,6 @@ function MemberLoginForm() {
         );
     }
 
-    // 2. Direct Login Success Welcome Card (Compact and clean)
     if (isDirectLoginSuccess && memberProfile) {
         return (
             <div className="rounded-3xl border border-emerald-500/30 bg-slate-900/80 p-6 sm:p-8 text-center space-y-4 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in duration-300 max-w-md mx-auto">
@@ -223,7 +272,7 @@ function MemberLoginForm() {
                             setIsDirectLoginSuccess(false);
                             setTimeout(() => router.push('/member/dashboard'), 400);
                         }}
-                        className="rounded-xl bg-emerald-600 hover:bg-emerald-500 py-2.5 text-xs font-semibold text-white shadow transition"
+                        className="rounded-xl bg-emerald-600 hover:bg-emerald-500 py-2.5 text-xs font-semibold text-white shadow transition cursor-pointer"
                     >
                         Dashboard
                     </button>
@@ -232,7 +281,7 @@ function MemberLoginForm() {
                             setIsDirectLoginSuccess(false);
                             router.push('/');
                         }}
-                        className="rounded-xl bg-slate-800 hover:bg-slate-700 py-2.5 text-xs font-semibold text-slate-200 transition"
+                        className="rounded-xl bg-slate-800 hover:bg-slate-700 py-2.5 text-xs font-semibold text-slate-200 transition cursor-pointer"
                     >
                         Home
                     </button>
@@ -242,11 +291,18 @@ function MemberLoginForm() {
     }
 
     return (
-        <div className="relative rounded-3xl border border-slate-800 bg-slate-900/70 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+        <div className="relative rounded-3xl border border-slate-800 bg-slate-900/70 p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-4">
+            {isOfflineMode && (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-300 flex items-center gap-2 font-medium">
+                    <WifiOff className="w-4 h-4 shrink-0" />
+                    <span>Offline Mode: Using cached login credentials and queueing check-ins.</span>
+                </div>
+            )}
+
             {errorMsg && (
-                <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400 flex items-center justify-between">
+                <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400 flex items-center justify-between">
                     <span>{errorMsg}</span>
-                    <button onClick={() => setErrorMsg(null)} className="text-red-300 hover:text-white">✕</button>
+                    <button onClick={() => setErrorMsg(null)} className="text-red-300 hover:text-white cursor-pointer">✕</button>
                 </div>
             )}
 
@@ -271,7 +327,7 @@ function MemberLoginForm() {
                 <button
                     type="submit"
                     disabled={loading}
-                    className="w-full mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-emerald-600 to-teal-600 py-3.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/25 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.98] disabled:opacity-50 transition-all"
+                    className="w-full mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/25 hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-50 transition-all cursor-pointer"
                 >
                     {loading ? (
                         <span>Verifying Account...</span>
@@ -309,7 +365,7 @@ export default function MemberLoginPage() {
             <div>
                 <button
                     onClick={handleBack}
-                    className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-emerald-400 mb-6 transition"
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-emerald-400 mb-6 transition cursor-pointer"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     <span>Go Back to Home</span>

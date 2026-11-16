@@ -28,14 +28,25 @@ export default function ConfirmationModal({
 
     return (
         <div className="fixed inset-0 z-70 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="w-full max-w-sm rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-2xl space-y-4 text-center">
+            <div className="w-full max-w-sm rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-2xl space-y-4 text-relative relative">
+                {/* Close Button */}
+                <button
+                    onClick={onClose}
+                    disabled={isLoading}
+                    className="absolute right-4 top-4 text-slate-400 hover:text-white transition cursor-pointer disabled:opacity-50"
+                >
+                    <X className="w-4 h-4" />
+                </button>
+
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mx-auto">
                     <AlertTriangle className="h-6 w-6" />
                 </div>
+
                 <div className="space-y-1">
                     <h3 className="text-sm font-bold text-white">{title}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">{message}</p>
                 </div>
+
                 <div className="flex gap-2 pt-2">
                     <button
                         type="button"

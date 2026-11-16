@@ -1,36 +1,104 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Didache: Milk & Honey
 
-## Getting Started
+A production-hardened, offline-resilient church attendance and member intelligence portal designed as a modular, template-ready system for Sunday school check-ins and general church attendance logging.
 
-First, run the development server:
+While this particular implementation was structured and modeled around RCCG Sunday school requirements, the codebase is fully adaptable and built for general use. You can easily clone this repository, make a few configuration tweaks, and tailor it for any church denomination, ministry, or attendance-tracking use case.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Key Features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+* **Universal & Cloneable Template:** Easily fork and customize the codebase for your own church's specific registration forms, branding, and check-in workflows.
+* **Offline-First Attendance Engine:** Built-in IndexedDB / LocalStorage queueing with automatic background sync triggers for when connectivity is restored at the venue.
+* **Geofenced Check-Ins:** Enforces a strict 100m radius validation around the service venue to maintain attendance integrity.
+* **Multi-Tier Executive Analytics:** Rollup intelligence across Daily Sunday Services, Monthly reports, Quarterly Q1–Q4 breakdowns, and Full Annual Fiscal years.
+* **Dual-Portal Onboarding:** Seamless sign-in and registration flows for both registered members and returning/first-time visitors.
+* **Smart Security Controls:** Session expiration handling, Sunday-only business constraints, and toggleable testing/production modes.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 🛠️ Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+* **Framework:** Next.js (App Router)
+* **Language:** TypeScript
+* **Styling:** Tailwind CSS v4
+* **Database & Auth:** Supabase
+* **Icons & UI:** Lucide React, custom geometric SVG components
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📁 Project Structure
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```text
+didache-milk-and-honey/
+├── README.md
+├── package.json
+├── env.local
+├── app/
+│   ├── page.tsx                                      # Landing Page
+│   ├── layout.tsx                                    # Root Layout
+│   ├── globals.css                                   # Global Styles
+│   ├── icon.svg                                      # App Favicon
+│   ├── admin/
+│   │   ├── dashboard/
+│   │   │   └── page.tsx                              # Admin Dashboard
+│   │   └── analytics/
+│   │       └── page.tsx                              # Executive Analytics Dashboard
+│   ├── auth/
+│   │   ├── admin/
+│   │   │   └── login/
+│   │   │       └── page.tsx                          # Admin Login Page
+│   │   ├── guest/
+│   │   │   └── page.tsx                              # Guest / Visitor Check-In Portal
+│   │   └── member/
+│   │       ├── login/
+│   │       │   └── page.tsx                          # Member Sign In
+│   │       └── register/
+│   │           └── page.tsx                          # Member Registration
+│   ├── checking/
+│   │   └── page.tsx                                  # Primary QR & Geofenced Check-In Gateway
+│   └── member/
+│       └── dashboard/
+│           └── page.tsx                              # Member Dashboard
+├── Components/
+│   ├── DidacheIcon.tsx                              # Custom Geometric Icons
+│   ├── Footer.tsx                                    # Footer Styles
+│   ├── LoadingSpinner.tsx                           # Loading Indicator
+│   ├── OfflineSyncProvider.tsx                     # Offline Sync for Log In & Sign Up
+│   ├── admin/
+│   │   ├── AddUserModal.tsx                        # Add User Modal
+│   │   ├── BirthdayDirectory.tsx                    # Member Birthday Directory
+│   │   ├── ConfirmationModal.tsx                    # Confirmation Actions
+│   │   ├── GuestManagement.tsx                      # Visitor Roster Management
+│   │   ├── MemberRoster.tsx                         # Member Roster Directory
+│   │   ├── OverviewAnalytics.tsx                    # Overview Charts & Metrics
+│   │   ├── QrGenerator.tsx                          # Hall QR Generator
+│   │   ├── StaffDirectory.tsx                       # Staff Management
+│   │   └── analytics/
+│   │       ├── DailyView.tsx                        # Daily Service Card & Roster Accordion
+│   │       ├──MmonthlyView.tsx                      # November / Monthly Deep Dive Rollup
+│   │       ├── QuarterlyView.tsx                    # Q1 Fiscal Performance View
+│   │       └── YearlyView.tsx                       # Annual Fiscal Year & YoY Rollup
+│   ├── guest/
+│   │   └── GuestQrScanner.tsx                      # Visitor QR Scanner Component
+│   ├── member/
+│   │   ├── MemberAnalytics.tsx                      # Personal Member Analytics
+│   │   └── QrScanner.tsx                            # Member QR Scanner
+│   └── Test/
+│       └── member/
+│           ├── MemberAnalyticsTest.tsx             # Test Harness for Analytics
+│           └── QrScannerTest.tsx                   # Test Harness for Scanner
+├── lib/
+│   ├── geofence.ts                                   # Geolocation Verification Logic
+│   ├── offlineSync.ts                               # IndexedDB / LocalStorage Attendance Queue
+│   ├── analytics/
+│   │   └── admin/
+│   │       └── engine.ts                             # Multi-tier administrative rollup engine
+│   └── supabase/
+│       ├── client.ts                                 # Supabase Browser Client
+│       └── server.ts                                 # Supabase Server Client
+├── public/
+│   ├── icon.svg                                      # Public SVG Icon
+│   └── manifest.json                                 # PWA Manifest
+└── types/
+    └── admin.ts

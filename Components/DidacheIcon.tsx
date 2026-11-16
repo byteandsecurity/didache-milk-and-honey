@@ -11,11 +11,11 @@ export function DidacheGeometricIcon({ className = "w-10 h-10" }: { className?: 
 
             <defs>
                 <linearGradient id="paint0_linear" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#10b981" />
+                    <stop stopColor="#10b981" offset="0" />
                     <stop offset="1" stopColor="#3b82f6" />
                 </linearGradient>
                 <linearGradient id="paint1_linear" x1="35" y1="28" x2="72" y2="72" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#10b981" />
+                    <stop stopColor="#10b981" offset="0" />
                     <stop offset="1" stopColor="#34d399" />
                 </linearGradient>
             </defs>

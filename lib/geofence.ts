@@ -5,25 +5,26 @@ export function getDistanceFromLatLonInMeters(lat1: number, lon1: number, lat2: 
     const dLon = (lon2 - lon1) * (Math.PI / 180);
     const a =
         Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+        Math.cos(lat1 * (Math.PI / 180)) *
+        Math.cos(lat2 * (Math.PI / 180)) *
         Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
 }
 
-// Define your authorized locations (Church + Test / Home Location)
+// Define authorized locations (Church + Test / Home Location)
 const ALLOWED_LOCATIONS = [
     {
         name: "Main Venue (Church)",
-        latitude: 6.569404,     // Replace with actual church latitude from Google Maps
-        longitude: 3.374825,    // Replace with actual church longitude from Google Maps
-        radiusMeters: 100,    // 100m radius
+        latitude: 6.569404,     // Church latitude
+        longitude: 3.374825,    // Church longitude
+        radiusMeters: 100,      // 100m radius
     },
     {
         name: "Test Location (My House)",
-        latitude: 6.559419,     // Replace with your house latitude from Google Maps
-        longitude: 3.379833,    // Replace with your house longitude from Google Maps
-        radiusMeters: 100,    // 100m radius (or make it larger like 500m for testing if needed)
+        latitude: 6.559419,     // House latitude
+        longitude: 3.379833,    // House longitude
+        radiusMeters: 100,      // 100m radius
     },
 ];
 
@@ -33,7 +34,7 @@ const IS_TESTING_MODE = true;
 // Async utility to verify browser geolocation against multiple venue bounds
 export async function verifyUserLocation(): Promise<{ allowed: boolean; distance: number; message?: string }> {
     return new Promise((resolve) => {
-        // If testing mode is active, you can bypass GPS or test freely
+        // If testing mode is active, bypass GPS checks during development
         if (IS_TESTING_MODE && process.env.NODE_ENV === 'development') {
             console.log("⚠️ Geofencing Test Mode Active: Bypassing strict GPS checks.");
             resolve({ allowed: true, distance: 0 });

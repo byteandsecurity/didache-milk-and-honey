@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import LoadingSpinner from '@/Components/LoadingSpinner';
 import { DidacheGeometricIcon } from '@/Components/DidacheIcon';
-import { computeMonthlyMetrics, computeQuarterlyMetrics, computeYearlyMetrics } from '@/lib/analytics/admin/engine';
+import { computeMonthlyMetrics, computeQuarterlyMetrics, computeYearlyMetrics, GuestAttendanceRecord } from '@/lib/analytics/admin/engine';
+import { MemberProfile, GuestProfile, AttendanceRecord } from '@/types/admin';
 
 import DailyView from '@/Components/admin/analytics/DailyView';
 import MonthlyView from '@/Components/admin/analytics/MonthlyView';
@@ -19,18 +20,18 @@ export default function ExecutiveAnalyticsDashboard() {
     const [loading, setLoading] = useState<boolean>(true);
     const [activeTab, setActiveTab] = useState<'daily' | 'monthly' | 'quarterly' | 'yearly'>('monthly');
 
-    //  Testing vs Production Mode Toggle
+    // Testing vs Production Mode Toggle
     const [isTestingMode, setIsTestingMode] = useState<boolean>(true);
 
-    // Search &  User-Selectable Pagination Size
+    // Search & User-Selectable Pagination Size
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [pageSize, setPageSize] = useState<number>(5);
 
-    const [members, setMembers] = useState<any[]>([]);
-    const [attendance, setAttendance] = useState<any[]>([]);
-    const [guestAttendance, setGuestAttendance] = useState<any[]>([]);
-    const [guestProfiles, setGuestProfiles] = useState<any[]>([]);
+    const [members, setMembers] = useState<MemberProfile[]>([]);
+    const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+    const [guestAttendance, setGuestAttendance] = useState<GuestAttendanceRecord[]>([]);
+    const [guestProfiles, setGuestProfiles] = useState<GuestProfile[]>([]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -42,10 +43,10 @@ export default function ExecutiveAnalyticsDashboard() {
                 supabase.from('guest_profiles').select('*'),
             ]);
 
-            if (mRes.data) setMembers(mRes.data);
-            if (aRes.data) setAttendance(aRes.data);
-            if (gaRes.data) setGuestAttendance(gaRes.data);
-            if (gpRes.data) setGuestProfiles(gpRes.data);
+            if (mRes.data) setMembers(mRes.data as MemberProfile[]);
+            if (aRes.data) setAttendance(aRes.data as AttendanceRecord[]);
+            if (gaRes.data) setGuestAttendance(gaRes.data as GuestAttendanceRecord[]);
+            if (gpRes.data) setGuestProfiles(gpRes.data as GuestProfile[]);
             setLoading(false);
         };
 

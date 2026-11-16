@@ -3,11 +3,12 @@
 import React, { useState, useEffect, Suspense, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Sparkles, Phone, MapPin, User, ArrowLeft, CheckCircle2, UserPlus, LogIn, AlertCircle } from 'lucide-react';
-import {DidacheGeometricIcon} from "@/Components/DidacheIcon";
+import { Sparkles, Phone, MapPin, User, ArrowLeft, CheckCircle2, UserPlus, LogIn, AlertCircle, WifiOff } from 'lucide-react';
+import { DidacheGeometricIcon } from "@/Components/DidacheIcon";
 import LoadingSpinner from '@/Components/LoadingSpinner';
 import GuestQrScanner from '@/Components/guest/GuestQrScanner';
 import Footer from '@/Components/Footer';
+import { recordGuestAttendance } from '@/lib/offlineSync';
 
 export default function GuestCheckInPage() {
     return (
@@ -32,6 +33,7 @@ function GuestContent() {
     const [visitCount, setVisitCount] = useState(1);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [showScannerModal, setShowScannerModal] = useState(false);
+    const [isOfflineMode, setIsOfflineMode] = useState<boolean>(!navigator.onLine);
 
     // Keep active inputs synced in refs for callbacks
     const currentModeRef = useRef<'returning' | 'new'>('returning');
@@ -51,6 +53,19 @@ function GuestContent() {
     const searchParams = useSearchParams();
 
     const rawDateParam = searchParams.get('date');
+    const normalizePhoneNumber = (phone: string): string => {
+        return phone.trim().replace(/[\s\-()]/g, '');
+    };
+
+    useEffect(() => {
+        const handleOnlineStatus = () => setIsOfflineMode(!navigator.onLine);
+        window.addEventListener('online', handleOnlineStatus);
+        window.addEventListener('offline', handleOnlineStatus);
+        return () => {
+            window.removeEventListener('online', handleOnlineStatus);
+            window.removeEventListener('offline', handleOnlineStatus);
+        };
+    }, []);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -59,7 +74,6 @@ function GuestContent() {
             const savedGender = localStorage.getItem('didache_guest_draft_gender');
             const savedAddress = localStorage.getItem('didache_guest_draft_address');
 
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             if (savedPhone) setPhoneNumber(savedPhone);
             if (savedName) setFullName(savedName);
             if (savedGender) setGender(savedGender);
@@ -120,15 +134,30 @@ function GuestContent() {
         router.push('/');
     };
 
-    // Execute Final Check-In after all pre-validations pass
+    // Execute Final Check-In with Offline Fallback
     const executeCheckIn = useCallback(async () => {
         setSubmitting(true);
         setErrorMsg(null);
 
         const targetMode = currentModeRef.current;
-        const cleanPhone = phoneRef.current.trim();
+        const cleanPhone = normalizePhoneNumber(phoneRef.current);
         const activeDate = rawDateParam || (typeof window !== 'undefined' ? localStorage.getItem('didache_qr_date') : null);
         const todayDateStr = activeDate || new Date().toISOString().split('T')[0];
+
+        if (!navigator.onLine) {
+            // OFF-LINE EXECUTION PATH
+            const offlineGuestId = 'offline_guest_' + Date.now();
+            const guestName = targetMode === 'returning' ? (localStorage.getItem('didache_guest_name') || 'Returning Visitor') : nameRef.current.trim();
+
+            await recordGuestAttendance(offlineGuestId, todayDateStr);
+
+            setGuestNameConfirmed(guestName);
+            setVisitCount(1);
+            setAlreadyCheckedInToday(false);
+            setIsCheckedIn(true);
+            setSubmitting(false);
+            return;
+        }
 
         if (targetMode === 'returning') {
             const { data: existingGuest } = await supabase
@@ -137,22 +166,20 @@ function GuestContent() {
                 .eq('phone_number', cleanPhone)
                 .single();
 
-            if (!existingGuest) return;
+            if (!existingGuest) {
+                setErrorMsg('Visitor record not found online.');
+                setSubmitting(false);
+                return;
+            }
 
             const newCount = (existingGuest.attendance_count || 0) + 1;
-            const { error: updateError } = await supabase
+            await supabase
                 .from('guest_profiles')
                 .update({
                     attendance_count: newCount,
                     last_attended_at: new Date().toISOString(),
                 })
                 .eq('id', existingGuest.id);
-
-            if (updateError) {
-                setErrorMsg('Error recording attendance. Please try again.');
-                setSubmitting(false);
-                return;
-            }
 
             await supabase.from('guest_attendance').insert([
                 {
@@ -214,7 +241,7 @@ function GuestContent() {
         setSubmitting(true);
         setErrorMsg(null);
 
-        const cleanPhone = phoneNumber.trim();
+        const cleanPhone = normalizePhoneNumber(phoneNumber);
         if (!cleanPhone) {
             setErrorMsg('Please enter your phone number.');
             setSubmitting(false);
@@ -224,7 +251,13 @@ function GuestContent() {
         const activeDate = rawDateParam || (typeof window !== 'undefined' ? localStorage.getItem('didache_qr_date') : null);
         const todayDateStr = activeDate || new Date().toISOString().split('T')[0];
 
-        // PRE-CHECK 1: Check if phone number exists in database
+        if (!navigator.onLine) {
+            // Offline direct check-in bypass
+            localStorage.setItem('didache_guest_name', 'Returning Guest');
+            await executeCheckIn();
+            return;
+        }
+
         const { data: existingGuest, error } = await supabase
             .from('guest_profiles')
             .select('*')
@@ -243,7 +276,8 @@ function GuestContent() {
             return;
         }
 
-        // PRE-CHECK 2: Check if already checked in for today
+        localStorage.setItem('didache_guest_name', existingGuest.full_name);
+
         const { data: existingAttendance } = await supabase
             .from('guest_attendance')
             .select('id')
@@ -262,7 +296,6 @@ function GuestContent() {
 
         setSubmitting(false);
 
-        // Pre-checks passed! Open scanner if date context is missing, otherwise check in immediately
         if (!activeDate) {
             setShowScannerModal(true);
         } else {
@@ -276,7 +309,7 @@ function GuestContent() {
         setSubmitting(true);
         setErrorMsg(null);
 
-        const cleanPhone = phoneNumber.trim();
+        const cleanPhone = normalizePhoneNumber(phoneNumber);
         const cleanName = fullName.trim();
 
         if (!cleanPhone || !cleanName) {
@@ -288,7 +321,11 @@ function GuestContent() {
         const activeDate = rawDateParam || (typeof window !== 'undefined' ? localStorage.getItem('didache_qr_date') : null);
         const todayDateStr = activeDate || new Date().toISOString().split('T')[0];
 
-        // PRE-CHECK: Check if account already exists
+        if (!navigator.onLine) {
+            await executeCheckIn();
+            return;
+        }
+
         const { data: existingGuest } = await supabase
             .from('guest_profiles')
             .select('*')
@@ -296,7 +333,6 @@ function GuestContent() {
             .maybeSingle();
 
         if (existingGuest) {
-            // Check if checked in today
             const { data: existingAttendance } = await supabase
                 .from('guest_attendance')
                 .select('id')
@@ -320,7 +356,6 @@ function GuestContent() {
 
         setSubmitting(false);
 
-        // Pre-checks passed! Open scanner if date context is missing, otherwise check in immediately
         if (!activeDate) {
             setShowScannerModal(true);
         } else {
@@ -339,16 +374,23 @@ function GuestContent() {
             <header className="flex items-center justify-between pb-6 border-b border-slate-800/80">
                 <button
                     onClick={handleBack}
-                    className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition"
+                    className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition cursor-pointer"
                 >
                     <ArrowLeft className="w-4 h-4" />
                     <span>Back to Home</span>
                 </button>
-                <div className="text-right">
-                    <span className="text-[10px] uppercase font-semibold text-amber-400 tracking-wider">
-                        Visitor Portal
-                    </span>
-                    <p className="text-xs text-slate-400">RCCG Milk & Honey</p>
+                <div className="text-right flex items-center gap-2">
+                    {isOfflineMode && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[9px] font-bold">
+                            <WifiOff className="w-3 h-3" /> Offline
+                        </span>
+                    )}
+                    <div>
+                        <span className="text-[10px] uppercase font-semibold text-amber-400 tracking-wider">
+                            Visitor Portal
+                        </span>
+                        <p className="text-xs text-slate-400">RCCG Milk & Honey</p>
+                    </div>
                 </div>
             </header>
 
@@ -367,13 +409,15 @@ function GuestContent() {
                         <div className="space-y-2">
                             <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 uppercase tracking-wider">
                                 <Sparkles className="w-3.5 h-3.5" />
-                                {alreadyCheckedInToday ? 'Already Checked In Today' : 'Check-In Confirmed'}
+                                {isOfflineMode ? 'Saved Offline (Will Sync)' : alreadyCheckedInToday ? 'Already Checked In Today' : 'Check-In Confirmed'}
                             </span>
                             <h2 className="text-2xl font-bold text-white">Welcome, {guestNameConfirmed}!</h2>
                             <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
-                                {alreadyCheckedInToday
-                                    ? 'You have already checked in for today’s Sunday service! God bless you as you worship with us.'
-                                    : 'Thank you for worshipping with us today at RCCG Milk & Honey Sunday School. We are blessed to have you!'}
+                                {isOfflineMode
+                                    ? 'Your visitor check-in has been saved securely on your device and will sync automatically when reconnected.'
+                                    : alreadyCheckedInToday
+                                        ? 'You have already checked in for today’s Sunday service! God bless you as you worship with us.'
+                                        : 'Thank you for worshipping with us today at RCCG Milk & Honey Sunday School. We are blessed to have you!'}
                             </p>
                         </div>
 
@@ -384,17 +428,24 @@ function GuestContent() {
 
                         <button
                             onClick={handleFinishCheckIn}
-                            className="w-full rounded-xl bg-slate-800 hover:bg-slate-700 py-3 text-xs font-semibold text-slate-200 transition"
+                            className="w-full rounded-xl bg-slate-800 hover:bg-slate-700 py-3 text-xs font-semibold text-slate-200 transition cursor-pointer"
                         >
                             Done / Return Home
                         </button>
                     </div>
                 ) : (
                     <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 shadow-xl backdrop-blur-xl space-y-6">
+                        {isOfflineMode && (
+                            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-300 flex items-center gap-2 font-medium">
+                                <WifiOff className="w-4 h-4 shrink-0" />
+                                <span>Offline Mode: Guest check-ins will be queued locally and synced automatically.</span>
+                            </div>
+                        )}
+
                         <div className="flex rounded-2xl bg-slate-950 p-1.5 border border-slate-800">
                             <button
                                 onClick={() => { setMode('returning'); setErrorMsg(null); }}
-                                className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-xl transition ${
+                                className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-xl transition cursor-pointer ${
                                     mode === 'returning' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
                                 }`}
                             >
@@ -403,7 +454,7 @@ function GuestContent() {
                             </button>
                             <button
                                 onClick={() => { setMode('new'); setErrorMsg(null); }}
-                                className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-xl transition ${
+                                className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-xl transition cursor-pointer ${
                                     mode === 'new' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
                                 }`}
                             >
@@ -448,7 +499,7 @@ function GuestContent() {
                                 <button
                                     type="submit"
                                     disabled={submitting}
-                                    className="w-full rounded-xl bg-amber-600 hover:bg-amber-500 py-3 text-xs font-semibold text-white shadow-lg shadow-amber-600/20 transition"
+                                    className="w-full rounded-xl bg-amber-600 hover:bg-amber-500 py-3 text-xs font-semibold text-white shadow-lg shadow-amber-600/20 transition cursor-pointer"
                                 >
                                     {submitting ? 'Checking in...' : 'Quick Visitor Check-In'}
                                 </button>
@@ -501,7 +552,7 @@ function GuestContent() {
                                     <select
                                         value={gender}
                                         onChange={(e) => handleGenderChange(e.target.value)}
-                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs text-slate-100 focus:outline-none"
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs text-slate-100 focus:outline-none cursor-pointer"
                                     >
                                         <option value="Male">Male</option>
                                         <option value="Female">Female</option>
@@ -527,7 +578,7 @@ function GuestContent() {
                                 <button
                                     type="submit"
                                     disabled={submitting}
-                                    className="w-full rounded-xl bg-amber-600 hover:bg-amber-500 py-3 text-xs font-semibold text-white shadow-lg shadow-amber-600/20 transition"
+                                    className="w-full rounded-xl bg-amber-600 hover:bg-amber-500 py-3 text-xs font-semibold text-white shadow-lg shadow-amber-600/20 transition cursor-pointer"
                                 >
                                     {submitting ? 'Checking in...' : 'Complete First-Time Check-In'}
                                 </button>

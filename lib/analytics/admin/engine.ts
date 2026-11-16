@@ -1,4 +1,13 @@
-// lib/analytics/engine.ts
+import { MemberProfile, GuestProfile, AttendanceRecord } from '@/types/admin';
+
+export interface GuestAttendanceRecord {
+    id: string;
+    guest_id: string;
+    guest_name?: string;
+    session_date: string;
+    created_at?: string;
+    [key: string]: unknown;
+}
 
 export interface DailyMetrics {
     date: string;
@@ -21,9 +30,9 @@ export interface DailyMetrics {
         attendancePercentDiff: number;
         visitorsDiff: number;
     };
-    attendeesList: any[];
-    absenteesList: any[];
-    visitorsList: any[];
+    attendeesList: MemberProfile[];
+    absenteesList: MemberProfile[];
+    visitorsList: GuestAttendanceRecord[];
 }
 
 export interface MonthlyMetrics {
@@ -113,8 +122,8 @@ export interface YearlyMetrics {
     worstQuarterByRate: { label: string; rate: number };
     bestSundayInYear: { label: string; count: number };
     bestMonthInYear: string;
-    mostConsistentMembers: any[];
-    atRiskYearlyMembers: any[];
+    mostConsistentMembers: MemberProfile[];
+    atRiskYearlyMembers: MemberProfile[];
     turnoverRate: number;
     yoyComparison: {
         attendanceRateDiff: number;
@@ -136,10 +145,10 @@ export function formatDateLabel(dateStr: string): string {
 
 export function computeDailyMetrics(
     dateStr: string,
-    members: any[],
-    attendance: any[],
-    guestAttendance: any[],
-    guestProfiles: any[],
+    members: MemberProfile[],
+    attendance: AttendanceRecord[],
+    guestAttendance: GuestAttendanceRecord[],
+    guestProfiles: GuestProfile[],
     previousSundayDaily?: DailyMetrics
 ): DailyMetrics {
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -152,7 +161,7 @@ export function computeDailyMetrics(
     const presentMemberIds = new Set(
         attendance
             .filter(a => (a.session_date || '').slice(0, 10) === dateStr)
-            .map(a => a.user_id)
+            .map(a => a.user_id || a.profile_id)
     );
 
     const present = activeMembers.filter(m => presentMemberIds.has(m.id)).length;
@@ -236,10 +245,10 @@ export function computeMonthlyMetrics(
     monthKey: string,
     monthTitle: string,
     sundayDates: string[],
-    members: any[],
-    attendance: any[],
-    guestAttendance: any[],
-    guestProfiles: any[],
+    members: MemberProfile[],
+    attendance: AttendanceRecord[],
+    guestAttendance: GuestAttendanceRecord[],
+    guestProfiles: GuestProfile[],
     previousMonth?: MonthlyMetrics
 ): MonthlyMetrics {
     const dailyCards: DailyMetrics[] = sundayDates.map((dateStr, idx, arr) => {
@@ -306,8 +315,9 @@ export function computeMonthlyMetrics(
 
     attendance.forEach(a => {
         const aMonth = (a.session_date || '').slice(0, 7);
-        if (aMonth === monthKey && memberAttendanceCounts[a.user_id] !== undefined) {
-            memberAttendanceCounts[a.user_id]++;
+        const userId = a.user_id || a.profile_id;
+        if (aMonth === monthKey && userId && memberAttendanceCounts[userId] !== undefined) {
+            memberAttendanceCounts[userId]++;
         }
     });
 
@@ -369,10 +379,10 @@ export function computeQuarterlyMetrics(
     quarterKey: string,
     quarterTitle: string,
     monthKeys: { key: string; title: string; sundays: string[] }[],
-    members: any[],
-    attendance: any[],
-    guestAttendance: any[],
-    guestProfiles: any[],
+    members: MemberProfile[],
+    attendance: AttendanceRecord[],
+    guestAttendance: GuestAttendanceRecord[],
+    guestProfiles: GuestProfile[],
     previousQuarter?: QuarterlyMetrics
 ): QuarterlyMetrics {
     const monthlyCards: MonthlyMetrics[] = monthKeys.map((m, idx, arr) => {
@@ -468,9 +478,9 @@ export function computeYearlyMetrics(
     yearKey: string,
     yearTitle: string,
     quarters: QuarterlyMetrics[],
-    members: any[],
-    attendance: any[],
-    guestAttendance: any[],
+    members: MemberProfile[],
+    attendance: AttendanceRecord[],
+    guestAttendance: GuestAttendanceRecord[],
     previousYear?: YearlyMetrics
 ): YearlyMetrics {
     const activeMembersList = members.filter(m => !m.is_deleted);
@@ -516,7 +526,12 @@ export function computeYearlyMetrics(
     const totalSundaysInYear = quarters.reduce((acc, q) => acc + q.monthlyCards.reduce((mAcc, m) => mAcc + m.completedSundaysCount, 0), 0);
     const memberYearlyAttendanceMap: Record<string, number> = {};
     activeMembersList.forEach(m => { memberYearlyAttendanceMap[m.id] = 0; });
-    attendance.forEach(a => { if (memberYearlyAttendanceMap[a.user_id] !== undefined) memberYearlyAttendanceMap[a.user_id]++; });
+    attendance.forEach(a => {
+        const userId = a.user_id || a.profile_id;
+        if (userId && memberYearlyAttendanceMap[userId] !== undefined) {
+            memberYearlyAttendanceMap[userId]++;
+        }
+    });
 
     const mostConsistentMembers = activeMembersList.filter(m => totalSundaysInYear > 0 && (memberYearlyAttendanceMap[m.id] / totalSundaysInYear) >= 0.9);
     const atRiskYearlyMembers = activeMembersList.filter(m => totalSundaysInYear > 0 && (memberYearlyAttendanceMap[m.id] / totalSundaysInYear) < 0.3);

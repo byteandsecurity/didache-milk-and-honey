@@ -3,15 +3,16 @@
 import React, { useState, useMemo } from 'react';
 import {
     Users, ChevronDown, UserCheck, UserX,
-    HeartHandshake, Beaker, PlusCircle, BarChart3, ArrowRight, Award, TrendingUp, ShieldAlert
+    HeartHandshake, Beaker, PlusCircle, BarChart3, ArrowRight, Award
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { MemberProfile, GuestProfile, AttendanceRecord, SessionRecord } from '@/types/admin';
 
 interface OverviewAnalyticsProps {
-    members: any[];
-    guests: any[];
-    attendance: any[];
-    sessions: any[];
+    members: MemberProfile[];
+    guests: GuestProfile[];
+    attendance: AttendanceRecord[];
+    sessions: SessionRecord[];
 }
 
 export default function OverviewAnalytics({ members = [], guests = [], attendance = [], sessions = [] }: OverviewAnalyticsProps) {
@@ -20,24 +21,20 @@ export default function OverviewAnalytics({ members = [], guests = [], attendanc
 
     // 🧪 TESTING MODE & SIMULATION
     const [testSimulatedDate, setTestSimulatedDate] = useState<string>(now.toISOString().split('T')[0]);
-    const [localAttendance, setLocalAttendance] = useState<any[]>(attendance);
-
-    React.useEffect(() => {
-        setLocalAttendance(attendance);
-    }, [attendance]);
+    const [localAttendance, setLocalAttendance] = useState<AttendanceRecord[]>(attendance);
 
     // Core Worshipper Counts
-    const activeMembers = members.filter((m: any) => !m.is_deleted);
+    const activeMembers = members.filter((m) => !m.is_deleted);
     const totalWorshippers = activeMembers.length + guests.length;
 
-    const memberMaleCount = activeMembers.filter((m: any) => m.gender === 'Male').length;
-    const memberFemaleCount = activeMembers.filter((m: any) => m.gender === 'Female').length;
-    const guestMaleCount = guests.filter((g: any) => g.gender === 'Male').length;
-    const guestFemaleCount = guests.filter((g: any) => g.gender === 'Female').length;
-    const upgradeEligibleGuests = guests.filter((g: any) => !g.is_converted_to_member && (g.attendance_count >= 3 || g.total_visits >= 3));
+    const memberMaleCount = activeMembers.filter((m) => m.gender === 'Male').length;
+    const memberFemaleCount = activeMembers.filter((m) => m.gender === 'Female').length;
+    const guestMaleCount = guests.filter((g) => g.gender === 'Male').length;
+    const guestFemaleCount = guests.filter((g) => g.gender === 'Female').length;
+    const upgradeEligibleGuests = guests.filter((g) => !g.is_converted_to_member && ((g.attendance_count || 0) >= 3 || (g.total_visits || 0) >= 3));
 
     // Normalize date string helper
-    const normalizeDate = (raw: any): string => {
+    const normalizeDate = (raw?: string | Date | null): string => {
         if (!raw) return '';
         if (typeof raw === 'string') return raw.slice(0, 10);
         if (raw instanceof Date) return raw.toISOString().slice(0, 10);
@@ -48,35 +45,35 @@ export default function OverviewAnalytics({ members = [], guests = [], attendanc
 
     // Daily Check-In Calculations
     const dailyMemberAttendance = useMemo(() => {
-        return localAttendance.filter((a: any) => {
-            const sessionObj = sessions.find((s: any) => s.id === a.session_id);
+        return localAttendance.filter((a) => {
+            const sessionObj = sessions.find((s) => s.id === a.session_id);
             const aDate = normalizeDate(a.session_date) || normalizeDate(a.checked_in_at) || normalizeDate(sessionObj?.session_date);
             return aDate === activeDailyDate;
         });
     }, [localAttendance, sessions, activeDailyDate]);
 
     const dailyPresentMemberIds = useMemo(() => {
-        return new Set(dailyMemberAttendance.map((a: any) => a.user_id || a.member_id || a.profile_id));
+        return new Set(dailyMemberAttendance.map((a) => a.user_id || a.member_id || a.profile_id));
     }, [dailyMemberAttendance]);
 
     const dailyAttendedMembers = useMemo(() => {
-        return activeMembers.filter((m: any) => dailyPresentMemberIds.has(m.id));
+        return activeMembers.filter((m) => dailyPresentMemberIds.has(m.id));
     }, [activeMembers, dailyPresentMemberIds]);
 
     const dailyAbsentees = useMemo(() => {
-        return activeMembers.filter((m: any) => !dailyPresentMemberIds.has(m.id));
+        return activeMembers.filter((m) => !dailyPresentMemberIds.has(m.id));
     }, [activeMembers, dailyPresentMemberIds]);
 
     const habitualAbsenteesToday = useMemo(() => {
-        return activeMembers.filter((m: any) => {
-            const totalVisits = localAttendance.filter((a: any) => (a.user_id || a.member_id) === m.id).length;
+        return activeMembers.filter((m) => {
+            const totalVisits = localAttendance.filter((a) => (a.user_id || a.member_id || a.profile_id) === m.id).length;
             const attendedToday = dailyPresentMemberIds.has(m.id);
             return totalVisits >= 3 && !attendedToday;
         });
     }, [activeMembers, localAttendance, dailyPresentMemberIds]);
 
     const dailyAttendedGuests = useMemo(() => {
-        return guests.filter((g: any) => {
+        return guests.filter((g) => {
             const firstAtt = normalizeDate(g.first_attended_at);
             const lastAtt = normalizeDate(g.last_attended_at);
             const created = normalizeDate(g.created_at);
@@ -92,7 +89,7 @@ export default function OverviewAnalytics({ members = [], guests = [], attendanc
         const randomMember = activeMembers[Math.floor(Math.random() * activeMembers.length)];
         if (dailyPresentMemberIds.has(randomMember.id)) return;
 
-        const newRecord = {
+        const newRecord: AttendanceRecord = {
             id: `test-sim-${Date.now()}`,
             user_id: randomMember.id,
             session_date: activeDailyDate,
@@ -245,7 +242,7 @@ export default function OverviewAnalytics({ members = [], guests = [], attendanc
                         </summary>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-3 mt-3 border-t border-slate-800 text-xs">
                             {dailyAttendedMembers.length > 0 ? (
-                                dailyAttendedMembers.map((m: any) => (
+                                dailyAttendedMembers.map((m) => (
                                     <div key={m.id} className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex justify-between items-center">
                                         <span className="font-semibold text-white">{m.first_name} {m.last_name}</span>
                                         <span className="text-[10px] text-slate-400">{m.phone_number}</span>
@@ -267,7 +264,7 @@ export default function OverviewAnalytics({ members = [], guests = [], attendanc
                         <p className="text-[11px] text-slate-400 mt-2">Members with 3+ past visits who are missing today. High priority for follow-up.</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-3 mt-3 border-t border-slate-800 text-xs">
                             {habitualAbsenteesToday.length > 0 ? (
-                                habitualAbsenteesToday.map((m: any) => (
+                                habitualAbsenteesToday.map((m) => (
                                     <div key={m.id} className="p-2.5 rounded-xl bg-red-500/5 border border-red-500/20 flex justify-between items-center">
                                         <div>
                                             <span className="font-bold text-white block">{m.first_name} {m.last_name}</span>
@@ -290,7 +287,7 @@ export default function OverviewAnalytics({ members = [], guests = [], attendanc
                             <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" />
                         </summary>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-3 mt-3 border-t border-slate-800 text-xs max-h-60 overflow-y-auto">
-                            {dailyAbsentees.map((m: any) => (
+                            {dailyAbsentees.map((m) => (
                                 <div key={m.id} className="p-2 rounded-xl bg-slate-900 border border-slate-800 flex justify-between items-center">
                                     <span className="font-semibold text-slate-300">{m.first_name} {m.last_name}</span>
                                     <span className="text-[10px] text-slate-500">{m.phone_number || 'Nil'}</span>
@@ -308,7 +305,7 @@ export default function OverviewAnalytics({ members = [], guests = [], attendanc
                         </summary>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-3 mt-3 border-t border-slate-800 text-xs">
                             {dailyAttendedGuests.length > 0 ? (
-                                dailyAttendedGuests.map((g: any) => (
+                                dailyAttendedGuests.map((g) => (
                                     <div key={g.id} className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex justify-between items-center">
                                         <div>
                                             <span className="font-semibold text-amber-300 block">{g.full_name}</span>

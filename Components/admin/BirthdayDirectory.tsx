@@ -75,7 +75,7 @@ export default function BirthdayDirectory({ members }: BirthdayDirectoryProps) {
         if (diff === 0) return { label: '🎉 Today!', color: 'bg-emerald-500 text-slate-950 font-black animate-pulse' };
         if (diff === 1) return { label: '⏳ Tomorrow!', color: 'bg-amber-500/20 text-amber-300 border border-amber-500/40' };
         if (diff > 1) return { label: `⏳ ${diff} days to go`, color: 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40' };
-        return { label: `Passed on Nov ${day}`, color: 'bg-slate-800 text-slate-500' };
+        return { label: `Passed on ${currentMonthName} ${day}`, color: 'bg-slate-800 text-slate-500' };
     };
 
     const monthlyBirthdays = useMemo(() => {
