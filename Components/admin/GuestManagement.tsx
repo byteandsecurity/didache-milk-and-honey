@@ -1,21 +1,9 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Edit2, Trash2, X, Calendar, Filter, UserCheck, Phone, Search, RefreshCw, ChevronLeft, ChevronRight, ArrowUpDown, CheckSquare, Square, CornerDownLeft, Eye, User } from 'lucide-react';
+import { Edit2, Trash2, X, Calendar, Filter, UserCheck, Phone, Search, RefreshCw, ChevronLeft, ChevronRight, ArrowUpDown, CheckSquare, Square, Eye, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-
-interface GuestProfile {
-    id: string;
-    full_name: string;
-    phone_number: string | null;
-    gender: 'Male' | 'Female' | null;
-    home_address: string | null;
-    attendance_count: number;
-    first_attended_at: string | null;
-    last_attended_at: string | null;
-    is_converted_to_member: boolean;
-    created_at: string;
-}
+import { GuestProfile } from "@/types/admin";
 
 interface AttendanceLog {
     session_date: string;
@@ -25,6 +13,63 @@ interface AttendanceLog {
 interface GuestManagementProps {
     guests: GuestProfile[];
     onRefresh: () => void;
+}
+
+// Reusable Confirmation Modal Component
+interface ConfirmationModalProps {
+    isOpen: boolean;
+    title?: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    isLoading?: boolean;
+    onConfirm: () => void;
+    onClose: () => void;
+}
+
+function ConfirmationModal({
+                               isOpen,
+                               title = 'Confirm Action',
+                               message,
+                               confirmText = 'Yes, Proceed',
+                               cancelText = 'Cancel',
+                               isLoading = false,
+                               onConfirm,
+                               onClose,
+                           }: ConfirmationModalProps) {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-70 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="w-full max-w-sm rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-2xl space-y-4 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mx-auto">
+                    <AlertTriangle className="h-6 w-6" />
+                </div>
+                <div className="space-y-1">
+                    <h3 className="text-sm font-bold text-white">{title}</h3>
+                    <p className="text-xs text-slate-400 leading-relaxed">{message}</p>
+                </div>
+                <div className="flex gap-2 pt-2">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        disabled={isLoading}
+                        className="flex-1 rounded-xl bg-slate-800 hover:bg-slate-700 py-2.5 text-xs font-semibold text-slate-300 transition cursor-pointer disabled:opacity-50"
+                    >
+                        {cancelText}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onConfirm}
+                        disabled={isLoading}
+                        className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 py-2.5 text-xs font-semibold text-white shadow transition cursor-pointer disabled:opacity-50"
+                    >
+                        {isLoading ? 'Processing...' : confirmText}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
 }
 
 export default function GuestManagement({ guests, onRefresh }: GuestManagementProps) {
@@ -43,6 +88,9 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
     // Selection State for Bulk Deletion
     const [selectedGuestIds, setSelectedGuestIds] = useState<string[]>([]);
 
+    // Toast Feedback Banner State
+    const [actionMsg, setActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
     // Modals States
     const [selectedGuest, setSelectedGuest] = useState<GuestProfile | null>(null);
     const [isEditingGuest, setIsEditingGuest] = useState<boolean>(false);
@@ -50,22 +98,33 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
     const [editGuestPhone, setEditGuestPhone] = useState<string>('');
     const [editGuestGender, setEditGuestGender] = useState<string>('Male');
     const [editFirstAttended, setEditFirstAttended] = useState<string>('');
+    const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
+
+    // Guest Manual Sign-In State
+    const todayISO = new Date().toISOString().split('T')[0];
+    const [manualCheckInDate, setManualCheckInDate] = useState<string>(todayISO);
+    const [signingGuestId, setSigningGuestId] = useState<string | null>(null);
 
     // Visit Dates History Modal States
     const [viewingVisitDatesGuest, setViewingVisitDatesGuest] = useState<GuestProfile | null>(null);
     const [visitHistoryLogs, setVisitHistoryLogs] = useState<AttendanceLog[]>([]);
     const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
 
-    // Custom Delete Confirmation Modal State
+    // Confirmation Modal Configs
     const [deleteModalConfig, setDeleteModalConfig] = useState<{ isOpen: boolean; ids: string[]; isBulk: boolean }>({
         isOpen: false,
         ids: [],
         isBulk: false,
     });
+    const [editConfirmModalOpen, setEditConfirmModalOpen] = useState<boolean>(false);
+    const [upgradeConfirmModalOpen, setUpgradeConfirmModalOpen] = useState<boolean>(false);
+    const [guestToUpgrade, setGuestToUpgrade] = useState<GuestProfile | null>(null);
+    const [signInConfirmModalOpen, setSignInConfirmModalOpen] = useState<boolean>(false);
+    const [guestToSignIn, setGuestToSignIn] = useState<GuestProfile | null>(null);
 
     const supabase = createClient();
 
-    // Fetch real historical attendance dates from guest_attendance table safely without cascading render warnings
+    // Fetch real historical attendance dates from guest_attendance table safely
     const fetchVisitHistory = useCallback(async (guestId: string) => {
         setLoadingHistory(true);
         const { data, error } = await supabase
@@ -84,7 +143,6 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
 
     useEffect(() => {
         if (viewingVisitDatesGuest) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             void fetchVisitHistory(viewingVisitDatesGuest.id);
         } else {
             setVisitHistoryLogs([]);
@@ -142,8 +200,12 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
         return filteredAndSortedGuests.slice(start, start + pageSize);
     }, [filteredAndSortedGuests, currentPage, pageSize]);
 
-    // Handle Upgrade Guest to Full Member
-    const handleUpgradeGuest = async (guest: GuestProfile) => {
+    // Handle Upgrade Guest to Full Member (Confirmed via Modal)
+    const executeUpgradeGuest = async () => {
+        if (!guestToUpgrade) return;
+        const guest = guestToUpgrade;
+        setUpgradeConfirmModalOpen(false);
+
         const nameParts = guest.full_name.split(' ');
         const firstName = nameParts[0] || guest.full_name;
         const lastName = nameParts.slice(1).join(' ') || 'Member';
@@ -158,26 +220,32 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
 
         if (!insertErr) {
             await supabase.from('guest_profiles').update({ is_converted_to_member: true }).eq('id', guest.id);
+            setActionMsg({ type: 'success', text: `Successfully upgraded ${guest.full_name} to a full member!` });
             if (onRefresh) onRefresh();
         } else {
-            window.alert(`Failed to upgrade guest: ${insertErr.message}`);
+            setActionMsg({ type: 'error', text: `Failed to upgrade guest: ${insertErr.message}` });
         }
+        setGuestToUpgrade(null);
+        setTimeout(() => setActionMsg(null), 3000);
     };
 
     // Handle Demote / Un-upgrade Guest Back
     const handleDemoteGuest = async (guestId: string) => {
         const { error } = await supabase.from('guest_profiles').update({ is_converted_to_member: false }).eq('id', guestId);
         if (!error) {
+            setActionMsg({ type: 'success', text: 'Guest successfully moved back to active roster.' });
             if (onRefresh) onRefresh();
         } else {
-            window.alert(`Failed to move guest back: ${error.message}`);
+            setActionMsg({ type: 'error', text: `Failed to move guest back: ${error.message}` });
         }
+        setTimeout(() => setActionMsg(null), 3000);
     };
 
-    // Save Guest Edits
-    const handleSaveGuestEdit = async (e: React.SyntheticEvent) => {
-        e.preventDefault();
+    // Save Guest Edits (Confirmed via Modal)
+    const executeSaveGuestEdit = async () => {
         if (!selectedGuest) return;
+        setIsSavingEdit(true);
+        setEditConfirmModalOpen(false);
 
         const updateData: Record<string, unknown> = {
             full_name: editGuestName,
@@ -191,16 +259,76 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
 
         const { error } = await supabase.from('guest_profiles').update(updateData).eq('id', selectedGuest.id);
 
+        setIsSavingEdit(false);
         if (!error) {
             setIsEditingGuest(false);
             setSelectedGuest(null);
+            setActionMsg({ type: 'success', text: `Successfully updated guest record for ${editGuestName}!` });
             if (onRefresh) onRefresh();
         } else {
-            window.alert(`Failed to update guest: ${error.message}`);
+            setActionMsg({ type: 'error', text: `Failed to update guest: ${error.message}` });
         }
+        setTimeout(() => setActionMsg(null), 3000);
     };
 
-    // Execute Deletion (Single or Bulk)
+    // Admin Manual Check-In for Guest
+    const executeGuestManualCheckIn = async () => {
+        if (!guestToSignIn) return;
+        const guest = guestToSignIn;
+        setSignInConfirmModalOpen(false);
+        setSigningGuestId(guest.id);
+
+        // 1. Check if already checked in for this date
+        const { data: existingLog } = await supabase
+            .from('guest_attendance')
+            .select('id')
+            .eq('guest_id', guest.id)
+            .eq('session_date', manualCheckInDate)
+            .maybeSingle();
+
+        if (existingLog) {
+            setActionMsg({ type: 'error', text: `${guest.full_name} is already signed in for ${manualCheckInDate}.` });
+            setSigningGuestId(null);
+            setGuestToSignIn(null);
+            setTimeout(() => setActionMsg(null), 3000);
+            return;
+        }
+
+        // 2. Insert attendance record
+        const { error: attError } = await supabase.from('guest_attendance').insert([{
+            guest_id: guest.id,
+            session_date: manualCheckInDate,
+            checked_in_at: new Date().toISOString(),
+        }]);
+
+        if (attError) {
+            setActionMsg({ type: 'error', text: `Failed to sign in guest: ${attError.message}` });
+            setSigningGuestId(null);
+            setGuestToSignIn(null);
+            setTimeout(() => setActionMsg(null), 3000);
+            return;
+        }
+
+        // 3. Increment attendance count on guest profile
+        const newCount = (guest.attendance_count || 0) + 1;
+        const { error: updateError } = await supabase
+            .from('guest_profiles')
+            .update({ attendance_count: newCount })
+            .eq('id', guest.id);
+
+        setSigningGuestId(null);
+        setGuestToSignIn(null);
+
+        if (!updateError) {
+            setActionMsg({ type: 'success', text: `Successfully signed in ${guest.full_name} for session date ${manualCheckInDate}!` });
+            if (onRefresh) onRefresh();
+        } else {
+            setActionMsg({ type: 'error', text: `Attendance recorded, but failed to update counter: ${updateError.message}` });
+        }
+        setTimeout(() => setActionMsg(null), 3000);
+    };
+
+    // Execute Deletion (Single or Bulk Confirmed via Modal)
     const confirmDelete = async () => {
         const { ids } = deleteModalConfig;
         if (ids.length === 0) return;
@@ -210,10 +338,12 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
         if (!error) {
             setSelectedGuestIds([]);
             setDeleteModalConfig({ isOpen: false, ids: [], isBulk: false });
+            setActionMsg({ type: 'success', text: `Successfully deleted ${ids.length} guest record(s).` });
             if (onRefresh) onRefresh();
         } else {
-            window.alert(`Failed to delete records: ${error.message}`);
+            setActionMsg({ type: 'error', text: `Failed to delete records: ${error.message}` });
         }
+        setTimeout(() => setActionMsg(null), 3000);
     };
 
     const toggleSelectAll = () => {
@@ -240,6 +370,16 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
 
     return (
         <div className="space-y-4 sm:space-y-6">
+            {/* Action Feedback Banner Toast */}
+            {actionMsg && (
+                <div className={`p-3 rounded-2xl border text-xs flex items-center gap-2 shadow-lg animate-in fade-in duration-200 ${
+                    actionMsg.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-red-500/10 border-red-500/20 text-red-300'
+                }`}>
+                    {actionMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertTriangle className="w-4 h-4 shrink-0" />}
+                    <span className="font-semibold">{actionMsg.text}</span>
+                </div>
+            )}
+
             {/* Header Controls Bar */}
             <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 text-xs text-slate-400 space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/60 pb-3">
@@ -252,7 +392,7 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
                     <button
                         onClick={onRefresh}
                         title="Refresh Roster Data"
-                        className="self-start sm:self-auto flex items-center gap-1.5 bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white px-3 py-2 rounded-xl transition shadow text-xs font-semibold"
+                        className="self-start sm:self-auto flex items-center gap-1.5 bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white px-3 py-2 rounded-xl transition shadow text-xs font-semibold cursor-pointer"
                     >
                         <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
                         <span>Refresh Roster</span>
@@ -272,7 +412,7 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
                     </div>
 
                     <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 w-full sm:w-auto">
-                        <Calendar className="w-3.5 h-3.5 text-emerald-400 shrink-0 " />
+                        <Calendar className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                         <input
                             type="date"
                             value={selectedDate}
@@ -280,7 +420,7 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
                             className="bg-transparent text-xs text-emerald-300 font-semibold focus:outline-none w-full flex-1 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
                         />
                         {selectedDate && (
-                            <button onClick={() => setSelectedDate('')} className="text-slate-500 hover:text-white text-[10px] ml-1 font-bold">Clear</button>
+                            <button onClick={() => setSelectedDate('')} className="text-slate-500 hover:text-white text-[10px] ml-1 font-bold cursor-pointer">Clear</button>
                         )}
                     </div>
 
@@ -289,7 +429,7 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
                         <select
                             value={guestGenderFilter}
                             onChange={(e) => { setGuestGenderFilter(e.target.value as 'all' | 'Male' | 'Female'); setCurrentPage(1); }}
-                            className="bg-transparent text-xs text-amber-300 font-semibold focus:outline-none w-full"
+                            className="bg-transparent text-xs text-amber-300 font-semibold focus:outline-none w-full cursor-pointer"
                         >
                             <option value="all" className="bg-slate-950 text-white">All Genders</option>
                             <option value="Male" className="bg-slate-950 text-blue-400">Male Only</option>
@@ -302,7 +442,7 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
                         <select
                             value={sortOption}
                             onChange={(e) => setSortOption(e.target.value as 'newest' | 'earliest' | 'firstname' | 'lastname')}
-                            className="bg-transparent text-xs text-amber-300 font-semibold focus:outline-none w-full"
+                            className="bg-transparent text-xs text-amber-300 font-semibold focus:outline-none w-full cursor-pointer"
                         >
                             <option value="newest" className="bg-slate-950 text-white">Newest First (Arrival)</option>
                             <option value="earliest" className="bg-slate-950 text-white">Earliest First (Arrival)</option>
@@ -318,7 +458,7 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
                     <span className="font-semibold">{selectedGuestIds.length} visitor record(s) selected</span>
                     <button
                         onClick={() => setDeleteModalConfig({ isOpen: true, ids: selectedGuestIds, isBulk: true })}
-                        className="rounded-lg bg-red-600 hover:bg-red-500 px-3 py-1.5 font-bold text-white transition shadow"
+                        className="rounded-lg bg-red-600 hover:bg-red-500 px-3 py-1.5 font-bold text-white transition shadow cursor-pointer"
                     >
                         Delete Selected Records
                     </button>
@@ -332,7 +472,7 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
                         <div key={g.id} className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 space-y-3 shadow-lg">
                             <div className="flex items-start justify-between">
                                 <div className="flex items-center gap-2">
-                                    <button onClick={() => toggleSelectGuest(g.id)} className="text-slate-400">
+                                    <button onClick={() => toggleSelectGuest(g.id)} className="text-slate-400 cursor-pointer">
                                         {selectedGuestIds.includes(g.id) ? (
                                             <CheckSquare className="w-4 h-4 text-amber-400" />
                                         ) : (
@@ -361,16 +501,43 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
                                 </span>
                                 <button
                                     onClick={() => setViewingVisitDatesGuest(g)}
-                                    className="font-bold text-amber-400 hover:underline flex items-center gap-1"
+                                    className="font-bold text-amber-400 hover:underline flex items-center gap-1 cursor-pointer"
                                 >
                                     Visits: {g.attendance_count || 1} <Eye className="w-3 h-3" />
                                 </button>
                             </div>
 
+                            {/* Guest Manual Sign In Box (Mobile) */}
+                            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-2.5 space-y-1.5">
+                                <p className="font-semibold text-[11px] text-emerald-400">Sign In Guest for Session</p>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="date"
+                                        value={manualCheckInDate}
+                                        max={todayISO}
+                                        onChange={(e) => setManualCheckInDate(e.target.value)}
+                                        className="rounded-lg border border-slate-800 bg-slate-950 px-2 py-1.5 text-[11px] text-white font-semibold focus:outline-none flex-1 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            setGuestToSignIn(g);
+                                            setSignInConfirmModalOpen(true);
+                                        }}
+                                        disabled={signingGuestId === g.id}
+                                        className="rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-[11px] font-semibold text-white shadow transition shrink-0 cursor-pointer disabled:opacity-50"
+                                    >
+                                        {signingGuestId === g.id ? 'Signing...' : 'Sign In'}
+                                    </button>
+                                </div>
+                            </div>
+
                             <div className="flex items-center gap-2 pt-2 border-t border-slate-800/60">
                                 <button
-                                    onClick={() => void handleUpgradeGuest(g)}
-                                    className="flex-1 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-[11px] font-semibold text-white transition shadow"
+                                    onClick={() => {
+                                        setGuestToUpgrade(g);
+                                        setUpgradeConfirmModalOpen(true);
+                                    }}
+                                    className="flex-1 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-[11px] font-semibold text-white transition shadow cursor-pointer"
                                 >
                                     Upgrade to Member
                                 </button>
@@ -384,13 +551,13 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
                                         setEditFirstAttended(rawDate ? new Date(rawDate).toISOString().split('T')[0] : '');
                                         setIsEditingGuest(true);
                                     }}
-                                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 text-[11px]"
+                                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 text-[11px] cursor-pointer"
                                 >
                                     <Edit2 className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                     onClick={() => setDeleteModalConfig({ isOpen: true, ids: [g.id], isBulk: false })}
-                                    className="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[11px]"
+                                    className="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[11px] cursor-pointer"
                                 >
                                     <Trash2 className="w-3.5 h-3.5" />
                                 </button>
@@ -411,7 +578,7 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
                         <thead>
                         <tr className="border-b border-slate-800 bg-slate-950/60 text-slate-400 uppercase text-[10px]">
                             <th className="py-3 px-3 w-10 text-center">
-                                <button onClick={toggleSelectAll} className="text-slate-400">
+                                <button onClick={toggleSelectAll} className="text-slate-400 cursor-pointer">
                                     {selectedGuestIds.length > 0 && selectedGuestIds.length === paginatedGuests.length ? (
                                         <CheckSquare className="w-4 h-4 text-amber-400" />
                                     ) : (
@@ -424,7 +591,7 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
                             <th className="py-3.5 px-4 font-semibold">Phone Number</th>
                             <th className="py-3.5 px-4 font-semibold">First Joined</th>
                             <th className="py-3.5 px-4 font-semibold text-center">Visits & History</th>
-                            <th className="py-3.5 px-4 font-semibold">Status</th>
+                            <th className="py-3.5 px-4 font-semibold">Manual Sign-In</th>
                             <th className="py-3.5 px-4 font-semibold text-right">Actions</th>
                         </tr>
                         </thead>
@@ -433,7 +600,7 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
                             paginatedGuests.map((g: GuestProfile) => (
                                 <tr key={g.id} className="hover:bg-slate-800/30 transition">
                                     <td className="py-3 px-3 text-center">
-                                        <button onClick={() => toggleSelectGuest(g.id)} className="text-slate-400">
+                                        <button onClick={() => toggleSelectGuest(g.id)} className="text-slate-400 cursor-pointer">
                                             {selectedGuestIds.includes(g.id) ? (
                                                 <CheckSquare className="w-4 h-4 text-amber-400" />
                                             ) : (
@@ -454,7 +621,7 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
                                     <td className="py-3 px-4 text-center">
                                         <button
                                             onClick={() => setViewingVisitDatesGuest(g)}
-                                            className="inline-flex items-center gap-1 rounded bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 font-bold text-amber-400 transition"
+                                            className="inline-flex items-center gap-1 rounded bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 font-bold text-amber-400 transition cursor-pointer"
                                             title="Click to view all visit dates"
                                         >
                                             <span>{g.attendance_count || 1} Visits</span>
@@ -462,12 +629,33 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
                                         </button>
                                     </td>
                                     <td className="py-3 px-4">
-                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Guest</span>
+                                        <div className="flex items-center gap-1.5">
+                                            <input
+                                                type="date"
+                                                value={manualCheckInDate}
+                                                max={todayISO}
+                                                onChange={(e) => setManualCheckInDate(e.target.value)}
+                                                className="rounded-lg border border-slate-800 bg-slate-950 px-2 py-1 text-[11px] text-white font-semibold focus:outline-none [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    setGuestToSignIn(g);
+                                                    setSignInConfirmModalOpen(true);
+                                                }}
+                                                disabled={signingGuestId === g.id}
+                                                className="rounded-lg bg-emerald-600 hover:bg-emerald-500 px-2.5 py-1 text-[11px] font-semibold text-white shadow transition cursor-pointer disabled:opacity-50"
+                                            >
+                                                {signingGuestId === g.id ? 'Signing...' : 'Sign In'}
+                                            </button>
+                                        </div>
                                     </td>
-                                    <td className="py-3 px-4 text-right space-x-2">
+                                    <td className="py-3 px-4 text-right space-x-1.5">
                                         <button
-                                            onClick={() => void handleUpgradeGuest(g)}
-                                            className="rounded bg-emerald-600 hover:bg-emerald-500 px-2.5 py-1 text-[11px] font-semibold text-white shadow transition"
+                                            onClick={() => {
+                                                setGuestToUpgrade(g);
+                                                setUpgradeConfirmModalOpen(true);
+                                            }}
+                                            className="rounded bg-emerald-600 hover:bg-emerald-500 px-2.5 py-1 text-[11px] font-semibold text-white shadow transition cursor-pointer"
                                         >
                                             Upgrade
                                         </button>
@@ -481,13 +669,15 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
                                                 setEditFirstAttended(rawDate ? new Date(rawDate).toISOString().split('T')[0] : '');
                                                 setIsEditingGuest(true);
                                             }}
-                                            className="rounded bg-slate-800 hover:bg-slate-700 px-2.5 py-1 text-[11px] text-emerald-400 transition"
+                                            className="rounded bg-slate-800 hover:bg-slate-700 px-2 py-1 text-[11px] text-emerald-400 transition cursor-pointer"
+                                            title="Edit Guest"
                                         >
                                             <Edit2 className="w-3.5 h-3.5 inline" />
                                         </button>
                                         <button
                                             onClick={() => setDeleteModalConfig({ isOpen: true, ids: [g.id], isBulk: false })}
-                                            className="rounded bg-red-500/10 hover:bg-red-500/20 px-2 py-1 text-[11px] text-red-400 transition"
+                                            className="rounded bg-red-500/10 hover:bg-red-500/20 px-2 py-1 text-[11px] text-red-400 transition cursor-pointer"
+                                            title="Delete Guest"
                                         >
                                             <Trash2 className="w-3.5 h-3.5 inline" />
                                         </button>
@@ -512,7 +702,7 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
                         <select
                             value={pageSize}
                             onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
-                            className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-white focus:outline-none"
+                            className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-white focus:outline-none cursor-pointer"
                         >
                             <option value={5}>5</option>
                             <option value={10}>10</option>
@@ -528,14 +718,14 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
                             <button
                                 onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
                                 disabled={currentPage === 1}
-                                className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 disabled:opacity-40 hover:bg-slate-800 text-white transition"
+                                className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 disabled:opacity-40 hover:bg-slate-800 text-white transition cursor-pointer"
                             >
                                 <ChevronLeft className="w-4 h-4" />
                             </button>
                             <button
                                 onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
                                 disabled={currentPage === totalPages}
-                                className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 disabled:opacity-40 hover:bg-slate-800 text-white transition"
+                                className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 disabled:opacity-40 hover:bg-slate-800 text-white transition cursor-pointer"
                             >
                                 <ChevronRight className="w-4 h-4" />
                             </button>
@@ -549,7 +739,7 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
                 <div className="rounded-3xl border border-slate-800 bg-slate-900/40 overflow-hidden shadow-lg mt-6">
                     <button
                         onClick={() => setShowUpgradedSection(!showUpgradedSection)}
-                        className="w-full p-4 flex items-center justify-between bg-slate-950/60 hover:bg-slate-950 transition text-xs font-bold text-slate-300"
+                        className="w-full p-4 flex items-center justify-between bg-slate-950/60 hover:bg-slate-950 transition text-xs font-bold text-slate-300 cursor-pointer"
                     >
                         <span className="flex items-center gap-2">
                             <UserCheck className="w-4 h-4 text-emerald-400" />
@@ -565,23 +755,22 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
                                 <tr className="border-b border-slate-800 text-slate-400 uppercase text-[10px]">
                                     <th className="py-2.5 px-3">Full Name</th>
                                     <th className="py-2.5 px-3">Phone</th>
-                                    <th className="py-2.5 px-3">First Joined</th>
-                                    <th className="py-2.5 px-3 text-right">Demote / Revert</th>
+                                    <th className="py-2.5 px-3">Gender</th>
+                                    <th className="py-2.5 px-3 text-right">Actions</th>
                                 </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                                {upgradedGuestsList.map((g: GuestProfile) => (
-                                    <tr key={g.id} className="hover:bg-slate-800/20">
-                                        <td className="py-2.5 px-3 font-semibold text-white">{g.full_name}</td>
-                                        <td className="py-2.5 px-3 text-slate-400">{g.phone_number || 'Nil'}</td>
-                                        <td className="py-2.5 px-3 text-emerald-400">{formatDateDisplay(g.first_attended_at || g.created_at)}</td>
+                                {upgradedGuestsList.map((ug: GuestProfile) => (
+                                    <tr key={ug.id} className="hover:bg-slate-800/20">
+                                        <td className="py-2.5 px-3 font-semibold text-white">{ug.full_name}</td>
+                                        <td className="py-2.5 px-3 text-slate-400">{ug.phone_number || 'Nil'}</td>
+                                        <td className="py-2.5 px-3">{ug.gender || 'Male'}</td>
                                         <td className="py-2.5 px-3 text-right">
                                             <button
-                                                onClick={() => void handleDemoteGuest(g.id)}
-                                                className="inline-flex items-center gap-1 rounded bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 text-[11px] font-semibold text-amber-300 transition"
-                                                title="Move back to active guest roster"
+                                                onClick={() => void handleDemoteGuest(ug.id)}
+                                                className="rounded bg-slate-800 hover:bg-slate-700 px-2 py-1 text-[10px] font-medium text-amber-400 transition cursor-pointer"
                                             >
-                                                <CornerDownLeft className="w-3 h-3" /> Un-upgrade
+                                                Move Back to Guests
                                             </button>
                                         </td>
                                     </tr>
@@ -593,187 +782,170 @@ export default function GuestManagement({ guests, onRefresh }: GuestManagementPr
                 </div>
             )}
 
-            {/* Visit Dates History Modal (Fully Mobile-Responsive Stack) */}
-            {viewingVisitDatesGuest && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="w-full max-w-2xl rounded-3xl border border-amber-500/30 bg-slate-900 p-4 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-
-                        {/* Modal Header */}
-                        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                            <div className="flex items-center gap-2">
-                                <User className="w-5 h-5 text-amber-400 shrink-0" />
-                                <div>
-                                    <h3 className="text-sm font-bold text-white truncate max-w-50 sm:max-w-xs">{viewingVisitDatesGuest.full_name}</h3>
-                                    <p className="text-[11px] text-amber-400">Visitor Profile & Attendance History</p>
-                                </div>
-                            </div>
-                            <button onClick={() => setViewingVisitDatesGuest(null)} className="text-slate-400 hover:text-white p-1 rounded-lg bg-slate-800">
-                                <X className="w-4 h-4" />
-                            </button>
-                        </div>
-
-                        {/* Responsive Grid: Stacks vertically on mobile, splits side-by-side on desktop */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 items-start">
-
-                            {/* Left Side: Visitor Info Summary (self-start prevents it from stretching with the right side) */}
-                            <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 space-y-3 text-xs self-start">
-                                <p className="font-bold text-slate-300 uppercase text-[10px] tracking-wider border-b border-slate-800 pb-1.5">Visitor Summary</p>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-slate-400">Phone Number:</span>
-                                    <span className="font-semibold text-white">{viewingVisitDatesGuest.phone_number || 'Nil'}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-slate-400">Gender:</span>
-                                    <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${viewingVisitDatesGuest.gender === 'Female' ? 'bg-pink-500/10 text-pink-400' : 'bg-blue-500/10 text-blue-400'}`}>
-                {viewingVisitDatesGuest.gender || 'Visitor'}
-            </span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-slate-400">First Joined Date:</span>
-                                    <span className="font-bold text-emerald-400">{formatDateDisplay(viewingVisitDatesGuest.first_attended_at || viewingVisitDatesGuest.created_at)}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-slate-400">Total Visits:</span>
-                                    <span className="font-extrabold text-amber-400">{viewingVisitDatesGuest.attendance_count || 1} Sunday(s)</span>
-                                </div>
-                            </div>
-
-                            {/* Right Side: Scrollable List of Sunday Attendance Dates */}
-                            <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 space-y-3 text-xs flex flex-col">
-                                <p className="font-bold text-slate-300 uppercase text-[10px] tracking-wider border-b border-slate-800 pb-1.5">Attendance Service Dates</p>
-                                <div className="space-y-2 max-h-40 sm:max-h-48 overflow-y-auto pr-1 flex-1">
-                                    {loadingHistory ? (
-                                        <p className="text-center text-slate-500 py-6">Loading dates...</p>
-                                    ) : visitHistoryLogs.length > 0 ? (
-                                        visitHistoryLogs.map((log: AttendanceLog, idx: number) => (
-                                            <div key={idx} className="rounded-xl border border-slate-800/80 bg-slate-900 p-2.5 flex items-center justify-between">
-                        <span className="text-slate-300 flex items-center gap-1.5">
-                            <Calendar className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                            Service Session
-                        </span>
-                                                <span className="font-bold text-amber-400">
-                            {new Date(log.session_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </span>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <p className="text-center text-slate-500 py-6">No date logs found.</p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Close Button */}
-                        <button
-                            onClick={() => setViewingVisitDatesGuest(null)}
-                            className="w-full rounded-xl bg-slate-800 hover:bg-slate-700 py-2.5 text-xs font-semibold text-slate-200 transition"
-                        >
-                            Close Modal
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* Delete Modal */}
-            {deleteModalConfig.isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="w-full max-w-sm rounded-3xl border border-red-500/30 bg-slate-900 p-6 shadow-2xl space-y-4 text-center">
-                        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400">
-                            <Trash2 className="h-6 w-6" />
-                        </div>
-                        <div className="space-y-1">
-                            <h3 className="text-sm font-bold text-white">Confirm Record Deletion</h3>
-                            <p className="text-xs text-slate-400">
-                                {deleteModalConfig.isBulk
-                                    ? `Are you sure you want to delete these ${deleteModalConfig.ids.length} selected guest records?`
-                                    : 'Are you sure you want to delete this guest record? This action cannot be undone.'}
-                            </p>
-                        </div>
-                        <div className="flex gap-2 pt-2">
-                            <button
-                                onClick={() => void confirmDelete()}
-                                className="flex-1 rounded-xl bg-red-600 hover:bg-red-500 py-2.5 text-xs font-semibold text-white shadow transition"
-                            >
-                                Yes, Delete
-                            </button>
-                            <button
-                                onClick={() => setDeleteModalConfig({ isOpen: false, ids: [], isBulk: false })}
-                                className="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2.5 text-xs font-semibold text-slate-300 transition"
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Edit Modal */}
+            {/* Edit Guest Modal */}
             {isEditingGuest && selectedGuest && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-                    <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-5 sm:p-6 shadow-2xl space-y-4">
+                    <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-2xl space-y-4">
                         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                            <h2 className="text-sm font-bold text-white">Edit Guest Profile</h2>
-                            <button onClick={() => setIsEditingGuest(false)} className="text-slate-400 hover:text-white">
+                            <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                                <Edit2 className="w-4 h-4 text-emerald-400" /> Edit Guest Record
+                            </h3>
+                            <button onClick={() => setIsEditingGuest(false)} className="text-slate-400 hover:text-white cursor-pointer">
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
 
-                        <form onSubmit={(e) => void handleSaveGuestEdit(e)} className="space-y-3 text-xs">
+                        <form onSubmit={(e) => { e.preventDefault(); setEditConfirmModalOpen(true); }} className="space-y-3 text-xs">
                             <div>
-                                <label className="block text-[11px] font-medium text-slate-400 mb-1">Full Name *</label>
+                                <label className="block text-[10px] text-slate-400 mb-1">Full Name *</label>
                                 <input
                                     type="text"
                                     value={editGuestName}
                                     onChange={(e) => setEditGuestName(e.target.value)}
                                     required
-                                    className="w-full rounded-xl bg-slate-950 border border-slate-800 p-2.5 text-white focus:outline-none"
+                                    className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-white focus:outline-none"
                                 />
                             </div>
 
-                            <div>
-                                <label className="block text-[11px] font-medium text-slate-400 mb-1">Phone Number</label>
-                                <input
-                                    type="tel"
-                                    value={editGuestPhone}
-                                    onChange={(e) => setEditGuestPhone(e.target.value)}
-                                    className="w-full rounded-xl bg-slate-950 border border-slate-800 p-2.5 text-white focus:outline-none"
-                                />
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-[10px] text-slate-400 mb-1">Phone Number</label>
+                                    <input
+                                        type="tel"
+                                        value={editGuestPhone}
+                                        onChange={(e) => setEditGuestPhone(e.target.value)}
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-white focus:outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] text-slate-400 mb-1">Gender *</label>
+                                    <select
+                                        value={editGuestGender}
+                                        onChange={(e) => setEditGuestGender(e.target.value)}
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-emerald-400 font-semibold focus:outline-none cursor-pointer"
+                                    >
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                    </select>
+                                </div>
                             </div>
 
                             <div>
-                                <label className="block text-[11px] font-medium text-slate-400 mb-1">Gender</label>
-                                <select
-                                    value={editGuestGender}
-                                    onChange={(e) => setEditGuestGender(e.target.value)}
-                                    className="w-full rounded-xl bg-slate-950 border border-slate-800 p-2.5 text-emerald-400 font-semibold focus:outline-none"
-                                >
-                                    <option value="Male" className="bg-slate-950 text-blue-400">Male</option>
-                                    <option value="Female" className="bg-slate-950 text-pink-400">Female</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-[11px] font-medium text-slate-400 mb-1">Date First Attended</label>
+                                <label className="block text-[10px] text-slate-400 mb-1">First Attended Date</label>
                                 <input
                                     type="date"
                                     value={editFirstAttended}
                                     onChange={(e) => setEditFirstAttended(e.target.value)}
-                                    className="w-full rounded-xl bg-slate-950 border border-slate-800 p-2.5 text-emerald-400 font-semibold focus:outline-none"
+                                    className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-white focus:outline-none [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
                                 />
                             </div>
 
                             <div className="flex gap-2 pt-2">
-                                <button type="submit" className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 py-2.5 font-semibold text-white shadow transition">
-                                    Save Changes
-                                </button>
-                                <button type="button" onClick={() => setIsEditingGuest(false)} className="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2.5 text-slate-300 transition">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditingGuest(false)}
+                                    className="flex-1 rounded-xl bg-slate-800 hover:bg-slate-700 py-2.5 font-semibold text-slate-300 cursor-pointer"
+                                >
                                     Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 py-2.5 font-semibold text-white shadow cursor-pointer"
+                                >
+                                    Save Changes
                                 </button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
+
+            {/* Visit Dates History Modal */}
+            {viewingVisitDatesGuest && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+                    <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-2xl space-y-4">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                            <div>
+                                <h3 className="text-sm font-bold text-white">{viewingVisitDatesGuest.full_name}&apos;s Visits</h3>
+                                <p className="text-[11px] text-slate-400">Total Recorded Visits: {visitHistoryLogs.length || viewingVisitDatesGuest.attendance_count || 1}</p>
+                            </div>
+                            <button onClick={() => setViewingVisitDatesGuest(null)} className="text-slate-400 hover:text-white cursor-pointer">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+                            {loadingHistory ? (
+                                <p className="text-xs text-slate-400 text-center py-6">Loading attendance history...</p>
+                            ) : visitHistoryLogs.length > 0 ? (
+                                visitHistoryLogs.map((log, index) => (
+                                    <div key={index} className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800/80 text-xs">
+                                        <span className="font-semibold text-emerald-400 flex items-center gap-1.5">
+                                            <Calendar className="w-3.5 h-3.5" /> Session Date: {log.session_date}
+                                        </span>
+                                        <span className="text-[10px] text-slate-500">
+                                            Checked In: {new Date(log.checked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="p-6 text-center text-xs text-slate-500">
+                                    No historical logs found in attendance table for this guest. (Initial profile creation record)
+                                </div>
+                            )}
+                        </div>
+
+                        <button
+                            onClick={() => setViewingVisitDatesGuest(null)}
+                            className="w-full rounded-xl bg-slate-800 hover:bg-slate-700 py-2.5 text-xs font-semibold text-white cursor-pointer"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Confirmation Modals */}
+            <ConfirmationModal
+                isOpen={deleteModalConfig.isOpen}
+                title="Confirm Record Deletion"
+                message={deleteModalConfig.isBulk ? `Are you sure you want to delete these ${deleteModalConfig.ids.length} guest records? This action cannot be undone.` : "Are you sure you want to delete this guest record? This action cannot be undone."}
+                confirmText="Yes, Delete"
+                cancelText="Cancel"
+                onConfirm={() => void confirmDelete()}
+                onClose={() => setDeleteModalConfig({ isOpen: false, ids: [], isBulk: false })}
+            />
+
+            <ConfirmationModal
+                isOpen={editConfirmModalOpen}
+                title="Confirm Profile Update"
+                message={`Are you sure you want to save changes for ${editGuestName}?`}
+                confirmText="Yes, Save Changes"
+                cancelText="Review"
+                isLoading={isSavingEdit}
+                onConfirm={() => void executeSaveGuestEdit()}
+                onClose={() => setEditConfirmModalOpen(false)}
+            />
+
+            <ConfirmationModal
+                isOpen={upgradeConfirmModalOpen}
+                title="Confirm Member Upgrade"
+                message={guestToUpgrade ? `Are you sure you want to upgrade ${guestToUpgrade.full_name} to a full member profile?` : ""}
+                confirmText="Yes, Upgrade"
+                cancelText="Cancel"
+                onConfirm={() => void executeUpgradeGuest()}
+                onClose={() => setUpgradeConfirmModalOpen(false)}
+            />
+
+            <ConfirmationModal
+                isOpen={signInConfirmModalOpen}
+                title="Confirm Guest Sign-In"
+                message={guestToSignIn ? `Sign in ${guestToSignIn.full_name} for session date ${manualCheckInDate}?` : ""}
+                confirmText="Sign In Guest"
+                cancelText="Cancel"
+                onConfirm={() => void executeGuestManualCheckIn()}
+                onClose={() => setSignInConfirmModalOpen(false)}
+            />
         </div>
     );
 }

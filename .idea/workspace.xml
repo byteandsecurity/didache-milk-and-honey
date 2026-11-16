@@ -4,11 +4,25 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="Secure check-in flow with URL expiration timestamps, multi-location geofencing, and static PWA icons.">
+    <list default="true" id="948377a2-abc1-4ba0-89bb-2252ae26171a" name="Changes" comment="Secure check-in flow with URL expiration fix">
+      <change afterPath="$PROJECT_DIR$/Components/admin/AddUserModal.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Components/admin/ConfirmationModa.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Components/admin/analytics/DailyView.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Components/admin/analytics/MonthlyView.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Components/admin/analytics/QuaterlyView.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Components/admin/analytics/YearlyView.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/admin/analytics/page.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/analytics/admin/engine.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/types/admin.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Components/guest/GuestQrScanner.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/guest/GuestQrScanner.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Components/member/QrScanner.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/member/QrScanner.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/checking/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/checking/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/admin/BirthdayDirectory.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/BirthdayDirectory.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/admin/GuestManagement.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/GuestManagement.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/admin/MemberRoster.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/MemberRoster.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/admin/OverviewAnalytics.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/OverviewAnalytics.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/admin/QrGenerator.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/QrGenerator.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/admin/StaffDirectory.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Components/admin/StaffDirectory.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Components/admin/analytics/AttendanceTrends.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/admin/dashboard/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/dashboard/page.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -19,8 +33,9 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="package.json" />
-        <option value="TypeScript JSX File" />
+        <option value="tsconfig.json" />
         <option value="TypeScript File" />
+        <option value="TypeScript JSX File" />
       </list>
     </option>
   </component>
@@ -32,61 +47,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.0000000000000009" />
-      <entry key="MS500" value="1.0009943214841452" />
-      <entry key="S2" value="1.1775749519432464" />
-      <entry key="S5" value="1.5009019037883116" />
-      <entry key="S10" value="1.7077442361392365" />
-      <entry key="S30" value="1.8911663533827612" />
-      <entry key="S60" value="1.94406791490486" />
-      <entry key="M2" value="1.9817870617712172" />
-      <entry key="M5" value="2.2454677836207804" />
-      <entry key="M10" value="2.991941027625792" />
-      <entry key="M15" value="3.8424044782021487" />
-      <entry key="M30" value="6.621607788157056" />
-      <entry key="H1" value="13.302507712666682" />
-      <entry key="H2" value="27.348162085375012" />
-      <entry key="H4" value="52.75852465201711" />
-      <entry key="D1" value="267.08599820753756" />
-      <entry key="W1" value="494.84583094566057" />
+      <entry key="MS100" value="2.3847224238574242E-225" />
+      <entry key="MS500" value="1.1898372662099267E-45" />
+      <entry key="S2" value="5.8731608042199916E-12" />
+      <entry key="S5" value="3.217723754910395E-5" />
+      <entry key="S10" value="0.005672498351617562" />
+      <entry key="S30" value="0.178343845225676" />
+      <entry key="S60" value="0.4223077612682327" />
+      <entry key="M2" value="0.6498544535455689" />
+      <entry key="M5" value="0.8552942517827903" />
+      <entry key="M10" value="1.249001654758497" />
+      <entry key="M15" value="2.0474345033879002" />
+      <entry key="M30" value="5.45258957639982" />
+      <entry key="H1" value="11.344577028590068" />
+      <entry key="H2" value="18.310043951569906" />
+      <entry key="H4" value="30.734362577493556" />
+      <entry key="D1" value="223.7097694902893" />
+      <entry key="W1" value="502.937960002209" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="0.0" />
-      <entry key="MS500" value="0.0" />
-      <entry key="S2" value="4.605490152804315E-155" />
-      <entry key="S5" value="1.8420878719228948E-62" />
-      <entry key="S10" value="1.3572353782313865E-31" />
-      <entry key="S30" value="5.1390761992911906E-11" />
-      <entry key="S60" value="7.168735034363585E-6" />
-      <entry key="M2" value="0.002677449352343306" />
-      <entry key="M5" value="0.09355963381206436" />
-      <entry key="M10" value="0.30599968796826416" />
-      <entry key="M15" value="0.4593877697556244" />
-      <entry key="M30" value="0.914247138417089" />
-      <entry key="H1" value="2.440497469444899" />
-      <entry key="H2" value="5.154828932752623" />
-      <entry key="H4" value="8.329282189126838" />
-      <entry key="D1" value="40.666169798490785" />
-      <entry key="W1" value="80.30000062980977" />
+      <entry key="MS100" value="1.0" />
+      <entry key="MS500" value="1.0" />
+      <entry key="S2" value="1.0000000000687428" />
+      <entry key="S5" value="1.0000860777563771" />
+      <entry key="S10" value="1.0092778098911985" />
+      <entry key="S30" value="1.2101269820918101" />
+      <entry key="S60" value="1.4583960973784684" />
+      <entry key="M2" value="1.677049569058148" />
+      <entry key="M5" value="1.8563242487080314" />
+      <entry key="M10" value="1.9614039384018473" />
+      <entry key="M15" value="2.1421552914793835" />
+      <entry key="M30" value="3.517162151357479" />
+      <entry key="H1" value="7.0004788095131" />
+      <entry key="H2" value="11.450156392412712" />
+      <entry key="H4" value="16.155855682191557" />
+      <entry key="D1" value="48.7209739447952" />
+      <entry key="W1" value="96.63366208957399" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.9201876506248757" />
-      <entry key="MS500" value="0.984399449889021" />
-      <entry key="S2" value="1.168928441710086" />
-      <entry key="S5" value="1.4941274592724434" />
-      <entry key="S10" value="1.7032918748697092" />
-      <entry key="S30" value="1.8893667514372643" />
-      <entry key="S60" value="1.9431279549566498" />
-      <entry key="M2" value="1.9837829000942204" />
-      <entry key="M5" value="2.3367918476033576" />
-      <entry key="M10" value="3.2947980683314446" />
-      <entry key="M15" value="4.2987673459284" />
-      <entry key="M30" value="7.5331128254169935" />
-      <entry key="H1" value="15.739555116809957" />
-      <entry key="H2" value="32.498541577412226" />
-      <entry key="H4" value="61.083277112515994" />
-      <entry key="D1" value="307.748814305543" />
-      <entry key="W1" value="575.144934334424" />
+      <entry key="MS100" value="5.78199984172973E-6" />
+      <entry key="MS500" value="0.08962220300098919" />
+      <entry key="S2" value="0.5471468506395368" />
+      <entry key="S5" value="0.7857292774445509" />
+      <entry key="S10" value="0.8969872949420913" />
+      <entry key="S30" value="1.3089983518882633" />
+      <entry key="S60" value="1.8147409381963016" />
+      <entry key="M2" value="2.281967573041245" />
+      <entry key="M5" value="2.6896139402390555" />
+      <entry key="M10" value="3.1978215159508174" />
+      <entry key="M15" value="4.179235639382112" />
+      <entry key="M30" value="8.95934861167515" />
+      <entry key="H1" value="18.33481815014913" />
+      <entry key="H2" value="29.752272392270697" />
+      <entry key="H4" value="46.88458982867647" />
+      <entry key="D1" value="272.4272822951143" />
+      <entry key="W1" value="599.5706144496597" />
     </decayedShown>
   </component>
   <component name="ProblemsViewState">
@@ -191,7 +206,10 @@
       <workItem from="1794482512795" duration="54000" />
       <workItem from="1794484322331" duration="777000" />
       <workItem from="1794486623714" duration="54000" />
-      <workItem from="1794486712193" duration="6999000" />
+      <workItem from="1794486712193" duration="15916000" />
+      <workItem from="1794791580238" duration="92000" />
+      <workItem from="1794792771670" duration="64000" />
+      <workItem from="1794792973367" duration="7117000" />
     </task>
     <task id="LOCAL-00001" summary="Friction-free member onboarding, auth, and responsive UI:&#10;- Responsive landing page with emerald/indigo ambient lighting and mobile-first design.&#10;- Frictionless member registration &amp; login using phone numbers (no passwords required for church members).&#10;- Added localStorage form draft persistence to prevent data loss on mobile browser reloads.&#10;- Created dedicated admin login route with role verification.&#10;- Wrapped search params in Suspense and configured Supabase RLS policies for smooth database inserts.&#10;- Included Vercel Analytics and Speed Insights in root layout.">
       <option name="closed" value="true" />
@@ -505,14 +523,32 @@
       <option name="project" value="LOCAL" />
       <updated>1794494872653</updated>
     </task>
-    <option name="localTasksCounter" value="40" />
+    <task id="LOCAL-00040" summary="Secure check-in flow with URL expiration fix">
+      <option name="closed" value="true" />
+      <created>1794513526221</created>
+      <option name="number" value="00040" />
+      <option name="presentableId" value="LOCAL-00040" />
+      <option name="project" value="LOCAL" />
+      <updated>1794513526221</updated>
+    </task>
+    <option name="localTasksCounter" value="41" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Fix(security): resolve admin RLS recursion error and add isolated admin_profiles schema:&#10; - Admin login page set.&#10; - Super Admin created initialized in Supabase.&#10; - Fix async and hydration errors in login and register for members." />
     <MESSAGE value="- Admin Dashboard" />
     <MESSAGE value="Add gender/email fields, guest edit/delete, dynamic attendance states, and persistent QR state" />
     <MESSAGE value="Fix(build): defer new Date() state initialization to useEffect to resolve Vercel pre-render error" />
@@ -537,6 +573,7 @@
     <MESSAGE value="App Icon" />
     <MESSAGE value="App Icon &amp; Geo Location" />
     <MESSAGE value="Secure check-in flow with URL expiration timestamps, multi-location geofencing, and static PWA icons." />
-    <option name="LAST_COMMIT_MESSAGE" value="Secure check-in flow with URL expiration timestamps, multi-location geofencing, and static PWA icons." />
+    <MESSAGE value="Secure check-in flow with URL expiration fix" />
+    <option name="LAST_COMMIT_MESSAGE" value="Secure check-in flow with URL expiration fix" />
   </component>
 </project>

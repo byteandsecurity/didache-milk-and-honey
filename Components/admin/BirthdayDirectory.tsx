@@ -2,15 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { Cake, Calendar, ChevronDown, Gift, Sparkles, PartyPopper } from 'lucide-react';
-
-interface Member {
-    id: string;
-    first_name: string;
-    last_name: string;
-    phone_number?: string;
-    date_of_birth?: string | null;
-    gender?: string;
-}
+import { MemberProfile } from "@/types/admin";
 
 interface ParsedDOB {
     monthIndex: number;
@@ -18,7 +10,7 @@ interface ParsedDOB {
     year: number | null;
 }
 
-interface ProcessedMember extends Member {
+interface ProcessedMember extends MemberProfile {
     dobDay: number;
     dobYear: number | null;
 }
@@ -29,7 +21,7 @@ interface CountdownResult {
 }
 
 interface BirthdayDirectoryProps {
-    members: Member[];
+    members: MemberProfile[];
 }
 
 const MONTH_NAMES = [
@@ -58,9 +50,9 @@ export default function BirthdayDirectory({ members }: BirthdayDirectoryProps) {
     const currentDay = today.getDate();
     const currentMonthName = MONTH_NAMES[currentMonthIndex];
 
-    // Helper: Parse DOB string safely handling YYYY-MM-DD or MM-DD or 1900-MM-DD
-    const parseDOB = (dobStr?: string | null): ParsedDOB | null => {
-        if (!dobStr) return null;
+    // Helper: Safely parse DOB string or unknown type handling YYYY-MM-DD or MM-DD
+    const parseDOB = (dobStr: unknown): ParsedDOB | null => {
+        if (!dobStr || typeof dobStr !== 'string') return null;
         if (dobStr.includes('-')) {
             const parts = dobStr.split('-');
             if (parts.length === 3) {
@@ -91,7 +83,7 @@ export default function BirthdayDirectory({ members }: BirthdayDirectoryProps) {
         MONTH_NAMES.forEach((m) => { groups[m] = []; });
 
         members.forEach((m) => {
-            const parsed = parseDOB(m.date_of_birth);
+            const parsed = parseDOB(m.dob || m.date_of_birth);
             if (parsed && parsed.monthIndex >= 0 && parsed.monthIndex < 12) {
                 const monthName = MONTH_NAMES[parsed.monthIndex];
                 groups[monthName].push({

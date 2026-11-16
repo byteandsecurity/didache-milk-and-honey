@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import {
     Users, ChevronDown, UserCheck, UserX,
-    HeartHandshake, Beaker, PlusCircle, BarChart3, ArrowRight, Award
+    HeartHandshake, Beaker, PlusCircle, BarChart3, ArrowRight, Award, TrendingUp, ShieldAlert
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -46,7 +46,7 @@ export default function OverviewAnalytics({ members = [], guests = [], attendanc
 
     const activeDailyDate = testSimulatedDate;
 
-    // Daily Check-In Calculations (Accurate & Isolated)
+    // Daily Check-In Calculations
     const dailyMemberAttendance = useMemo(() => {
         return localAttendance.filter((a: any) => {
             const sessionObj = sessions.find((s: any) => s.id === a.session_id);
@@ -103,8 +103,8 @@ export default function OverviewAnalytics({ members = [], guests = [], attendanc
 
     return (
         <div className="space-y-6">
-            {/* Top Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
+            {/* Top High-Level Summary Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div className="rounded-3xl border border-emerald-500/30 bg-slate-900/80 p-5 shadow-xl sm:col-span-1">
                     <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Total Worshippers</span>
                     <div className="text-3xl font-extrabold text-white mt-2">{totalWorshippers}</div>
@@ -128,7 +128,7 @@ export default function OverviewAnalytics({ members = [], guests = [], attendanc
                 </div>
             </div>
 
-            {/* Demographic Split */}
+            {/* Demographic Split Preview */}
             <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 shadow-xl space-y-3">
                 <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Demographic & Gender Split</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
@@ -156,21 +156,21 @@ export default function OverviewAnalytics({ members = [], guests = [], attendanc
                 </div>
             </div>
 
-            {/* Dedicated Analytics Engine Gateway Banner */}
-            <div className="rounded-3xl border border-emerald-500/40 bg-linear-to-r from-emerald-950/60 via-slate-900 to-slate-900 p-6 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-6 backdrop-blur-xl">
-                <div className="space-y-1 text-center sm:text-left">
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 uppercase tracking-wider">
-                        <BarChart3 className="w-3.5 h-3.5" /> Deep Statistical Suite
+            {/* 🚀 Executive Analytics Engine Gateway Banner */}
+            <div className="rounded-3xl border border-emerald-500/40 bg-linear-to-r from-emerald-950/80 via-slate-900 to-slate-900 p-6 sm:p-8 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-6 backdrop-blur-xl">
+                <div className="space-y-2 text-center sm:text-left">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                        <BarChart3 className="w-3.5 h-3.5" /> Multi-Tier Intelligence Suite
                     </span>
-                    <h3 className="text-lg font-bold text-white">Looking for the Full Executive Analytics Engine?</h3>
-                    <p className="text-xs text-slate-300 max-w-xl">
-                        Access comprehensive daily, monthly, quarterly, and yearly reporting, peak turnout trends, visitor conversion breakdowns, and automated pastoral care lists in a dedicated workspace.
+                    <h3 className="text-xl sm:text-2xl font-extrabold text-white">Explore Full Executive Analytics Engine</h3>
+                    <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
+                        Seamlessly navigate deep Daily, Monthly, Quarterly, and Yearly reporting. Track attendance loyalty rates, visitor conversion trends, and repeat guest dynamics without friction.
                     </p>
                 </div>
 
                 <button
                     onClick={() => router.push('/admin/analytics')}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 px-5 py-3 text-xs font-semibold text-white shadow-lg shadow-emerald-600/30 transition-all shrink-0 cursor-pointer"
+                    className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 px-6 py-3.5 text-xs font-semibold text-white shadow-xl shadow-emerald-600/30 transition-all transform hover:-translate-y-0.5 shrink-0 cursor-pointer"
                 >
                     <span>Open Analytics Engine</span>
                     <ArrowRight className="w-4 h-4" />
@@ -178,7 +178,7 @@ export default function OverviewAnalytics({ members = [], guests = [], attendanc
             </div>
 
             {/* Daily Operational Snapshot & Testing Bar */}
-            <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl space-y-6">
+            <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 sm:p-8 shadow-2xl space-y-6">
 
                 {/* 🧪 Testing Control Bar */}
                 <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">

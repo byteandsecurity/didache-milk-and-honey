@@ -1,15 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
     ShieldCheck, QrCode, Users, LogOut, Calendar, UserPlus,
-    UserCheck, Shield, X, Cake, RefreshCw
+    UserCheck, Shield, Cake, RefreshCw, AlertTriangle, CheckCircle2
 } from 'lucide-react';
 import LoadingSpinner from '@/Components/LoadingSpinner';
-import {DidacheGeometricIcon} from "@/Components/DidacheIcon";
+import { DidacheGeometricIcon } from '@/Components/DidacheIcon';
 import Footer from '@/Components/Footer';
+
+// Import Shared Types from `@/types/admin` to eliminate TS2322 type mismatch errors
+import { AdminProfile, MemberProfile, GuestProfile, SessionRecord, AttendanceRecord } from '@/types/admin';
 
 // Import Modular Admin Components
 import OverviewAnalytics from '@/Components/admin/OverviewAnalytics';
@@ -18,49 +21,103 @@ import GuestManagement from '@/Components/admin/GuestManagement';
 import QrGenerator from '@/Components/admin/QrGenerator';
 import StaffDirectory from '@/Components/admin/StaffDirectory';
 import BirthdayDirectory from '@/Components/admin/BirthdayDirectory';
+import AddUserModal from '@/Components/admin/AddUserModal';
+
+type AdminTab = 'overview' | 'roster' | 'guests' | 'sessions' | 'birthdays' | 'staff';
+
+// Reusable Confirmation Modal Component
+interface ConfirmationModalProps {
+    isOpen: boolean;
+    title?: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    isLoading?: boolean;
+    onConfirm: () => void;
+    onClose: () => void;
+}
+
+function ConfirmationModal({
+                               isOpen,
+                               title = 'Confirm Action',
+                               message,
+                               confirmText = 'Yes, Proceed',
+                               cancelText = 'Cancel',
+                               isLoading = false,
+                               onConfirm,
+                               onClose,
+                           }: ConfirmationModalProps) {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-70 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="w-full max-w-sm rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-2xl space-y-4 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mx-auto">
+                    <AlertTriangle className="h-6 w-6" />
+                </div>
+                <div className="space-y-1">
+                    <h3 className="text-sm font-bold text-white">{title}</h3>
+                    <p className="text-xs text-slate-400 leading-relaxed">{message}</p>
+                </div>
+                <div className="flex gap-2 pt-2">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        disabled={isLoading}
+                        className="flex-1 rounded-xl bg-slate-800 hover:bg-slate-700 py-2.5 text-xs font-semibold text-slate-300 transition cursor-pointer disabled:opacity-50"
+                    >
+                        {cancelText}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onConfirm}
+                        disabled={isLoading}
+                        className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 py-2.5 text-xs font-semibold text-white shadow transition cursor-pointer disabled:opacity-50"
+                    >
+                        {isLoading ? 'Processing...' : confirmText}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function AdminDashboard() {
-    // 1. Initialize Active Tab from localStorage so refresh stays on current page
-    const [activeTab, setActiveTab] = useState<'overview' | 'roster' | 'guests' | 'sessions' | 'birthdays' | 'staff'>('overview');
+    const router = useRouter();
+    const supabase = createClient();
 
-    useEffect(() => {
-        const savedTab = localStorage.getItem('didache_admin_active_tab') as any;
-        if (savedTab) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setActiveTab(savedTab);
+    // 1. Lazy state initializer to load saved tab without synchronous effect setState
+    const [activeTab, setActiveTab] = useState<AdminTab>(() => {
+        if (typeof window !== 'undefined') {
+            const savedTab = localStorage.getItem('didache_admin_active_tab') as AdminTab;
+            if (savedTab) return savedTab;
         }
-    }, []);
+        return 'overview';
+    });
 
-    const handleTabChange = (tabId: 'overview' | 'roster' | 'guests' | 'sessions' | 'birthdays' | 'staff') => {
+    const handleTabChange = (tabId: AdminTab) => {
         setActiveTab(tabId);
         localStorage.setItem('didache_admin_active_tab', tabId);
     };
 
     // Shared Data States
-    const [adminProfile, setAdminProfile] = useState<any>(null);
-    const [members, setMembers] = useState<any[]>([]);
-    const [guests, setGuests] = useState<any[]>([]);
-    const [attendance, setAttendance] = useState<any[]>([]);
-    const [sessions, setSessions] = useState<any[]>([]);
-    const [adminList, setAdminList] = useState<any[]>([]);
+    const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null);
+    const [members, setMembers] = useState<MemberProfile[]>([]);
+    const [guests, setGuests] = useState<GuestProfile[]>([]);
+    const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+    const [sessions, setSessions] = useState<SessionRecord[]>([]);
+    const [adminList, setAdminList] = useState<AdminProfile[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Modal State for Manual Enrolment
+    // Toast Feedback Banner State
+    const [actionMsg, setActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+    // Modal State for Manual Enrolment Component & Logout Confirmation
     const [showAddModal, setShowAddModal] = useState(false);
-    const [addType, setAddType] = useState<'member' | 'guest'>('member');
-    const [newFirstName, setNewFirstName] = useState('');
-    const [newLastName, setNewLastName] = useState('');
-    const [newEmail, setNewEmail] = useState('');
-    const [newPhone, setNewPhone] = useState('');
-    const [newGender, setNewGender] = useState<'Male' | 'Female'>('Male');
-    const [formMsg, setFormMsg] = useState<string | null>(null);
-    const [savingUser, setSavingUser] = useState(false);
+    const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
 
-    const router = useRouter();
-    const supabase = createClient();
-
-    const fetchDashboardData = async () => {
-        setLoading(true);
+    // Optimized parallel data fetch using Promise.all
+    const fetchDashboardData = useCallback(async () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
             router.push('/auth/admin/login');
@@ -81,63 +138,46 @@ export default function AdminDashboard() {
 
         setAdminProfile(profile);
 
-        const { data: memberData } = await supabase.from('profiles').select('*').order('first_name', { ascending: true });
+        // Execute all table queries concurrently in parallel for maximum speed
+        const [
+            { data: memberData },
+            { data: guestData },
+            { data: staffData },
+            { data: sessionData },
+            { data: attendanceData }
+        ] = await Promise.all([
+            supabase.from('profiles').select('*').order('first_name', { ascending: true }),
+            supabase.from('guest_profiles').select('*').order('created_at', { ascending: false }),
+            supabase.from('admin_profiles').select('*').order('role', { ascending: false }),
+            supabase.from('sessions').select('*').order('session_date', { ascending: false }),
+            supabase.from('attendance').select('*')
+        ]);
+
         setMembers(memberData || []);
-
-        const { data: guestData } = await supabase.from('guest_profiles').select('*').order('created_at', { ascending: false });
         setGuests(guestData || []);
-
-        const { data: staffData } = await supabase.from('admin_profiles').select('*').order('role', { ascending: false });
         setAdminList(staffData || []);
-
-        const { data: sessionData } = await supabase.from('sessions').select('*').order('session_date', { ascending: false });
         setSessions(sessionData || []);
-
-        const { data: attendanceData } = await supabase.from('attendance').select('*');
         setAttendance(attendanceData || []);
 
         setLoading(false);
-    };
-
-    useEffect(() => {
-        void fetchDashboardData();
     }, [router, supabase]);
 
-    const handleAddUser = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setSavingUser(true);
-        setFormMsg(null);
-
-        if (addType === 'member') {
-            const { error } = await supabase.from('profiles').insert([{
-                first_name: newFirstName,
-                last_name: newLastName,
-                email: newEmail || null,
-                phone_number: newPhone,
-                gender: newGender,
-                role: 'member',
-            }]);
-            if (error) { setFormMsg(`Error: ${error.message}`); setSavingUser(false); return; }
-        } else {
-            const { error } = await supabase.from('guest_profiles').insert([{
-                full_name: `${newFirstName} ${newLastName}`,
-                phone_number: newPhone,
-                gender: newGender,
-                attendance_count: 1,
-            }]);
-            if (error) { setFormMsg(`Error: ${error.message}`); setSavingUser(false); return; }
-        }
-
-        setSavingUser(false);
-        setShowAddModal(false);
-        setNewFirstName('');
-        setNewLastName('');
-        setNewEmail('');
-        setNewPhone('');
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         void fetchDashboardData();
+    }, [fetchDashboardData]);
+
+    // Delayed refresh wrapper so success toast banners display fully before data refetches
+    const handleDelayedRefresh = () => {
+        setActionMsg({ type: 'success', text: 'Data successfully synchronized!' });
+        setTimeout(() => {
+            void fetchDashboardData();
+            setActionMsg(null);
+        }, 1500);
     };
 
-    const handleLogout = async () => {
+    const executeLogout = async () => {
+        setLogoutConfirmOpen(false);
         await supabase.auth.signOut();
         localStorage.removeItem('didache_admin_name');
         localStorage.removeItem('didache_admin_active_tab');
@@ -145,13 +185,23 @@ export default function AdminDashboard() {
     };
 
     if (loading) {
-        return <LoadingSpinner text='Loading Admin Console.' icon={ShieldCheck} />;
+        return <LoadingSpinner text="Loading Admin Console." icon={ShieldCheck} />;
     }
 
-    const upgradeEligibleGuests = guests.filter((g) => !g.is_converted_to_member && (g.attendance_count >= 3 || g.total_visits >= 3));
+    const upgradeEligibleGuests = guests.filter((g) => !g.is_converted_to_member && (g.attendance_count >= 3 || (g.total_visits || 0) >= 3));
 
     return (
-        <div className="min-h-screen flex flex-col justify-between p-3 sm:p-6 lg:p-12 max-w-7xl mx-auto overflow-x-hidden">
+        <div className="min-h-screen flex flex-col justify-between p-3 sm:p-6 lg:p-12 max-w-7xl mx-auto overflow-x-hidden space-y-4">
+            {/* Success/Error Banner Toast */}
+            {actionMsg && (
+                <div className={`p-3 rounded-2xl border text-xs flex items-center gap-2 shadow-lg animate-in fade-in duration-200 ${
+                    actionMsg.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-red-500/10 border-red-500/20 text-red-300'
+                }`}>
+                    {actionMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertTriangle className="w-4 h-4 shrink-0" />}
+                    <span className="font-semibold">{actionMsg.text}</span>
+                </div>
+            )}
+
             {/* Header */}
             <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-800/80">
                 <div className="flex items-center gap-3">
@@ -172,10 +222,9 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-                    {/* Refresh Data Button */}
                     <button
                         onClick={() => void fetchDashboardData()}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-emerald-400 hover:border-slate-700 transition"
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-emerald-400 hover:border-slate-700 transition cursor-pointer"
                         title="Refresh Data"
                     >
                         <RefreshCw className="h-3.5 w-3.5" />
@@ -183,16 +232,16 @@ export default function AdminDashboard() {
                     </button>
 
                     <button
-                        onClick={() => { setAddType('member'); setShowAddModal(true); }}
-                        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3.5 py-2 text-xs font-semibold text-white shadow-lg transition"
+                        onClick={() => setShowAddModal(true)}
+                        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3.5 py-2 text-xs font-semibold text-white shadow-lg transition cursor-pointer"
                     >
                         <UserPlus className="h-3.5 w-3.5" />
                         <span>Add Member / Guest</span>
                     </button>
 
                     <button
-                        onClick={handleLogout}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-400 hover:text-red-400 transition"
+                        onClick={() => setLogoutConfirmOpen(true)}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-400 hover:text-red-400 transition cursor-pointer"
                         title="Sign Out"
                     >
                         <LogOut className="h-3.5 w-3.5" />
@@ -201,8 +250,8 @@ export default function AdminDashboard() {
                 </div>
             </header>
 
-            {/* Navigation Tabs - With horizontal scroll indicator & clean inline text badge */}
-            <div className="relative my-6 border-b border-slate-800/80 pb-3">
+            {/* Navigation Tabs */}
+            <div className="relative my-2 border-b border-slate-800/80 pb-3">
                 <nav className="flex items-center gap-2 overflow-x-auto scroll-smooth pb-1 text-xs font-semibold scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
                     {[
                         { id: 'overview', label: 'Overview Analytics', icon: Calendar },
@@ -217,8 +266,8 @@ export default function AdminDashboard() {
                         return (
                             <button
                                 key={tab.id}
-                                onClick={() => handleTabChange(tab.id as any)}
-                                className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition whitespace-nowrap ${
+                                onClick={() => handleTabChange(tab.id as AdminTab)}
+                                className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
                                     isActive ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' : 'bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-slate-200'
                                 }`}
                             >
@@ -240,10 +289,10 @@ export default function AdminDashboard() {
                     <OverviewAnalytics members={members} guests={guests} attendance={attendance} sessions={sessions} />
                 )}
                 {activeTab === 'roster' && (
-                    <MemberRoster members={members} attendance={attendance} sessions={sessions} onRefresh={fetchDashboardData} />
+                    <MemberRoster members={members} attendance={attendance} sessions={sessions} onRefresh={handleDelayedRefresh} />
                 )}
                 {activeTab === 'guests' && (
-                    <GuestManagement guests={guests} onRefresh={fetchDashboardData} />
+                    <GuestManagement guests={guests} onRefresh={handleDelayedRefresh} />
                 )}
                 {activeTab === 'sessions' && (
                     <QrGenerator />
@@ -252,54 +301,26 @@ export default function AdminDashboard() {
                     <BirthdayDirectory members={members} />
                 )}
                 {activeTab === 'staff' && (
-                    <StaffDirectory adminList={adminList} adminProfile={adminProfile} onRefresh={fetchDashboardData} />
+                    <StaffDirectory adminList={adminList} adminProfile={adminProfile} onRefresh={handleDelayedRefresh} />
                 )}
             </main>
 
-            {/* Manual Enrolment Modal */}
-            {showAddModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-                    <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-5 sm:p-6 shadow-2xl space-y-4">
-                        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                            <h2 className="text-sm font-bold text-white">Manual Enrolment</h2>
-                            <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-white"><X className="w-4 h-4" /></button>
-                        </div>
-                        <div className="flex rounded-xl bg-slate-950 p-1 border border-slate-800">
-                            <button onClick={() => setAddType('member')} className={`flex-1 py-1.5 text-xs font-semibold rounded-lg ${addType === 'member' ? 'bg-emerald-600 text-white' : 'text-slate-400'}`}>Member</button>
-                            <button onClick={() => setAddType('guest')} className={`flex-1 py-1.5 text-xs font-semibold rounded-lg ${addType === 'guest' ? 'bg-emerald-600 text-white' : 'text-slate-400'}`}>Guest</button>
-                        </div>
-                        {formMsg && <div className="p-3 rounded bg-red-500/10 text-xs text-red-300">{formMsg}</div>}
-                        <form onSubmit={handleAddUser} className="space-y-3">
-                            <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                    <label className="block text-[10px] text-slate-400 mb-1">First Name *</label>
-                                    <input type="text" placeholder="First Name" value={newFirstName} onChange={(e) => setNewFirstName(e.target.value)} required className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white focus:outline-none" />
-                                </div>
-                                <div>
-                                    <label className="block text-[10px] text-slate-400 mb-1">Last Name *</label>
-                                    <input type="text" placeholder="Last Name" value={newLastName} onChange={(e) => setNewLastName(e.target.value)} required className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white focus:outline-none" />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-[10px] text-slate-400 mb-1">Email Address</label>
-                                <input type="email" placeholder="Email Address" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white focus:outline-none" />
-                            </div>
-                            <div>
-                                <label className="block text-[10px] text-slate-400 mb-1">Phone Number *</label>
-                                <input type="tel" placeholder="Phone Number" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} required className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white focus:outline-none" />
-                            </div>
-                            <div>
-                                <label className="block text-[10px] text-slate-400 mb-1">Gender *</label>
-                                <select value={newGender} onChange={(e) => setNewGender(e.target.value as any)} className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-emerald-400 font-semibold focus:outline-none">
-                                    <option value="Male" className="bg-slate-950 text-blue-400">Male</option>
-                                    <option value="Female" className="bg-slate-950 text-pink-400">Female</option>
-                                </select>
-                            </div>
-                            <button type="submit" disabled={savingUser} className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-2.5 text-xs font-semibold text-white shadow transition">Save Record</button>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <AddUserModal
+                isOpen={showAddModal}
+                onClose={() => setShowAddModal(false)}
+                onSuccess={handleDelayedRefresh}
+            />
+
+            {/* Logout Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={logoutConfirmOpen}
+                title="Confirm Sign Out"
+                message="Are you sure you want to log out of your administrative session?"
+                confirmText="Yes, Sign Out"
+                cancelText="Cancel"
+                onConfirm={() => void executeLogout()}
+                onClose={() => setLogoutConfirmOpen(false)}
+            />
 
             <Footer />
         </div>
