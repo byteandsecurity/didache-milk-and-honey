@@ -33,8 +33,10 @@ export async function recordAttendance(userId: string, sessionId?: string, sessi
                 }).sync.register('sync-attendance');
             }
         }
+        return { success: true, offline: !navigator.onLine };
     } catch (err) {
         console.error('Failed to record attendance offline:', err);
+        return { success: false, offline: true };
     }
 }
 
@@ -61,8 +63,10 @@ export async function recordGuestAttendance(guestId: string, sessionDate: string
                 }).sync.register('sync-guest-attendance');
             }
         }
+        return { success: true, offline: !navigator.onLine };
     } catch (err) {
         console.error('Failed to record guest attendance offline:', err);
+        return { success: false, offline: true };
     }
 }
 
